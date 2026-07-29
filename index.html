@@ -46,12 +46,11 @@
         }
     </script>
     <style>
-        .hero-bg {
-            /* Darkened gradient for better text readability */
-            background-image: linear-gradient(rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.7)), url('hero-background.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+        .hero-grid {
+            background:
+                radial-gradient(circle at 12% 18%, rgba(249, 115, 22, 0.12), transparent 24rem),
+                radial-gradient(circle at 92% 80%, rgba(59, 130, 246, 0.16), transparent 30rem),
+                #f8fafc;
         }
 
         .mobile-booking-bar {
@@ -75,12 +74,6 @@
             outline: 3px solid #fb923c;
             outline-offset: 4px;
             border-radius: 0.75rem;
-        }
-
-        @media (max-width: 767px) {
-            .hero-bg {
-                background-attachment: scroll;
-            }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -112,9 +105,10 @@
                     <span class="font-extrabold text-2xl text-blue-900 tracking-tighter">Spanish with <span class="text-orange-500">Elkin</span></span>
                 </a>
                 
-                <div class="hidden md:flex space-x-8 items-center">
+                <div class="hidden lg:flex space-x-6 items-center">
                     <a href="#method" class="text-gray-600 hover:text-orange-500 font-medium transition">Method</a>
                     <a href="#about" class="text-gray-600 hover:text-orange-500 font-medium transition">Teacher</a>
+                    <a href="#speaking-club" class="text-gray-600 hover:text-orange-500 font-medium transition">Speaking Club</a>
                     <a href="#pricing" class="text-gray-600 hover:text-orange-500 font-medium transition">Pricing</a>
                     <a href="#faq" class="text-gray-600 hover:text-orange-500 font-medium transition">FAQ</a>
                     <a href="https://calendly.com/ontalkingspanish/clase-de-45-minutos" target="_blank"
@@ -124,7 +118,7 @@
                 </div>
 
                 <button id="mobile-menu-button" type="button"
-                        class="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-blue-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    class="lg:hidden inline-flex items-center justify-center p-2 rounded-lg text-blue-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
                         aria-controls="mobile-menu" aria-expanded="false" aria-label="Open navigation menu">
                     <svg id="menu-open-icon" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -135,10 +129,11 @@
                 </button>
             </div>
 
-            <div id="mobile-menu" class="hidden md:hidden pb-5" aria-label="Mobile navigation">
+            <div id="mobile-menu" class="hidden lg:hidden pb-5" aria-label="Mobile navigation">
                 <div class="flex flex-col gap-2 border-t border-gray-100 pt-4">
                     <a href="#method" class="mobile-menu-link rounded-lg px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-500 font-medium transition">Method</a>
                     <a href="#about" class="mobile-menu-link rounded-lg px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-500 font-medium transition">Teacher</a>
+                    <a href="#speaking-club" class="mobile-menu-link rounded-lg px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-500 font-medium transition">Speaking Club</a>
                     <a href="#pricing" class="mobile-menu-link rounded-lg px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-500 font-medium transition">Pricing</a>
                     <a href="#faq" class="mobile-menu-link rounded-lg px-4 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-500 font-medium transition">FAQ</a>
                     <a href="https://calendly.com/ontalkingspanish/clase-de-45-minutos" target="_blank"
@@ -150,37 +145,135 @@
         </div>
     </nav>
 
-    <header class="hero-bg min-h-screen flex items-center justify-center text-center px-4 pt-20 relative">
-        <div class="max-w-4xl text-white z-10">
-            <div class="inline-block bg-orange-500/20 backdrop-blur-md border border-orange-400/30 rounded-full px-4 py-1 mb-6 text-sm font-semibold tracking-wide uppercase animate-pulse">
-                INTERMEDIATE SPANISH · B1–B2
+    <header class="hero-grid relative overflow-hidden pt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 lg:py-28">
+            <div class="grid lg:grid-cols-[1.08fr_0.92fr] gap-12 lg:gap-20 items-center">
+                <div class="max-w-3xl text-center lg:text-left">
+                    <p class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-2 mb-6 text-xs sm:text-sm font-bold tracking-wider uppercase text-blue-900 shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-orange-500" aria-hidden="true"></span>
+                        1-on-1 online Spanish · B1–B2
+                    </p>
+
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-blue-950 leading-[1.08] tracking-tight mb-6">
+                        You already know the rules.
+                        <span class="block text-orange-500">Now trust your Spanish.</span>
+                    </h1>
+
+                    <p class="text-lg sm:text-xl text-gray-600 leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0">
+                        Less time reviewing grammar you already understand. More conversation, reflection, and comprehension through the topics you see and hear every day.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                        <a href="https://calendly.com/ontalkingspanish/clase-de-45-minutos" target="_blank" rel="noopener noreferrer"
+                           class="inline-flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-full font-bold text-lg transition transform hover:-translate-y-0.5 shadow-xl shadow-orange-200/70">
+                            See Available Times
+                            <svg class="w-5 h-5 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/>
+                            </svg>
+                        </a>
+                        <a href="#about"
+                           class="inline-flex items-center justify-center border border-gray-300 bg-white hover:border-blue-300 hover:bg-blue-50 text-blue-900 px-7 py-4 rounded-full font-bold text-lg transition">
+                            Meet Your Teacher
+                        </a>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-200 flex flex-wrap justify-center lg:justify-start gap-x-7 gap-y-3 text-sm text-gray-600" aria-label="Why learn with Elkin">
+                        <span class="flex items-center gap-2"><span class="text-orange-500 font-bold" aria-hidden="true">✓</span> 5+ years teaching</span>
+                        <span class="flex items-center gap-2"><span class="text-orange-500 font-bold" aria-hidden="true">✓</span> Native Spanish speaker</span>
+                        <span class="flex items-center gap-2"><span class="text-orange-500 font-bold" aria-hidden="true">✓</span> Personalized feedback</span>
+                    </div>
+                </div>
+
+                <div class="relative max-w-lg mx-auto lg:max-w-none" aria-label="From understanding Spanish to speaking confidently">
+                    <div class="absolute -top-10 -right-8 w-40 h-40 bg-orange-200/70 rounded-full blur-3xl" aria-hidden="true"></div>
+                    <div class="absolute -bottom-10 -left-8 w-52 h-52 bg-blue-200/70 rounded-full blur-3xl" aria-hidden="true"></div>
+
+                    <div class="relative bg-white/85 backdrop-blur-sm rounded-[2rem] border border-white p-6 sm:p-8 shadow-2xl shadow-blue-900/10">
+                        <div class="flex items-center justify-between mb-7">
+                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-blue-900">Your next conversation</p>
+                            <span class="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-full px-3 py-1.5">
+                                <span class="w-2 h-2 bg-emerald-500 rounded-full" aria-hidden="true"></span>
+                                Ready to speak
+                            </span>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex justify-end">
+                                <p class="max-w-[88%] bg-blue-900 text-white rounded-2xl rounded-br-md px-5 py-4 leading-relaxed shadow-md">
+                                    I know the grammar—but I still hesitate when I speak…
+                                </p>
+                            </div>
+
+                            <div class="flex items-start gap-3">
+                                <span class="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500 text-white font-extrabold flex items-center justify-center" aria-hidden="true">E</span>
+                                <div class="max-w-[82%]">
+                                    <p class="text-xs font-bold text-gray-500 mb-1.5 ml-1">ELKIN</p>
+                                    <p class="bg-orange-50 border border-orange-100 text-gray-800 rounded-2xl rounded-tl-md px-5 py-4 leading-relaxed">
+                                        Let’s use what you already know to discuss real topics and build confidence.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 mt-7 pt-6 border-t border-gray-100 text-center">
+                            <div>
+                                <p class="font-extrabold text-blue-950">Converse</p>
+                                <p class="text-xs text-gray-500 mt-1">about real life</p>
+                            </div>
+                            <div class="border-x border-gray-100">
+                                <p class="font-extrabold text-blue-950">Reflect</p>
+                                <p class="text-xs text-gray-500 mt-1">on your ideas</p>
+                            </div>
+                            <div>
+                                <p class="font-extrabold text-blue-950">Understand</p>
+                                <p class="text-xs text-gray-500 mt-1">what you hear</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <h1 class="text-5xl md:text-7xl font-extrabold mb-6 leading-tight tracking-tight">
-                Speak Spanish confidently <br>
-                <span class="text-orange-400 bg-clip-text">in real conversations.</span>
-            </h1>
-            <p class="text-lg md:text-2xl mb-8 text-gray-200 font-light max-w-3xl mx-auto leading-relaxed">
-              Online Spanish classes for B1–B2 learners who understand Spanish but want to speak more naturally, fluently and confidently.
-            </p>
-            <ul class="flex flex-wrap justify-center gap-x-6 gap-y-3 mb-10 text-sm md:text-base font-semibold text-white" aria-label="Class benefits">
-                <li class="flex items-center gap-2"><span class="text-orange-400" aria-hidden="true">✓</span> Conversation-focused lessons</li>
-                <li class="flex items-center gap-2"><span class="text-orange-400" aria-hidden="true">✓</span> Natural vocabulary</li>
-                <li class="flex items-center gap-2"><span class="text-orange-400" aria-hidden="true">✓</span> Personalized feedback</li>
-            </ul>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-               <a href="https://calendly.com/ontalkingspanish/clase-de-45-minutos" target="_blank"
-                  class="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-full font-bold text-lg transition transform hover:scale-105 shadow-xl">
-                  Check Availability
-               </a>
-               <a href="#how-it-works" class="w-full sm:w-auto bg-white/10 hover:bg-white/20 border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg transition backdrop-blur-sm">
-                  How it works
-               </a>
-            </div>
-            <p class="mt-6 text-sm text-gray-300">★★★★★ Loved by Spanish learners around the world</p>
         </div>
     </header>
 
-    <section id="method" class="pt-32 pb-24 bg-white relative overflow-hidden scroll-mt-24">
+    <section id="about" class="py-20 bg-gray-50 overflow-hidden">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center gap-12">
+                <div class="w-full md:w-1/2 relative">
+                    <div class="absolute -top-4 -left-4 w-24 h-24 bg-orange-200 rounded-full blur-2xl opacity-50"></div>
+
+                    <img src="elkin-teacher-v2.jpg" alt="Elkin, online Spanish teacher" width="1024" height="1536" loading="lazy" decoding="async" class="rounded-3xl shadow-2xl relative z-10 w-full object-cover h-[620px] md:h-[640px]" style="object-position: 50% 31%;">
+
+                    <div class="absolute -bottom-6 -right-6 bg-white p-4 rounded-xl shadow-lg z-20 hidden md:block">
+                        <p class="font-bold text-blue-900 text-lg">5+ Years</p>
+                        <p class="text-sm text-gray-500">of experience</p>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/2">
+                    <h2 class="text-orange-500 font-bold uppercase tracking-wider mb-2 text-sm">Your Teacher</h2>
+
+                    <h3 class="text-3xl md:text-4xl font-bold text-blue-900 mb-6">Hola, soy Elkin 👋</h3>
+
+                    <p class="text-gray-600 mb-6 text-lg leading-relaxed">
+                        My goal is not for you to just memorize grammar rules, but to <strong>communicate with confidence</strong>. I am a native speaker and I've helped hundreds of students go from "I understand but can't speak" to having fluid conversations.
+                    </p>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-3 text-gray-700">
+                            <span class="bg-blue-100 text-blue-600 p-1 rounded-full text-xs">✓</span> 100% Personalized Classes
+                        </li>
+                        <li class="flex items-center gap-3 text-gray-700">
+                            <span class="bg-blue-100 text-blue-600 p-1 rounded-full text-xs">✓</span> Real culture & news + Official Textbooks
+                        </li>
+                        <li class="flex items-center gap-3 text-gray-700">
+                            <span class="bg-blue-100 text-blue-600 p-1 rounded-full text-xs">✓</span> Relaxed & Patient Atmosphere
+                        </li>
+                    </ul>
+                    <a href="#pricing" class="text-orange-500 font-bold hover:text-orange-600 underline">See my class packages &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="method" class="pt-32 pb-24 bg-white relative overflow-hidden scroll-mt-32">
         <div class="absolute -top-20 -left-20 w-64 h-64 bg-blue-100/60 rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
         <div class="absolute -bottom-24 -right-16 w-72 h-72 bg-orange-100/60 rounded-full blur-3xl pointer-events-none" aria-hidden="true"></div>
         <div class="max-w-7xl mx-auto px-4 text-center relative z-10">
@@ -188,26 +281,26 @@
             <p class="text-gray-500 mb-16 max-w-2xl mx-auto text-lg">A practical path for B1–B2 learners who want to speak with greater confidence and naturalness.</p>
             
             <div class="grid md:grid-cols-3 gap-8">
-                <div class="p-8 border border-gray-100 rounded-3xl hover:shadow-2xl hover:border-orange-100 transition duration-300 group bg-white">
-                    <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-50 group-hover:text-orange-500 group-hover:rotate-3 transition mx-auto text-blue-700" aria-hidden="true">
-                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
+                <div class="p-8 border border-gray-100 rounded-3xl shadow-sm hover:shadow-2xl hover:border-orange-100 hover:-translate-y-1 transition duration-300 group bg-white">
+                    <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-50 group-hover:text-orange-500 group-hover:-translate-y-1 transition duration-300 mx-auto text-blue-700" aria-hidden="true">
+                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.75 4.75h2.5a4 4 0 0 1 4 4v2.5a4 4 0 0 1-4 4h-.75l-3.25 2v-2"/><path d="M14.75 7.25h-8a4 4 0 0 0-4 4v1.5a4 4 0 0 0 4 4h.75l3.25 2v-2h4a4 4 0 0 0 4-4v-1.5a4 4 0 0 0-4-4Z"/><path d="M7.25 12h.01M10.75 12h.01M14.25 12h.01"/></svg>
                     </div>
                     <h3 class="text-xl font-bold mb-3 text-gray-900">Speak More Fluently</h3>
                     <p class="text-gray-600 leading-relaxed">Express ideas with fewer pauses and less mental translation.</p>
                 </div>
-                <div class="p-8 border border-gray-100 rounded-3xl hover:shadow-2xl hover:border-orange-100 transition duration-300 group bg-white">
-                    <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-50 group-hover:text-orange-500 group-hover:-translate-y-1 transition mx-auto text-blue-700" aria-hidden="true">
-                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a2 2 0 0 1 2 2v15a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 20.5Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17a2 2 0 0 1 2-2h2.5a2.5 2.5 0 0 1 2.5 2.5Z"/></svg>
+                <div class="p-8 border border-gray-100 rounded-3xl shadow-sm hover:shadow-2xl hover:border-orange-100 hover:-translate-y-1 transition duration-300 group bg-white">
+                    <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-50 group-hover:text-orange-500 group-hover:-translate-y-1 transition duration-300 mx-auto text-blue-700" aria-hidden="true">
+                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.25A5.75 5.75 0 0 0 6.25 3.5H3.5v14h2.75A5.75 5.75 0 0 1 12 20.25Z"/><path d="M12 6.25a5.75 5.75 0 0 1 5.75-2.75h2.75v14h-2.75A5.75 5.75 0 0 0 12 20.25Z"/><path d="M6.75 8h2.5M6.75 11h2.5M14.75 8h2.5M14.75 11h2.5"/></svg>
                     </div>
                     <h3 class="text-xl font-bold mb-3 text-gray-900">Use Natural Vocabulary</h3>
                     <p class="text-gray-600 leading-relaxed">Learn useful expressions, connectors and everyday language.</p>
                 </div>
-                <div class="p-8 border border-gray-100 rounded-3xl hover:shadow-2xl hover:border-orange-100 transition duration-300 group bg-white">
-                    <div class="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mb-6 mx-auto text-orange-600" aria-hidden="true">
-                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/><path d="M8 22h8"/></svg>
+                <div class="p-8 border border-gray-100 rounded-3xl shadow-sm hover:shadow-2xl hover:border-orange-100 hover:-translate-y-1 transition duration-300 group bg-white">
+                    <div class="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-50 group-hover:text-orange-500 group-hover:-translate-y-1 transition duration-300 mx-auto text-orange-600" aria-hidden="true">
+                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8.75" y="3" width="6.5" height="11" rx="3.25"/><path d="M5.5 10.75v.5a6.5 6.5 0 0 0 13 0v-.5M12 17.75V21M9 21h6"/><path d="M20.5 7.25c.9.9.9 2.6 0 3.5M3.5 7.25c-.9.9-.9 2.6 0 3.5"/></svg>
                     </div>
-                    <h3 class="text-xl font-bold mb-3 text-orange-800">Improve Accuracy &amp; Pronunciation</h3>
-                    <p class="text-gray-700 leading-relaxed">Correct persistent mistakes and sound clearer and more natural.</p>
+                    <h3 class="text-xl font-bold mb-3 text-gray-900">Improve Accuracy &amp; Pronunciation</h3>
+                    <p class="text-gray-600 leading-relaxed">Correct persistent mistakes and sound clearer and more natural.</p>
                 </div>
             </div>
         </div>
@@ -247,44 +340,6 @@
                     Check Available Times <span class="ml-2" aria-hidden="true">→</span>
                 </a>
                 <p class="text-sm text-gray-500 mt-4">No complicated forms. Pick a time and we will guide you from there.</p>
-            </div>
-        </div>
-    </section>
-
-    <section id="about" class="py-20 bg-gray-50 overflow-hidden">
-        <div class="max-w-6xl mx-auto px-4">
-            <div class="flex flex-col md:flex-row items-center gap-12">
-                <div class="w-full md:w-1/2 relative">
-                    <div class="absolute -top-4 -left-4 w-24 h-24 bg-orange-200 rounded-full blur-2xl opacity-50"></div>
-                    
-                    <img src="elkin-teacher-v2.jpg" alt="Elkin, online Spanish teacher" width="1024" height="1536" loading="lazy" decoding="async" class="rounded-3xl shadow-2xl relative z-10 w-full object-cover h-[620px] md:h-[640px]" style="object-position: 50% 31%;">
-                    
-                    <div class="absolute -bottom-6 -right-6 bg-white p-4 rounded-xl shadow-lg z-20 hidden md:block">
-                        <p class="font-bold text-blue-900 text-lg">5+ Years</p>
-                        <p class="text-sm text-gray-500">of experience</p>
-                    </div>
-                </div>
-                <div class="w-full md:w-1/2">
-                    <h2 class="text-orange-500 font-bold uppercase tracking-wider mb-2 text-sm">Your Teacher</h2>
-                    
-                    <h3 class="text-3xl md:text-4xl font-bold text-blue-900 mb-6">Hola, soy Elkin 👋</h3>
-                    
-                    <p class="text-gray-600 mb-6 text-lg leading-relaxed">
-                        My goal is not for you to just memorize grammar rules, but to <strong>communicate with confidence</strong>. I am a native speaker and I've helped hundreds of students go from "I understand but can't speak" to having fluid conversations.
-                    </p>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-3 text-gray-700">
-                            <span class="bg-blue-100 text-blue-600 p-1 rounded-full text-xs">✓</span> 100% Personalized Classes
-                        </li>
-                        <li class="flex items-center gap-3 text-gray-700">
-                            <span class="bg-blue-100 text-blue-600 p-1 rounded-full text-xs">✓</span> Real culture & news + Official Textbooks
-                        </li>
-                        <li class="flex items-center gap-3 text-gray-700">
-                            <span class="bg-blue-100 text-blue-600 p-1 rounded-full text-xs">✓</span> Relaxed & Patient Atmosphere
-                        </li>
-                    </ul>
-                    <a href="#pricing" class="text-orange-500 font-bold hover:text-orange-600 underline">See my class packages &rarr;</a>
-                </div>
             </div>
         </div>
     </section>
@@ -359,6 +414,69 @@
                             <p class="text-xs text-gray-500">UK 🇬🇧</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="speaking-club" class="py-24 bg-orange-50 scroll-mt-20 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-20 items-center">
+                <div>
+                    <p class="text-orange-600 font-bold uppercase tracking-wider mb-3 text-sm">Now forming the first group</p>
+                    <h2 class="text-4xl md:text-5xl font-extrabold text-blue-950 leading-tight mb-6">
+                        Spanish Speaking Club
+                    </h2>
+                    <p class="text-2xl font-bold text-blue-900 mb-5">
+                        You know the rules. Now trust your Spanish.
+                    </p>
+                    <p class="text-lg text-gray-600 leading-relaxed mb-8 max-w-2xl">
+                        A small-group conversation program for B1 learners who understand the foundations but still hesitate when speaking. Build confidence through everyday topics—with space to converse, reflect, understand, and receive useful feedback.
+                    </p>
+
+                    <ul class="grid sm:grid-cols-2 gap-4 text-gray-700">
+                        <li class="flex items-start gap-3">
+                            <span class="mt-0.5 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold" aria-hidden="true">✓</span>
+                            <span><strong class="block text-blue-950">4–5 learners</strong>Enough voices to interact, small enough for everyone to participate.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="mt-0.5 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold" aria-hidden="true">✓</span>
+                            <span><strong class="block text-blue-950">B1 intermediate level</strong>A balanced group for learners facing similar speaking challenges.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="mt-0.5 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold" aria-hidden="true">✓</span>
+                            <span><strong class="block text-blue-950">Weekly 60-minute sessions</strong>A focused hour to turn knowledge into confidence.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="mt-0.5 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold" aria-hidden="true">✓</span>
+                            <span><strong class="block text-blue-950">Real, relevant topics</strong>Conversation inspired by everyday media, ideas, and life.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded-3xl p-7 sm:p-9 shadow-2xl shadow-orange-900/10 border border-orange-100">
+                    <span class="inline-flex bg-blue-50 text-blue-800 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider mb-5">Priority list · No payment required</span>
+                    <h3 class="text-2xl font-extrabold text-blue-950 mb-3">Help us find your group</h3>
+                    <p class="text-gray-600 leading-relaxed mb-7">
+                        Tell me your level, time zone, and availability. I’ll contact you when a compatible group is ready to open.
+                    </p>
+
+                    <div class="space-y-3 mb-7 text-sm text-gray-700">
+                        <p class="flex gap-3"><span class="font-extrabold text-orange-500">1.</span> Share your level and available times.</p>
+                        <p class="flex gap-3"><span class="font-extrabold text-orange-500">2.</span> I match learners with compatible schedules.</p>
+                        <p class="flex gap-3"><span class="font-extrabold text-orange-500">3.</span> You receive the schedule and price before deciding.</p>
+                    </div>
+
+                    <a href="https://docs.google.com/forms/d/e/1FAIpQLScnRsduR673nLgxgulO4Drn4RAavslKsmJCCrw5I3mII6DEKg/viewform?usp=publish-editor"
+                       target="_blank" rel="noopener noreferrer"
+                       class="w-full inline-flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white px-7 py-4 rounded-full font-bold text-lg transition transform hover:-translate-y-0.5 shadow-lg shadow-orange-200">
+                        Join the Priority List
+                        <span class="ml-2" aria-hidden="true">→</span>
+                    </a>
+                    <p class="text-xs text-gray-500 text-center mt-4">
+                        The interest form opens in a new tab. Joining does not reserve a paid place.
+                        <a href="privacy.html" class="text-blue-700 hover:text-orange-600 font-semibold underline">Privacy Policy</a>
+                    </p>
                 </div>
             </div>
         </div>
@@ -559,6 +677,7 @@
             <p class="text-gray-500 text-sm mt-4">&copy; 2026. Teaching Spanish to the World 🌎.</p>
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6">
                 <a href="mailto:ontalkingspanish@gmail.com" class="text-gray-400 hover:text-white transition">ontalkingspanish@gmail.com</a>
+                <a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy Policy</a>
                 <a href="https://www.facebook.com/spanishwithelkin" target="_blank" rel="noopener noreferrer"
                    aria-label="Visit Spanish with Elkin on Facebook"
                    class="inline-flex items-center gap-2 text-blue-300 hover:text-orange-400 transition">
@@ -609,7 +728,7 @@
         });
 
         window.addEventListener('resize', () => {
-            if (window.innerWidth >= 768) setMobileMenu(false);
+            if (window.innerWidth >= 1024) setMobileMenu(false);
         });
 
         const revealSections = document.querySelectorAll('body > section');
