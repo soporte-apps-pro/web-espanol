@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Spanish with Elkin</title>
+  <defs>
+    <linearGradient id="background" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E3A8A"/>
+      <stop offset="1" stop-color="#172554"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#background)"/>
+  <path d="M16 46c4 4 9 6 16 6 8 0 14-3 18-8" fill="none" stroke="#F97316" stroke-width="4" stroke-linecap="round"/>
+  <text x="32" y="39" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="25" font-weight="700" text-anchor="middle">SE</text>
+  <circle cx="51" cy="14" r="5" fill="#F97316"/>
+</svg>
