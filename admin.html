@@ -54,6 +54,11 @@
     .access-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; }
     .private-layout { display:grid; grid-template-columns:330px 1fr; gap:20px; align-items:start; }
     .private-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; }
+    .private-card > summary { cursor:pointer; list-style:none; align-items:center; }
+    .private-card > summary::-webkit-details-marker { display:none; }
+    .private-card > summary::after { content:'Abrir'; color:var(--blue); font-size:.72rem; font-weight:800; }
+    .private-card[open] > summary::after { content:'Cerrar'; }
+    .private-card-body { padding-top:14px; border-top:1px solid var(--line); margin-top:14px; }
     .private-list { display:grid; gap:12px; }
     .private-meta { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; }
     .private-meta div { background:#f8fafc; border-radius:10px; padding:10px; }
