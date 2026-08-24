@@ -48,12 +48,19 @@
     .stat span { color:var(--muted); font-size:.82rem; }
     .toolbar { display:grid; grid-template-columns:minmax(220px,1fr) 220px auto; gap:12px; align-items:center; margin-bottom:18px; }
     .applications { display:grid; gap:14px; }
-    .application { background:#fff; border:1px solid var(--line); border-radius:20px; padding:22px; box-shadow:0 5px 20px rgba(15,23,42,.04); }
+    .application { background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 5px 20px rgba(15,23,42,.04); overflow:hidden; }
+    .application > summary { display:block; padding:16px 18px; cursor:pointer; list-style:none; }
+    .application > summary::-webkit-details-marker { display:none; }
+    .application > summary:hover { background:#f8fafc; }
+    .application[open] > summary { border-bottom:1px solid var(--line); background:#f8fafc; }
+    .application-body { padding:18px; }
+    .application-summary-meta { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; color:var(--muted); font-size:.78rem; }
+    .application-summary-meta strong { color:var(--navy); }
     .application-top { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; }
     .application h2 { color:var(--navy); font-size:1.15rem; margin-bottom:4px; }
     .application a { color:#1d4ed8; }
     .pill { display:inline-flex; border-radius:999px; padding:5px 10px; font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; background:#eff6ff; color:#1d4ed8; }
-    .details { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:18px 0; }
+    .details { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:0 0 14px; }
     .detail { background:#f8fafc; border-radius:12px; padding:12px; }
     .detail b { display:block; color:var(--muted); font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
     .detail span { color:var(--navy); font-size:.86rem; font-weight:600; word-break:break-word; }
@@ -208,6 +215,6 @@
     </section>
   </main>
 
-  <script type="module" src="admin.js?v=20260824-3"></script>
+  <script type="module" src="admin.js?v=20260824-4"></script>
 </body>
 </html>

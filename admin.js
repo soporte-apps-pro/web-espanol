@@ -115,14 +115,22 @@ function applicationCard(application) {
   const slots = (application.candidateSlots || []).map((slot) => slotLabels[slot] || slot).join(" · ");
 
   return `
-    <article class="application" data-application-id="${escapeHtml(application.id)}">
+    <details class="application" data-application-id="${escapeHtml(application.id)}">
+      <summary>
       <div class="application-top">
         <div>
           <h2>${escapeHtml(application.fullName)}</h2>
           <a href="mailto:${escapeHtml(application.email)}">${escapeHtml(application.email)}</a>
+          <div class="application-summary-meta">
+            <span><strong>${escapeHtml(application.spanishLevel)}</strong></span>
+            <span>${escapeHtml(application.country)}</span>
+            <span>${escapeHtml(slots)}</span>
+          </div>
         </div>
         <span class="pill">${escapeHtml(statusLabels[application.status] || application.status)}</span>
       </div>
+      </summary>
+      <div class="application-body">
       <div class="details">
         <div class="detail"><b>País</b><span>${escapeHtml(application.country)}</span></div>
         <div class="detail"><b>Nivel</b><span>${escapeHtml(application.spanishLevel)}</span></div>
@@ -154,7 +162,8 @@ function applicationCard(application) {
         <label for="status-${escapeHtml(application.id)}">Estado</label>
         <select id="status-${escapeHtml(application.id)}" data-status-select>${statusOptions}</select>
       </div>
-    </article>`;
+      </div>
+    </details>`;
 }
 
 function renderApplications() {
