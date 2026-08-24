@@ -177,14 +177,19 @@ function renderApplications() {
 }
 
 function renderAcceptedMemberOptions() {
-  const accepted = applications.filter((application) => application.status === "accepted");
+  const assignedApplicationIds = new Set(
+    groups.flatMap((group) => group.memberApplicationIds || [])
+  );
+  const accepted = applications.filter((application) =>
+    application.status === "accepted" && !assignedApplicationIds.has(application.id)
+  );
   groupMemberOptions.innerHTML = accepted.length
     ? accepted.map((application) => `
       <label class="member-option">
         <input type="checkbox" name="memberApplicationIds" value="${escapeHtml(application.id)}">
         <span><strong>${escapeHtml(application.fullName)}</strong><br>${escapeHtml(application.email)}</span>
       </label>`).join("")
-    : '<p class="muted">Todavía no hay estudiantes aceptados.</p>';
+    : '<p class="muted">No hay estudiantes aceptados pendientes de asignación.</p>';
 }
 
 function createSessionDates(startDate) {
@@ -242,6 +247,7 @@ async function loadGroups() {
   ));
   groups = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
   renderGroups();
+  renderAcceptedMemberOptions();
 }
 
 async function updateGroupStatus(event) {
@@ -378,6 +384,14 @@ groupForm.addEventListener("submit", async (event) => {
   const memberApplicationIds = data.getAll("memberApplicationIds");
   if (!memberApplicationIds.length || memberApplicationIds.length > 5) {
     setMessage(groupsMessage, "Selecciona entre 1 y 5 estudiantes aceptados.");
+    return;
+  }
+  const assignedApplicationIds = new Set(
+    groups.flatMap((group) => group.memberApplicationIds || [])
+  );
+  if (memberApplicationIds.some((id) => assignedApplicationIds.has(id))) {
+    renderAcceptedMemberOptions();
+    setMessage(groupsMessage, "Uno de los estudiantes ya pertenece a otro grupo. Actualizamos la lista disponible.");
     return;
   }
   const slot = String(data.get("slot"));
