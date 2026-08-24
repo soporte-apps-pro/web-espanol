@@ -154,8 +154,45 @@ function applicationCard(application) {
           <label for="admin-notes-${escapeHtml(application.id)}">Notas administrativas</label>
           <textarea id="admin-notes-${escapeHtml(application.id)}" data-admin-notes maxlength="2000" placeholder="Seguimiento, necesidades y acuerdos con el estudiante">${escapeHtml(application.adminNotes || "")}</textarea>
         </div>
+        <div class="payment-fields">
+          <h3>Inscripción y pago</h3>
+          <div>
+            <label for="payment-status-${escapeHtml(application.id)}">Estado del pago</label>
+            <select id="payment-status-${escapeHtml(application.id)}" data-payment-status>
+              <option value="pending" ${(application.paymentStatus || "pending") === "pending" ? "selected" : ""}>Pendiente</option>
+              <option value="paid" ${application.paymentStatus === "paid" ? "selected" : ""}>Pagado</option>
+              <option value="refunded" ${application.paymentStatus === "refunded" ? "selected" : ""}>Reembolsado</option>
+            </select>
+          </div>
+          <div>
+            <label for="expected-amount-${escapeHtml(application.id)}">Valor esperado (USD)</label>
+            <input id="expected-amount-${escapeHtml(application.id)}" type="number" data-expected-amount min="0" max="10000" step="0.01" value="${escapeHtml(application.expectedAmount ?? 84)}">
+          </div>
+          <div>
+            <label for="paid-amount-${escapeHtml(application.id)}">Valor recibido (USD)</label>
+            <input id="paid-amount-${escapeHtml(application.id)}" type="number" data-paid-amount min="0" max="10000" step="0.01" value="${escapeHtml(application.paidAmount ?? 0)}">
+          </div>
+          <div>
+            <label for="payment-date-${escapeHtml(application.id)}">Fecha de pago</label>
+            <input id="payment-date-${escapeHtml(application.id)}" type="date" data-payment-date value="${escapeHtml(application.paymentDate || "")}">
+          </div>
+          <div>
+            <label for="payment-method-${escapeHtml(application.id)}">Método</label>
+            <select id="payment-method-${escapeHtml(application.id)}" data-payment-method>
+              <option value="" ${!application.paymentMethod ? "selected" : ""}>Sin registrar</option>
+              <option value="transfer" ${application.paymentMethod === "transfer" ? "selected" : ""}>Transferencia</option>
+              <option value="paypal" ${application.paymentMethod === "paypal" ? "selected" : ""}>PayPal</option>
+              <option value="cash" ${application.paymentMethod === "cash" ? "selected" : ""}>Efectivo</option>
+              <option value="other" ${application.paymentMethod === "other" ? "selected" : ""}>Otro</option>
+            </select>
+          </div>
+          <div class="payment-reference">
+            <label for="payment-reference-${escapeHtml(application.id)}">Referencia o nota del pago</label>
+            <input id="payment-reference-${escapeHtml(application.id)}" type="text" data-payment-reference maxlength="160" value="${escapeHtml(application.paymentReference || "")}">
+          </div>
+        </div>
         <div class="admin-save">
-          <button class="button" type="button" data-save-admin>Guardar seguimiento</button>
+          <button class="button" type="button" data-save-admin>Guardar seguimiento y pago</button>
         </div>
       </section>
       <div class="card-actions">
@@ -245,8 +282,16 @@ function renderGroups() {
     return;
   }
   groupsList.innerHTML = groups.map((group) => {
+    const memberApplications = (group.memberApplicationIds || []).map((id) =>
+      applications.find((application) => application.id === id)
+    ).filter(Boolean);
     const memberNames = (group.memberApplicationIds || []).map((id) =>
       applications.find((application) => application.id === id)?.fullName || "Solicitud no disponible"
+    );
+    const paidCount = memberApplications.filter((application) => application.paymentStatus === "paid").length;
+    const expectedTotal = memberApplications.reduce((total, application) => total + Number(application.expectedAmount ?? 84), 0);
+    const receivedTotal = memberApplications.reduce((total, application) =>
+      total + (application.paymentStatus === "paid" ? Number(application.paidAmount || 0) : 0), 0
     );
     const memberEditor = group.status === "forming" ? `
       <div class="group-member-editor">
@@ -268,6 +313,11 @@ function renderGroups() {
         </div>
         <ul class="session-dates">${(group.sessionDates || []).map((date, index) => `<li><strong>Sesión ${index + 1}</strong><br>${escapeHtml(formatStoredDate(date))}</li>`).join("")}</ul>
         <p class="group-members"><strong>Estudiantes (${memberNames.length}/5):</strong> ${escapeHtml(memberNames.join(", ") || "Sin estudiantes")}</p>
+        <div class="payment-summary" aria-label="Resumen de pagos">
+          <div><strong>${paidCount}/${memberNames.length}</strong>pagados</div>
+          <div><strong>US$${expectedTotal.toFixed(2)}</strong>esperado</div>
+          <div><strong>US$${receivedTotal.toFixed(2)}</strong>recibido</div>
+        </div>
         ${memberEditor}
         <div class="group-status">
           <label for="group-status-${escapeHtml(group.id)}">Estado</label>
@@ -371,7 +421,19 @@ async function saveAdministrativeDetails(event) {
     contactDate: card.querySelector("[data-contact-date]").value,
     assignedGroup: card.querySelector("[data-assigned-group]").value.trim(),
     adminNotes: card.querySelector("[data-admin-notes]").value.trim(),
+    paymentStatus: card.querySelector("[data-payment-status]").value,
+    expectedAmount: Number(card.querySelector("[data-expected-amount]").value),
+    paidAmount: Number(card.querySelector("[data-paid-amount]").value),
+    paymentDate: card.querySelector("[data-payment-date]").value,
+    paymentMethod: card.querySelector("[data-payment-method]").value,
+    paymentReference: card.querySelector("[data-payment-reference]").value.trim(),
   };
+
+  if (administrativeDetails.paymentStatus === "paid" &&
+      (administrativeDetails.paidAmount <= 0 || !administrativeDetails.paymentDate || !administrativeDetails.paymentMethod)) {
+    setMessage(dashboardMessage, "Para marcar como Pagado, registra valor recibido, fecha y método.");
+    return;
+  }
 
   button.disabled = true;
   button.textContent = "Guardando…";
@@ -379,6 +441,7 @@ async function saveAdministrativeDetails(event) {
   try {
     await updateDoc(doc(database, "speakingClubApplications", application.id), administrativeDetails);
     Object.assign(application, administrativeDetails);
+    renderGroups();
     setMessage(dashboardMessage, `Seguimiento de ${application.fullName} guardado.`, "success");
   } catch (error) {
     console.error("Could not save administrative details", error);
@@ -386,7 +449,7 @@ async function saveAdministrativeDetails(event) {
     setMessage(dashboardMessage, `No fue posible guardar el seguimiento${errorCode}.`);
   } finally {
     button.disabled = false;
-    button.textContent = "Guardar seguimiento";
+    button.textContent = "Guardar seguimiento y pago";
   }
 }
 

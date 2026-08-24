@@ -71,6 +71,10 @@
     .admin-fields textarea { min-height:100px; resize:vertical; }
     .admin-notes { grid-column:1/-1; }
     .admin-save { grid-column:1/-1; display:flex; justify-content:flex-end; }
+    .payment-fields { grid-column:1/-1; display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding-top:16px; border-top:1px solid #dbeafe; }
+    .payment-fields h3 { grid-column:1/-1; }
+    .payment-fields label { margin:0 0 7px; }
+    .payment-reference { grid-column:1/-1; }
     .card-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:16px; }
     .card-actions label { margin:0; }
     .card-actions select { width:180px; padding:9px 11px; }
@@ -91,6 +95,9 @@
     .session-dates { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0; padding:0; list-style:none; }
     .session-dates li { background:#f8fafc; border-radius:9px; padding:8px; font-size:.78rem; }
     .group-members { color:var(--muted); font-size:.85rem; }
+    .payment-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; }
+    .payment-summary div { padding:10px; border-radius:10px; background:#ecfdf5; color:#065f46; font-size:.78rem; }
+    .payment-summary strong { display:block; font-size:1rem; }
     .group-member-editor { margin-top:14px; padding:14px; border:1px solid #dbeafe; border-radius:12px; background:#f8fbff; }
     .group-member-editor > strong { display:block; margin-bottom:9px; color:var(--navy); font-size:.84rem; }
     .group-member-editor .button { margin-top:12px; padding:9px 15px; font-size:.8rem; }
@@ -111,6 +118,8 @@
       .details { grid-template-columns:1fr; }
       .admin-fields { grid-template-columns:1fr; }
       .admin-fields h3,.admin-notes,.admin-save { grid-column:1; }
+      .payment-fields { grid-column:1; grid-template-columns:1fr; }
+      .payment-fields h3,.payment-reference { grid-column:1; }
       .application-top { flex-direction:column; }
       .card-actions { align-items:stretch; flex-direction:column; }
       .card-actions select { width:100%; }
@@ -215,6 +224,6 @@
     </section>
   </main>
 
-  <script type="module" src="admin.js?v=20260824-4"></script>
+  <script type="module" src="admin.js?v=20260824-5"></script>
 </body>
 </html>

@@ -59,7 +59,13 @@ service cloud.firestore {
           'status',
           'contactDate',
           'assignedGroup',
-          'adminNotes'
+          'adminNotes',
+          'paymentStatus',
+          'expectedAmount',
+          'paidAmount',
+          'paymentDate',
+          'paymentMethod',
+          'paymentReference'
         ]) &&
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) ||
           request.resource.data.status in ['new', 'contacted', 'accepted', 'rejected']) &&
@@ -71,7 +77,25 @@ service cloud.firestore {
             request.resource.data.assignedGroup.size() <= 80)) &&
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminNotes']) ||
           (request.resource.data.adminNotes is string &&
-            request.resource.data.adminNotes.size() <= 2000));
+            request.resource.data.adminNotes.size() <= 2000)) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentStatus']) ||
+          request.resource.data.paymentStatus in ['pending', 'paid', 'refunded']) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['expectedAmount']) ||
+          (request.resource.data.expectedAmount is number &&
+            request.resource.data.expectedAmount >= 0 &&
+            request.resource.data.expectedAmount <= 10000)) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['paidAmount']) ||
+          (request.resource.data.paidAmount is number &&
+            request.resource.data.paidAmount >= 0 &&
+            request.resource.data.paidAmount <= 10000)) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentDate']) ||
+          (request.resource.data.paymentDate is string &&
+            request.resource.data.paymentDate.size() <= 10)) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentMethod']) ||
+          request.resource.data.paymentMethod in ['', 'transfer', 'paypal', 'cash', 'other']) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['paymentReference']) ||
+          (request.resource.data.paymentReference is string &&
+            request.resource.data.paymentReference.size() <= 160));
       allow delete: if false;
     }
 
