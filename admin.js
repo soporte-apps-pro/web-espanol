@@ -218,8 +218,10 @@ function editableMembersForGroup(group) {
   );
 }
 
-function groupStatusOptions(status) {
+function groupStatusOptions(status, memberCount) {
+  if (status === "forming" && memberCount < 4) return '<option value="forming" selected>En formación · faltan integrantes</option>';
   if (status === "forming") return '<option value="forming" selected>En formación</option><option value="confirmed">Confirmado</option>';
+  if (status === "confirmed" && memberCount < 4) return '<option value="confirmed" selected>Confirmado · incompleto</option><option value="forming">Reabrir formación</option>';
   if (status === "confirmed") return '<option value="confirmed" selected>Confirmado</option><option value="completed">Finalizado</option>';
   return '<option value="completed" selected>Finalizado</option>';
 }
@@ -257,7 +259,7 @@ function renderGroups() {
         <div class="group-status">
           <label for="group-status-${escapeHtml(group.id)}">Estado</label>
           <select id="group-status-${escapeHtml(group.id)}" data-group-status>
-            ${groupStatusOptions(group.status)}
+            ${groupStatusOptions(group.status, memberNames.length)}
           </select>
         </div>
       </article>`;
