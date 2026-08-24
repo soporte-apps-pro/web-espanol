@@ -52,6 +52,12 @@
     .payment-row small { display:block; color:var(--muted); }
     .payment-row .button { padding:8px 13px; font-size:.78rem; }
     .access-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; }
+    .private-layout { display:grid; grid-template-columns:330px 1fr; gap:20px; align-items:start; }
+    .private-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; }
+    .private-list { display:grid; gap:12px; }
+    .private-meta { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; }
+    .private-meta div { background:#f8fafc; border-radius:10px; padding:10px; }
+    .private-meta small { display:block; color:var(--muted); }
     .access-card-head { display:flex; justify-content:space-between; gap:14px; }
     .access-card h2 { margin-bottom:4px; color:var(--navy); font-size:1.05rem; }
     .access-details { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:14px 0; }
@@ -147,6 +153,7 @@
       .card-actions select { width:100%; }
       .session-dates { grid-template-columns:1fr 1fr; }
       .payment-row { grid-template-columns:1fr; }
+      .private-layout,.private-meta { grid-template-columns:1fr; }
       .admin-tabs { display:grid; grid-template-columns:1fr 1fr; }
       .access-details { grid-template-columns:1fr; }
     }
@@ -179,6 +186,7 @@
         <button class="admin-tab" type="button" data-admin-tab="groups" aria-selected="false">Grupos (<span id="groups-tab-count">0</span>)</button>
         <button class="admin-tab" type="button" data-admin-tab="payments" aria-selected="false">Pagos (<span id="payments-tab-count">0</span>)</button>
         <button class="admin-tab" type="button" data-admin-tab="access" aria-selected="false">Accesos (<span id="access-tab-count">0</span>)</button>
+        <button class="admin-tab" type="button" data-admin-tab="private" aria-selected="false">Privadas (<span id="private-tab-count">0</span>)</button>
       </nav>
 
       <div id="applications-panel" data-admin-panel="applications">
@@ -277,9 +285,25 @@
         <p id="access-message" class="message hidden" role="status"></p>
         <div id="access-list" class="applications"></div>
       </section>
+
+      <section id="private-panel" class="hidden" data-admin-panel="private" aria-labelledby="private-title">
+        <div class="dashboard-head"><div><p class="eyebrow">Clases privadas</p><h1 id="private-title">Calendario y pagos</h1><p class="muted">Publica horarios siempre en hora Colombia y verifica cada referencia antes de confirmar.</p></div></div>
+        <p id="private-message" class="message hidden" role="status"></p>
+        <div class="private-layout">
+          <form id="private-slot-form" class="private-card">
+            <h2>Publicar horario</h2>
+            <label for="private-date">Fecha en Colombia</label><input id="private-date" name="date" type="date" required>
+            <label for="private-time">Hora en Colombia</label><input id="private-time" name="time" type="time" min="07:00" max="18:00" step="1800" required>
+            <p class="muted">El estudiante verá la conversión automática en su zona horaria.</p>
+            <button class="button" type="submit">Publicar disponibilidad</button>
+          </form>
+          <div><h2>Horarios y solicitudes</h2><div id="private-bookings" class="private-list"></div></div>
+        </div>
+      </section>
     </section>
   </main>
 
   <script type="module" src="admin.js?v=20260824-7"></script>
+  <script type="module" src="private-booking-admin.js?v=20260824-1"></script>
 </body>
 </html>

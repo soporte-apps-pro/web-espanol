@@ -199,6 +199,78 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /privateAvailability/{slotId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'heldBy', 'holdExpiresAt', 'bookingRequestId'
+        ]) &&
+        request.resource.data.heldBy == request.auth.uid &&
+        (
+          (
+            (resource.data.status == 'available' ||
+              (resource.data.status == 'held' && resource.data.holdExpiresAt <= request.time)) &&
+            request.resource.data.status == 'held' &&
+            request.resource.data.holdExpiresAt > request.time &&
+            request.resource.data.holdExpiresAt <= request.time + duration.value(10, 'm') &&
+            request.resource.data.bookingRequestId == ''
+          ) ||
+          (
+            resource.data.status == 'held' &&
+            resource.data.heldBy == request.auth.uid &&
+            resource.data.holdExpiresAt > request.time &&
+            request.resource.data.status == 'payment_review' &&
+            request.resource.data.holdExpiresAt == resource.data.holdExpiresAt &&
+            request.resource.data.bookingRequestId is string &&
+            request.resource.data.bookingRequestId.size() >= 10 &&
+            getAfter(/databases/$(database)/documents/privateBookingRequests/$(request.resource.data.bookingRequestId)).data.studentUid == request.auth.uid &&
+            getAfter(/databases/$(database)/documents/privateBookingRequests/$(request.resource.data.bookingRequestId)).data.slotId == slotId
+          )
+        )
+      );
+    }
+
+    match /privateBookingRequests/{requestId} {
+      allow create: if request.auth != null &&
+        request.resource.data.keys().hasOnly([
+          'slotId', 'studentUid', 'fullName', 'email', 'studentTimeZone',
+          'colombiaStart', 'packageId', 'packageLabel', 'amountUsd',
+          'paymentMethod', 'paymentReference', 'payerName', 'status', 'createdAt'
+        ]) &&
+        request.resource.data.studentUid == request.auth.uid &&
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 80 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() >= 5 &&
+        request.resource.data.email.size() <= 120 &&
+        request.resource.data.studentTimeZone is string &&
+        request.resource.data.studentTimeZone.size() >= 2 &&
+        request.resource.data.studentTimeZone.size() <= 80 &&
+        request.resource.data.colombiaStart is timestamp &&
+        request.resource.data.packageId in ['single', 'pack4', 'pack8'] &&
+        request.resource.data.packageLabel is string &&
+        request.resource.data.packageLabel.size() <= 60 &&
+        request.resource.data.amountUsd in [25, 84, 152] &&
+        request.resource.data.paymentMethod in ['paypal', 'transfer', 'other'] &&
+        request.resource.data.paymentReference is string &&
+        request.resource.data.paymentReference.size() >= 4 &&
+        request.resource.data.paymentReference.size() <= 160 &&
+        request.resource.data.payerName is string &&
+        request.resource.data.payerName.size() >= 2 &&
+        request.resource.data.payerName.size() <= 100 &&
+        request.resource.data.status == 'payment_review' &&
+        request.resource.data.createdAt == request.time &&
+        getAfter(/databases/$(database)/documents/privateAvailability/$(request.resource.data.slotId)).data.status == 'payment_review' &&
+        getAfter(/databases/$(database)/documents/privateAvailability/$(request.resource.data.slotId)).data.heldBy == request.auth.uid;
+      allow read: if isAdmin() ||
+        (request.auth != null && request.auth.uid == resource.data.studentUid);
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
