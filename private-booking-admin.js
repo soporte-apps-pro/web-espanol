@@ -15,7 +15,10 @@ let requests = [];
 function escapeHtml(value) { return String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
 function setMessage(text, type="error") { message.textContent=text; message.className=`message ${type}`; }
 function formatColombia(timestamp) { return timestamp?.toDate ? new Intl.DateTimeFormat("es-CO", { dateStyle:"medium", timeStyle:"short", timeZone:"America/Bogota" }).format(timestamp.toDate()) : "Sin fecha"; }
-function requestFor(slot) { return requests.find((item) => item.slotId === slot.id); }
+function requestFor(slot) {
+  if (slot.status === "available") return undefined;
+  return requests.find((item) => item.slotId === slot.id && item.status !== "rejected");
+}
 function statusLabel(status) { return ({available:"Disponible",held:"Retención temporal",payment_review:"Pago por verificar",confirmed:"Confirmado",rejected:"Rechazado",closed:"Cerrado",cancelled_by_admin:"Cancelado por fuerza mayor"})[status] || status; }
 
 function render() {
