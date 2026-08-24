@@ -216,6 +216,9 @@ service cloud.firestore {
             resource.data.googleCalendarBlocked == false &&
             resource.data.googleCalendarCheckedAt is timestamp &&
             resource.data.googleCalendarCheckedAt >= request.time - duration.value(10, 'm') &&
+            resource.data.startAt is timestamp &&
+            resource.data.startAt > request.time &&
+            resource.data.startAt <= request.time + duration.value(21, 'd') &&
             request.resource.data.status == 'held' &&
             request.resource.data.holdExpiresAt > request.time &&
             request.resource.data.holdExpiresAt <= request.time + duration.value(10, 'm') &&
@@ -228,6 +231,9 @@ service cloud.firestore {
             resource.data.googleCalendarBlocked == false &&
             resource.data.googleCalendarCheckedAt is timestamp &&
             resource.data.googleCalendarCheckedAt >= request.time - duration.value(10, 'm') &&
+            resource.data.startAt is timestamp &&
+            resource.data.startAt > request.time &&
+            resource.data.startAt <= request.time + duration.value(21, 'd') &&
             request.resource.data.status == 'payment_review' &&
             request.resource.data.holdExpiresAt == resource.data.holdExpiresAt &&
             request.resource.data.bookingRequestId is string &&

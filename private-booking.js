@@ -7,6 +7,7 @@ import { firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js
 const COLOMBIA_ZONE = "America/Bogota";
 const HOLD_MINUTES = 10;
 const GOOGLE_CHECK_MAX_AGE_MINUTES = 10;
+const BOOKING_WINDOW_DAYS = 21;
 const packages = {
   single: { label: "1 private class", amount: 25 },
   pack4: { label: "4 private classes", amount: 84 },
@@ -32,7 +33,11 @@ function googleCleared(slot) {
   const checkedAt = slot.googleCalendarCheckedAt?.toDate?.();
   return slot.googleCalendarBlocked === false && checkedAt && checkedAt.getTime() >= Date.now() - GOOGLE_CHECK_MAX_AGE_MINUTES * 60000;
 }
-function available(slot) { return googleCleared(slot) && (slot.status === "available" || (slot.status === "held" && slot.holdExpiresAt?.toDate() <= new Date())); }
+function insideBookingWindow(slot) {
+  const start = slot.startAt?.toDate?.();
+  return start && start > new Date() && start.getTime() <= Date.now() + BOOKING_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+}
+function available(slot) { return insideBookingWindow(slot) && googleCleared(slot) && (slot.status === "available" || (slot.status === "held" && slot.holdExpiresAt?.toDate() <= new Date())); }
 
 function configureZones() {
   const detected = Intl.DateTimeFormat().resolvedOptions().timeZone || COLOMBIA_ZONE;
@@ -43,7 +48,7 @@ function configureZones() {
 
 function renderSlots() {
   const zone = zoneSelect.value || COLOMBIA_ZONE;
-  const visible = slots.filter((slot) => available(slot) && slot.startAt?.toDate() > new Date()).sort((a,b) => a.startAt.seconds - b.startAt.seconds);
+  const visible = slots.filter(available).sort((a,b) => a.startAt.seconds - b.startAt.seconds);
   slotsElement.innerHTML = visible.length ? visible.map((slot) => {
     const start = slot.startAt.toDate();
     return `<button type="button" class="slot text-left rounded-2xl border border-gray-200 p-4 hover:border-orange-400" data-slot="${slot.id}" aria-pressed="${selectedSlot?.id === slot.id}"><strong class="block text-blue-950">${formatAt(start, zone)}</strong><span class="text-xs text-gray-500">${formatAt(start, COLOMBIA_ZONE)} · Colombia time</span><span class="block text-xs text-gray-500 mt-1">50 minutes</span></button>`;
@@ -92,6 +97,7 @@ async function startHold(slotId) {
       const data = snapshot.data();
       const isExpired = data.status === "held" && data.holdExpiresAt?.toMillis() <= Date.now();
       if (data.status !== "available" && !isExpired) throw new Error("slot-unavailable");
+      if (!insideBookingWindow(data)) throw new Error("outside-booking-window");
       if (data.googleCalendarBlocked !== false || !data.googleCalendarCheckedAt?.toMillis() || data.googleCalendarCheckedAt.toMillis() < Date.now() - GOOGLE_CHECK_MAX_AGE_MINUTES * 60000) throw new Error("calendar-unavailable");
       transaction.update(slotRef, { status:"held", heldBy:user.uid, holdExpiresAt:expiry, bookingRequestId:"" });
     });
@@ -100,7 +106,7 @@ async function startHold(slotId) {
     selectionPanel.classList.add("hidden"); holdPanel.classList.remove("hidden"); renderSlots(); clearInterval(countdownTimer); updateCountdown(); countdownTimer = setInterval(updateCountdown, 1000);
     holdPanel.scrollIntoView({ behavior:"smooth", block:"start" });
   } catch (error) {
-    console.error(error); setMessage(error.message === "slot-unavailable" ? "Someone else is already completing payment for this time. Please choose another." : error.message === "calendar-unavailable" ? "This time is being checked against the live calendar. Please refresh in a few minutes." : "We could not hold this time. Refresh the page and try again.");
+    console.error(error); setMessage(error.message === "slot-unavailable" ? "Someone else is already completing payment for this time. Please choose another." : error.message === "outside-booking-window" ? "Private classes can only be booked within the next three weeks. Please choose a closer date." : error.message === "calendar-unavailable" ? "This time is being checked against the live calendar. Please refresh in a few minutes." : "We could not hold this time. Refresh the page and try again.");
     await loadSlots();
   }
 }
