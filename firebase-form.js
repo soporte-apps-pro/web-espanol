@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import {
+  getToken,
   initializeAppCheck,
   ReCaptchaEnterpriseProvider,
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
@@ -26,9 +27,10 @@ const configured = Object.values(firebaseConfig).every(
 ) && Boolean(recaptchaEnterpriseSiteKey);
 
 let database = null;
+let appCheck = null;
 if (configured) {
   const app = initializeApp(firebaseConfig);
-  initializeAppCheck(app, {
+  appCheck = initializeAppCheck(app, {
     provider: new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey),
     isTokenAutoRefreshEnabled: true,
   });
@@ -86,7 +88,7 @@ form?.addEventListener("submit", async (event) => {
     return;
   }
 
-  if (!configured || !database) {
+  if (!configured || !database || !appCheck) {
     showMessage(
       "The form is ready, but Firebase still needs to be connected. Please contact ontalkingspanish@gmail.com for now.",
       "error"
@@ -119,6 +121,7 @@ form?.addEventListener("submit", async (event) => {
 
   setSubmitting(true);
   try {
+    await getToken(appCheck, true);
     await addDoc(collection(database, "speakingClubApplications"), application);
     localStorage.setItem("clubFormSubmittedAt", String(Date.now()));
     form.reset();
@@ -133,8 +136,9 @@ form?.addEventListener("submit", async (event) => {
     );
   } catch (error) {
     console.error("Speaking Club form submission failed", error);
+    const errorCode = error?.code ? ` (${error.code})` : "";
     showMessage(
-      "We could not send your information. Please try again or email ontalkingspanish@gmail.com.",
+      `We could not send your information${errorCode}. Please refresh the page and try again, or email ontalkingspanish@gmail.com.`,
       "error"
     );
   } finally {
