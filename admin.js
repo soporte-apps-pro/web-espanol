@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import {
+  getToken,
   initializeAppCheck,
   ReCaptchaEnterpriseProvider,
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
@@ -12,7 +13,7 @@ import {
 import {
   collection,
   doc,
-  getDocs,
+  getDocsFromServer,
   getFirestore,
   orderBy,
   query,
@@ -25,7 +26,7 @@ import {
 } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
-initializeAppCheck(app, {
+const appCheck = initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey),
   isTokenAutoRefreshEnabled: true,
 });
@@ -151,7 +152,8 @@ async function loadApplications() {
   refreshButton.disabled = true;
   refreshButton.textContent = "Cargando…";
   try {
-    const snapshot = await getDocs(query(
+    await getToken(appCheck, true);
+    const snapshot = await getDocsFromServer(query(
       collection(database, "speakingClubApplications"),
       orderBy("createdAt", "desc")
     ));
@@ -160,7 +162,8 @@ async function loadApplications() {
     renderApplications();
   } catch (error) {
     console.error("Could not load applications", error);
-    setMessage(dashboardMessage, "No fue posible cargar las solicitudes. Revisa la autorización del administrador.");
+    const errorCode = error?.code ? ` (${error.code})` : "";
+    setMessage(dashboardMessage, `No fue posible cargar las solicitudes${errorCode}. Pulsa Actualizar para intentarlo de nuevo.`);
   } finally {
     refreshButton.disabled = false;
     refreshButton.textContent = "Actualizar";
