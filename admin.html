@@ -77,6 +77,14 @@
     .calendar-legend-dot.private { background:var(--orange); }
     .calendar-legend-dot.external { background:#94a3b8; }
     .private-list { display:grid; gap:12px; }
+    .private-list-summary { margin:0 0 2px; color:var(--muted); font-size:.82rem; font-weight:700; }
+    .private-series-card { border-left:4px solid var(--orange); }
+    .private-series-card.private-individual-group { border-left-color:var(--blue); }
+    .private-series-slots { display:grid; gap:8px; padding:0 16px 16px; }
+    .private-series-slots .private-slot-card { background:#f8fafc; box-shadow:none; }
+    .private-series-slots .private-slot-card .group-card-head { padding:12px 14px; }
+    .private-series-slots .private-slot-card h3 { font-size:.95rem; }
+    .private-series-slots .private-slot-card .private-card-body { background:#fff; }
     .private-meta { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; }
     .private-meta div { background:#f8fafc; border-radius:10px; padding:10px; }
     .private-meta small { display:block; color:var(--muted); }
@@ -353,7 +361,7 @@
   </main>
 
   <script type="module" src="admin.js?v=20260824-8"></script>
-  <script type="module" src="private-booking-admin.js?v=20260824-3"></script>
+  <script type="module" src="private-booking-admin.js?v=20260824-4"></script>
   <script type="module" src="admin-calendar.js?v=20260824-2"></script>
 </body>
 </html>
