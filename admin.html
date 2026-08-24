@@ -65,11 +65,30 @@
     .card-actions label { margin:0; }
     .card-actions select { width:180px; padding:9px 11px; }
     .empty { text-align:center; padding:55px 20px; background:#fff; border:1px dashed #cbd5e1; border-radius:20px; color:var(--muted); }
+    .groups-section { margin-top:52px; padding-top:34px; border-top:2px solid var(--line); }
+    .group-layout { display:grid; grid-template-columns:minmax(280px,380px) 1fr; gap:20px; align-items:start; }
+    .group-form,.group-card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:22px; }
+    .group-form h2,.groups-list h2 { color:var(--navy); margin-bottom:8px; }
+    .group-form label { margin-top:14px; }
+    .member-options { display:grid; gap:8px; margin-top:8px; }
+    .member-option { display:flex; align-items:flex-start; gap:9px; padding:10px; border:1px solid var(--line); border-radius:10px; }
+    .member-option input { width:auto; margin-top:3px; }
+    .member-option span { font-size:.82rem; }
+    .group-form .button { width:100%; margin-top:20px; }
+    .groups-list { display:grid; gap:14px; }
+    .group-card-head { display:flex; justify-content:space-between; gap:12px; }
+    .group-card h3 { margin:0; color:var(--navy); }
+    .session-dates { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0; padding:0; list-style:none; }
+    .session-dates li { background:#f8fafc; border-radius:9px; padding:8px; font-size:.78rem; }
+    .group-members { color:var(--muted); font-size:.85rem; }
+    .group-status { display:flex; align-items:center; gap:10px; margin-top:14px; }
+    .group-status label { margin:0; }
     @media (max-width:800px) {
       .stats { grid-template-columns:repeat(2,1fr); }
       .toolbar { grid-template-columns:1fr; }
       .details { grid-template-columns:1fr 1fr; }
       .dashboard-head { flex-direction:column; }
+      .group-layout { grid-template-columns:1fr; }
     }
     @media (max-width:520px) {
       .topbar { padding:0 16px; }
@@ -81,6 +100,7 @@
       .application-top { flex-direction:column; }
       .card-actions { align-items:stretch; flex-direction:column; }
       .card-actions select { width:100%; }
+      .session-dates { grid-template-columns:1fr 1fr; }
     }
   </style>
 </head>
@@ -137,6 +157,40 @@
       <p id="dashboard-message" class="message hidden" role="status"></p>
       <div id="applications" class="applications"></div>
       <div id="empty-state" class="empty hidden">No hay solicitudes que coincidan con este filtro.</div>
+
+      <section class="groups-section" aria-labelledby="groups-title">
+        <div class="dashboard-head">
+          <div>
+            <p class="eyebrow">Organización académica</p>
+            <h1 id="groups-title">Grupos del Speaking Club</h1>
+            <p class="muted">Crea el horario fijo y las seis sesiones de cada grupo.</p>
+          </div>
+        </div>
+        <p id="groups-message" class="message hidden" role="status"></p>
+        <div class="group-layout">
+          <form id="group-form" class="group-form">
+            <h2>Crear grupo</h2>
+            <p class="muted">Solo aparecen solicitudes con estado Aceptada.</p>
+            <label for="group-name">Nombre del grupo</label>
+            <input id="group-name" name="name" maxlength="80" placeholder="Ej. B1 Fundadores A" required>
+            <label for="group-slot">Horario fijo</label>
+            <select id="group-slot" name="slot" required>
+              <option value="">Selecciona un horario</option>
+              <option value="monday-1000">Lunes · 10:00 Colombia</option>
+              <option value="tuesday-1700">Martes · 17:00 Colombia</option>
+              <option value="wednesday-0800">Miércoles · 08:00 Colombia</option>
+              <option value="thursday-1400">Jueves · 14:00 Colombia</option>
+              <option value="friday-1100">Viernes · 11:00 Colombia</option>
+            </select>
+            <label for="group-start-date">Primera sesión</label>
+            <input id="group-start-date" name="startDate" type="date" required>
+            <label>Estudiantes aceptados (máximo 5)</label>
+            <div id="group-member-options" class="member-options"></div>
+            <button class="button" type="submit">Crear grupo de seis sesiones</button>
+          </form>
+          <div id="groups-list" class="groups-list"></div>
+        </div>
+      </section>
     </section>
   </main>
 

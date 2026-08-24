@@ -11,12 +11,14 @@ import {
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import {
+  addDoc,
   collection,
   doc,
   getDocsFromServer,
   getFirestore,
   orderBy,
   query,
+  serverTimestamp,
   updateDoc,
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import {
@@ -45,6 +47,10 @@ const statusFilter = document.querySelector("#filter-status");
 const applicationsContainer = document.querySelector("#applications");
 const emptyState = document.querySelector("#empty-state");
 const resultCount = document.querySelector("#result-count");
+const groupForm = document.querySelector("#group-form");
+const groupMemberOptions = document.querySelector("#group-member-options");
+const groupsList = document.querySelector("#groups-list");
+const groupsMessage = document.querySelector("#groups-message");
 
 const statusLabels = {
   new: "Nueva",
@@ -62,6 +68,7 @@ const slotLabels = {
 };
 
 let applications = [];
+let groups = [];
 
 function setMessage(element, text, type = "error") {
   element.textContent = text;
@@ -166,6 +173,95 @@ function renderApplications() {
   applicationsContainer.querySelectorAll("[data-save-admin]").forEach((button) => {
     button.addEventListener("click", saveAdministrativeDetails);
   });
+  renderAcceptedMemberOptions();
+}
+
+function renderAcceptedMemberOptions() {
+  const accepted = applications.filter((application) => application.status === "accepted");
+  groupMemberOptions.innerHTML = accepted.length
+    ? accepted.map((application) => `
+      <label class="member-option">
+        <input type="checkbox" name="memberApplicationIds" value="${escapeHtml(application.id)}">
+        <span><strong>${escapeHtml(application.fullName)}</strong><br>${escapeHtml(application.email)}</span>
+      </label>`).join("")
+    : '<p class="muted">Todavía no hay estudiantes aceptados.</p>';
+}
+
+function createSessionDates(startDate) {
+  const firstSession = new Date(`${startDate}T12:00:00Z`);
+  return Array.from({ length: 6 }, (_, index) => {
+    const session = new Date(firstSession);
+    session.setUTCDate(firstSession.getUTCDate() + (index * 7));
+    return session.toISOString().slice(0, 10);
+  });
+}
+
+function formatStoredDate(date) {
+  return new Intl.DateTimeFormat("es-CO", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T12:00:00Z`));
+}
+
+function renderGroups() {
+  if (!groups.length) {
+    groupsList.innerHTML = '<div class="empty">Aún no has creado grupos.</div>';
+    return;
+  }
+  groupsList.innerHTML = groups.map((group) => {
+    const memberNames = (group.memberApplicationIds || []).map((id) =>
+      applications.find((application) => application.id === id)?.fullName || "Solicitud no disponible"
+    );
+    return `
+      <article class="group-card" data-group-id="${escapeHtml(group.id)}">
+        <div class="group-card-head">
+          <div><h3>${escapeHtml(group.name)}</h3><span class="muted">${escapeHtml(slotLabels[group.slot] || group.slot)}</span></div>
+          <span class="pill">${escapeHtml(group.status === "forming" ? "En formación" : group.status === "confirmed" ? "Confirmado" : "Finalizado")}</span>
+        </div>
+        <ul class="session-dates">${(group.sessionDates || []).map((date, index) => `<li><strong>Sesión ${index + 1}</strong><br>${escapeHtml(formatStoredDate(date))}</li>`).join("")}</ul>
+        <p class="group-members"><strong>Estudiantes (${memberNames.length}/5):</strong> ${escapeHtml(memberNames.join(", ") || "Sin estudiantes")}</p>
+        <div class="group-status">
+          <label for="group-status-${escapeHtml(group.id)}">Estado</label>
+          <select id="group-status-${escapeHtml(group.id)}" data-group-status>
+            <option value="forming" ${group.status === "forming" ? "selected" : ""}>En formación</option>
+            <option value="confirmed" ${group.status === "confirmed" ? "selected" : ""}>Confirmado</option>
+            <option value="completed" ${group.status === "completed" ? "selected" : ""}>Finalizado</option>
+          </select>
+        </div>
+      </article>`;
+  }).join("");
+  groupsList.querySelectorAll("[data-group-status]").forEach((select) => {
+    select.addEventListener("change", updateGroupStatus);
+  });
+}
+
+async function loadGroups() {
+  const snapshot = await getDocsFromServer(query(
+    collection(database, "speakingClubGroups"),
+    orderBy("createdAt", "desc")
+  ));
+  groups = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+  renderGroups();
+}
+
+async function updateGroupStatus(event) {
+  const select = event.currentTarget;
+  const card = select.closest("[data-group-id]");
+  const group = groups.find((item) => item.id === card?.dataset.groupId);
+  if (!group) return;
+  const previousStatus = group.status;
+  select.disabled = true;
+  try {
+    await updateDoc(doc(database, "speakingClubGroups", group.id), { status: select.value });
+    group.status = select.value;
+    renderGroups();
+    setMessage(groupsMessage, `Estado de ${group.name} actualizado.`, "success");
+  } catch (error) {
+    select.value = previousStatus;
+    setMessage(groupsMessage, `No fue posible actualizar el grupo (${error?.code || "error"}).`);
+  } finally {
+    select.disabled = false;
+  }
 }
 
 async function saveAdministrativeDetails(event) {
@@ -210,6 +306,7 @@ async function loadApplications() {
     applications = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
     updateStats();
     renderApplications();
+    await loadGroups();
   } catch (error) {
     console.error("Could not load applications", error);
     const errorCode = error?.code ? ` (${error.code})` : "";
@@ -274,3 +371,44 @@ signOutButton.addEventListener("click", () => signOut(auth));
 refreshButton.addEventListener("click", loadApplications);
 searchInput.addEventListener("input", renderApplications);
 statusFilter.addEventListener("change", renderApplications);
+groupForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearMessage(groupsMessage);
+  const data = new FormData(groupForm);
+  const memberApplicationIds = data.getAll("memberApplicationIds");
+  if (!memberApplicationIds.length || memberApplicationIds.length > 5) {
+    setMessage(groupsMessage, "Selecciona entre 1 y 5 estudiantes aceptados.");
+    return;
+  }
+  const slot = String(data.get("slot"));
+  const startDate = String(data.get("startDate"));
+  const expectedWeekday = { "monday-1000": 1, "tuesday-1700": 2, "wednesday-0800": 3, "thursday-1400": 4, "friday-1100": 5 }[slot];
+  if (new Date(`${startDate}T12:00:00Z`).getUTCDay() !== expectedWeekday) {
+    setMessage(groupsMessage, "La primera sesión debe coincidir con el día del horario elegido.");
+    return;
+  }
+  const submit = groupForm.querySelector('[type="submit"]');
+  submit.disabled = true;
+  submit.textContent = "Creando…";
+  try {
+    await getToken(appCheck, true);
+    await addDoc(collection(database, "speakingClubGroups"), {
+      name: String(data.get("name")).trim(),
+      slot,
+      startDate,
+      sessionDates: createSessionDates(startDate),
+      memberApplicationIds,
+      status: "forming",
+      createdAt: serverTimestamp(),
+    });
+    groupForm.reset();
+    await loadGroups();
+    setMessage(groupsMessage, "Grupo creado con sus seis fechas.", "success");
+  } catch (error) {
+    console.error("Could not create group", error);
+    setMessage(groupsMessage, `No fue posible crear el grupo (${error?.code || "error"}).`);
+  } finally {
+    submit.disabled = false;
+    submit.textContent = "Crear grupo de seis sesiones";
+  }
+});
