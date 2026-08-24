@@ -59,6 +59,17 @@
     .private-card > summary::after { content:'Abrir'; color:var(--blue); font-size:.72rem; font-weight:800; }
     .private-card[open] > summary::after { content:'Cerrar'; }
     .private-card-body { padding-top:14px; border-top:1px solid var(--line); margin-top:14px; }
+    .calendar-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .calendar-nav { display:flex; gap:8px; }
+    .calendar-weekdays,.calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+    .calendar-weekdays div { padding:10px; text-align:center; color:var(--muted); font-size:.76rem; font-weight:800; text-transform:uppercase; }
+    .calendar-day { min-height:128px; padding:9px; border:1px solid var(--line); background:#fff; }
+    .calendar-day.outside { background:#f8fafc; color:#94a3b8; }
+    .calendar-day.today { box-shadow:inset 0 0 0 2px var(--orange); }
+    .calendar-number { display:block; margin-bottom:7px; font-weight:800; }
+    .calendar-event { display:block; margin-top:6px; padding:7px; border-radius:8px; font-size:.7rem; line-height:1.25; }
+    .calendar-event.private { background:#fff7ed; color:#9a3412; border-left:3px solid var(--orange); }
+    .calendar-event.group { background:#eff6ff; color:#1e3a8a; border-left:3px solid var(--blue); }
     .private-list { display:grid; gap:12px; }
     .private-meta { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; }
     .private-meta div { background:#f8fafc; border-radius:10px; padding:10px; }
@@ -159,6 +170,8 @@
       .session-dates { grid-template-columns:1fr 1fr; }
       .payment-row { grid-template-columns:1fr; }
       .private-layout,.private-meta { grid-template-columns:1fr; }
+      .calendar-shell { overflow-x:auto; }
+      .calendar-weekdays,.calendar-grid { min-width:760px; }
       .admin-tabs { display:grid; grid-template-columns:1fr 1fr; }
       .access-details { grid-template-columns:1fr; }
     }
@@ -192,6 +205,7 @@
         <button class="admin-tab" type="button" data-admin-tab="payments" aria-selected="false">Pagos (<span id="payments-tab-count">0</span>)</button>
         <button class="admin-tab" type="button" data-admin-tab="access" aria-selected="false">Accesos (<span id="access-tab-count">0</span>)</button>
         <button class="admin-tab" type="button" data-admin-tab="private" aria-selected="false">Privadas (<span id="private-tab-count">0</span>)</button>
+        <button class="admin-tab" type="button" data-admin-tab="calendar" aria-selected="false">Mi calendario (<span id="calendar-tab-count">0</span>)</button>
       </nav>
 
       <div id="applications-panel" data-admin-panel="applications">
@@ -305,10 +319,20 @@
           <div><h2>Horarios y solicitudes</h2><div id="private-bookings" class="private-list"></div></div>
         </div>
       </section>
+
+      <section id="calendar-panel" class="hidden" data-admin-panel="calendar" aria-labelledby="calendar-title">
+        <div class="dashboard-head"><div><p class="eyebrow">Agenda operativa · hora Colombia</p><h1 id="calendar-title">Mi calendario de clases</h1><p class="muted">Compromisos confirmados de clases privadas y Speaking Club.</p></div></div>
+        <p id="calendar-message" class="message hidden" role="status"></p>
+        <div class="private-card">
+          <div class="calendar-toolbar"><button id="calendar-today" class="button secondary" type="button">Hoy</button><h2 id="calendar-month"></h2><div class="calendar-nav"><button id="calendar-prev" class="button secondary" type="button" aria-label="Mes anterior">←</button><button id="calendar-next" class="button secondary" type="button" aria-label="Mes siguiente">→</button></div></div>
+          <div class="calendar-shell"><div class="calendar-weekdays"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div><div id="calendar-grid" class="calendar-grid"></div></div>
+        </div>
+      </section>
     </section>
   </main>
 
   <script type="module" src="admin.js?v=20260824-7"></script>
   <script type="module" src="private-booking-admin.js?v=20260824-1"></script>
+  <script type="module" src="admin-calendar.js?v=20260824-1"></script>
 </body>
 </html>

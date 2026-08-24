@@ -483,7 +483,7 @@ async function activateStudentAccess(event) {
 }
 
 function showAdminPanel(panelName, updateHash = true) {
-  const selectedPanel = ["groups", "payments", "access", "private"].includes(panelName) ? panelName : "applications";
+  const selectedPanel = ["groups", "payments", "access", "private", "calendar"].includes(panelName) ? panelName : "applications";
   adminTabs.forEach((tab) => {
     tab.setAttribute("aria-selected", String(tab.dataset.adminTab === selectedPanel));
   });
