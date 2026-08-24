@@ -1,11 +1,18 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import {
+  initializeAppCheck,
+  ReCaptchaEnterpriseProvider,
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
+import {
   addDoc,
   collection,
   getFirestore,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
+import {
+  firebaseConfig,
+  recaptchaEnterpriseSiteKey,
+} from "./firebase-config.js";
 
 const form = document.querySelector("#club-interest-form");
 const message = document.querySelector("#form-message");
@@ -16,11 +23,16 @@ const formLoadedAt = Date.now();
 
 const configured = Object.values(firebaseConfig).every(
   (value) => value && !String(value).startsWith("REPLACE_WITH_")
-);
+) && Boolean(recaptchaEnterpriseSiteKey);
 
 let database = null;
 if (configured) {
-  database = getFirestore(initializeApp(firebaseConfig));
+  const app = initializeApp(firebaseConfig);
+  initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+  database = getFirestore(app);
 }
 
 function showMessage(text, type) {
