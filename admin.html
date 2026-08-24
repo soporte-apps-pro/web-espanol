@@ -70,6 +70,12 @@
     .calendar-event { display:block; margin-top:6px; padding:7px; border-radius:8px; font-size:.7rem; line-height:1.25; }
     .calendar-event.private { background:#fff7ed; color:#9a3412; border-left:3px solid var(--orange); }
     .calendar-event.group { background:#eff6ff; color:#1e3a8a; border-left:3px solid var(--blue); }
+    .calendar-legend { display:flex; flex-wrap:wrap; gap:10px 18px; margin:0 0 16px; color:var(--muted); font-size:.78rem; font-weight:700; }
+    .calendar-legend-item { display:inline-flex; align-items:center; gap:7px; }
+    .calendar-legend-dot { width:11px; height:11px; border-radius:50%; flex:0 0 11px; }
+    .calendar-legend-dot.group { background:var(--blue); }
+    .calendar-legend-dot.private { background:var(--orange); }
+    .calendar-legend-dot.external { background:#94a3b8; }
     .private-list { display:grid; gap:12px; }
     .private-meta { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; }
     .private-meta div { background:#f8fafc; border-radius:10px; padding:10px; }
@@ -325,6 +331,11 @@
         <p id="calendar-message" class="message hidden" role="status"></p>
         <div class="private-card">
           <div class="calendar-toolbar"><button id="calendar-today" class="button secondary" type="button">Hoy</button><h2 id="calendar-month"></h2><div class="calendar-nav"><button id="calendar-prev" class="button secondary" type="button" aria-label="Mes anterior">←</button><button id="calendar-next" class="button secondary" type="button" aria-label="Mes siguiente">→</button></div></div>
+          <div class="calendar-legend" aria-label="Leyenda del calendario">
+            <span class="calendar-legend-item"><span class="calendar-legend-dot group" aria-hidden="true"></span>Speaking Club</span>
+            <span class="calendar-legend-item"><span class="calendar-legend-dot private" aria-hidden="true"></span>Clase privada</span>
+            <span class="calendar-legend-item" title="Google Calendar bloquea la disponibilidad sin mostrar información privada del evento."><span class="calendar-legend-dot external" aria-hidden="true"></span>Bloqueo externo · sin detalles privados</span>
+          </div>
           <div class="calendar-shell"><div class="calendar-weekdays"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div><div id="calendar-grid" class="calendar-grid"></div></div>
         </div>
       </section>
