@@ -6,6 +6,7 @@ import { firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js
 
 const COLOMBIA_ZONE = "America/Bogota";
 const HOLD_MINUTES = 10;
+const GOOGLE_CHECK_MAX_AGE_MINUTES = 10;
 const packages = {
   single: { label: "1 private class", amount: 25 },
   pack4: { label: "4 private classes", amount: 84 },
@@ -27,7 +28,11 @@ let countdownTimer = null;
 
 function setMessage(text, type = "error") { message.textContent = text; message.className = `message ${type} mt-5 rounded-xl p-4 text-sm font-semibold`; }
 function formatAt(date, timeZone) { return new Intl.DateTimeFormat("en-US", { weekday:"long", month:"short", day:"numeric", hour:"numeric", minute:"2-digit", hour12:true, timeZone }).format(date); }
-function available(slot) { return slot.status === "available" || (slot.status === "held" && slot.holdExpiresAt?.toDate() <= new Date()); }
+function googleCleared(slot) {
+  const checkedAt = slot.googleCalendarCheckedAt?.toDate?.();
+  return slot.googleCalendarBlocked === false && checkedAt && checkedAt.getTime() >= Date.now() - GOOGLE_CHECK_MAX_AGE_MINUTES * 60000;
+}
+function available(slot) { return googleCleared(slot) && (slot.status === "available" || (slot.status === "held" && slot.holdExpiresAt?.toDate() <= new Date())); }
 
 function configureZones() {
   const detected = Intl.DateTimeFormat().resolvedOptions().timeZone || COLOMBIA_ZONE;
@@ -87,6 +92,7 @@ async function startHold(slotId) {
       const data = snapshot.data();
       const isExpired = data.status === "held" && data.holdExpiresAt?.toMillis() <= Date.now();
       if (data.status !== "available" && !isExpired) throw new Error("slot-unavailable");
+      if (data.googleCalendarBlocked !== false || !data.googleCalendarCheckedAt?.toMillis() || data.googleCalendarCheckedAt.toMillis() < Date.now() - GOOGLE_CHECK_MAX_AGE_MINUTES * 60000) throw new Error("calendar-unavailable");
       transaction.update(slotRef, { status:"held", heldBy:user.uid, holdExpiresAt:expiry, bookingRequestId:"" });
     });
     selectedSlot = slots.find((slot) => slot.id === slotId); holdExpiresAt = expiry.toDate();
@@ -94,7 +100,7 @@ async function startHold(slotId) {
     selectionPanel.classList.add("hidden"); holdPanel.classList.remove("hidden"); renderSlots(); clearInterval(countdownTimer); updateCountdown(); countdownTimer = setInterval(updateCountdown, 1000);
     holdPanel.scrollIntoView({ behavior:"smooth", block:"start" });
   } catch (error) {
-    console.error(error); setMessage(error.message === "slot-unavailable" ? "Someone else is already completing payment for this time. Please choose another." : "We could not hold this time. Refresh the page and try again.");
+    console.error(error); setMessage(error.message === "slot-unavailable" ? "Someone else is already completing payment for this time. Please choose another." : error.message === "calendar-unavailable" ? "This time is being checked against the live calendar. Please refresh in a few minutes." : "We could not hold this time. Refresh the page and try again.");
     await loadSlots();
   }
 }

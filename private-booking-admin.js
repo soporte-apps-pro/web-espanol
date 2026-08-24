@@ -9,6 +9,7 @@ const database = getFirestore(app);
 const form = document.querySelector("#private-slot-form");
 const list = document.querySelector("#private-bookings");
 const message = document.querySelector("#private-message");
+const GOOGLE_CHECK_MAX_AGE_MINUTES = 10;
 let slots = [];
 let requests = [];
 
@@ -20,17 +21,19 @@ function requestFor(slot) {
   return requests.find((item) => item.slotId === slot.id && item.status !== "rejected");
 }
 function statusLabel(status) { return ({available:"Disponible",held:"Retención temporal",payment_review:"Pago por verificar",confirmed:"Confirmado",rejected:"Rechazado",closed:"Cerrado",cancelled_by_admin:"Cancelado por fuerza mayor"})[status] || status; }
+function googleCleared(slot) { const checkedAt=slot.googleCalendarCheckedAt?.toDate?.(); return slot.googleCalendarBlocked === false && checkedAt && checkedAt.getTime() >= Date.now() - GOOGLE_CHECK_MAX_AGE_MINUTES*60000; }
+function googleStatus(slot) { if (slot.googleCalendarBlocked === true) return "Google Calendar: bloqueado"; if (googleCleared(slot)) return "Google Calendar: libre y verificado"; return "Google Calendar: pendiente de revisión"; }
 
 function render() {
   document.querySelector("#private-tab-count").textContent = requests.filter((item) => item.status === "payment_review").length;
   list.innerHTML = slots.length ? slots.map((slot) => {
     const request = requestFor(slot);
     return `<details class="private-card" data-slot-id="${escapeHtml(slot.id)}" ${request?.status === "payment_review" ? "open" : ""}>
-      <summary class="group-card-head"><div><h3>${escapeHtml(formatColombia(slot.startAt))}</h3><span class="muted">50 minutos · hora Colombia</span></div><span class="pill">${escapeHtml(statusLabel(slot.status))}</span></summary>
+      <summary class="group-card-head"><div><h3>${escapeHtml(formatColombia(slot.startAt))}</h3><span class="muted">50 minutos · hora Colombia<br>${escapeHtml(googleStatus(slot))}</span></div><span class="pill">${escapeHtml(statusLabel(slot.status))}</span></summary>
       <div class="private-card-body">
       ${request ? `<div class="private-meta"><div><small>Estudiante</small><strong>${escapeHtml(request.fullName)}</strong><br><a href="mailto:${escapeHtml(request.email)}">${escapeHtml(request.email)}</a></div><div><small>Paquete</small><strong>${escapeHtml(request.packageLabel)}</strong><br>US$${Number(request.amountUsd).toFixed(2)}</div><div><small>Zona del estudiante</small><strong>${escapeHtml(request.studentTimeZone)}</strong></div><div><small>Método</small><strong>${escapeHtml(request.paymentMethod)}</strong></div><div><small>Referencia</small><strong>${escapeHtml(request.paymentReference)}</strong></div><div><small>Pagador</small><strong>${escapeHtml(request.payerName)}</strong></div></div>
       ${request.status === "payment_review" ? '<div class="card-actions"><button class="button secondary" type="button" data-reject>Rechazar / liberar</button><button class="button" type="button" data-confirm>Pago verificado · confirmar</button></div>' : ""}` : '<p class="muted">Nadie ha iniciado el pago para este horario.</p>'}
-      ${request?.status === "confirmed" && slot.status === "confirmed" ? `<div class="group-member-editor"><strong>Acciones excepcionales</strong><p class="muted">Úsalas únicamente por fuerza mayor. Requieren confirmación escrita.</p><label for="reschedule-${escapeHtml(slot.id)}">Nuevo horario disponible</label><select id="reschedule-${escapeHtml(slot.id)}" data-reschedule-target><option value="">Selecciona un horario</option>${slots.filter((item) => item.status === "available" && item.startAt?.toDate() > new Date()).map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(formatColombia(item.startAt))}</option>`).join("")}</select><div class="card-actions"><button class="button secondary" type="button" data-cancel-booking>Cancelar por fuerza mayor</button><button class="button" type="button" data-reschedule-booking>Reagendar reserva</button></div></div>` : ""}
+      ${request?.status === "confirmed" && slot.status === "confirmed" ? `<div class="group-member-editor"><strong>Acciones excepcionales</strong><p class="muted">Úsalas únicamente por fuerza mayor. Requieren confirmación escrita.</p><label for="reschedule-${escapeHtml(slot.id)}">Nuevo horario disponible</label><select id="reschedule-${escapeHtml(slot.id)}" data-reschedule-target><option value="">Selecciona un horario</option>${slots.filter((item) => item.status === "available" && googleCleared(item) && item.startAt?.toDate() > new Date()).map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(formatColombia(item.startAt))}</option>`).join("")}</select><div class="card-actions"><button class="button secondary" type="button" data-cancel-booking>Cancelar por fuerza mayor</button><button class="button" type="button" data-reschedule-booking>Reagendar reserva</button></div></div>` : ""}
       ${slot.status === "available" && !request ? '<div class="card-actions"><button class="button secondary" type="button" data-close-slot>Cerrar horario disponible</button></div>' : ""}
       </div>
     </details>`;
@@ -67,7 +70,7 @@ async function rescheduleConfirmedBooking(slotId, button) {
   const card = button.closest("[data-slot-id]"); const targetId = card.querySelector("[data-reschedule-target]").value;
   const slot = slots.find((item) => item.id === slotId); const target = slots.find((item) => item.id === targetId); const request = requestFor(slot);
   if (!targetId) { setMessage("Selecciona primero el nuevo horario disponible."); return; }
-  if (!slot || slot.status !== "confirmed" || request?.status !== "confirmed" || !target || target.status !== "available") { setMessage("El nuevo horario ya no está disponible. Actualiza el panel."); return; }
+  if (!slot || slot.status !== "confirmed" || request?.status !== "confirmed" || !target || target.status !== "available" || !googleCleared(target)) { setMessage("El nuevo horario no está libre y verificado por Google Calendar. Actualiza el panel."); return; }
   const reason = exceptionalReason("REAGENDAR");
   if (!reason) { setMessage("Reagendamiento detenido. No se realizó ningún cambio."); return; }
   button.disabled = true;
@@ -122,7 +125,7 @@ form.addEventListener("submit", async (event) => {
   const start = new Date(`${date}T${time}:00-05:00`);
   if (!Number.isFinite(start.getTime()) || start <= new Date()) { setMessage("Selecciona una fecha y hora futuras."); return; }
   const submit=form.querySelector('[type="submit"]'); submit.disabled=true;
-  try { await addDoc(collection(database,"privateAvailability"), { startAt:Timestamp.fromDate(start), durationMinutes:50, colombiaTimeZone:"America/Bogota", status:"available", heldBy:"", holdExpiresAt:Timestamp.fromMillis(0), bookingRequestId:"", createdAt:serverTimestamp() }); form.reset(); setMessage("Horario publicado en hora Colombia.","success"); await load(); }
+  try { await addDoc(collection(database,"privateAvailability"), { startAt:Timestamp.fromDate(start), durationMinutes:50, colombiaTimeZone:"America/Bogota", status:"available", heldBy:"", holdExpiresAt:Timestamp.fromMillis(0), bookingRequestId:"", googleCalendarBlocked:true, googleCalendarCheckedAt:Timestamp.fromMillis(0), createdAt:serverTimestamp() }); form.reset(); setMessage("Horario publicado. Aparecerá públicamente cuando Google Calendar lo verifique.","success"); await load(); }
   catch(error){ console.error(error); setMessage(`No fue posible publicar (${error?.code || "error"}).`); }
   finally { submit.disabled=false; }
 });
