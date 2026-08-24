@@ -51,6 +51,14 @@
     .payment-row { display:grid; grid-template-columns:minmax(180px,1fr) 130px 130px auto; gap:12px; align-items:center; padding:12px; border-radius:12px; background:#f8fafc; }
     .payment-row small { display:block; color:var(--muted); }
     .payment-row .button { padding:8px 13px; font-size:.78rem; }
+    .access-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; }
+    .access-card-head { display:flex; justify-content:space-between; gap:14px; }
+    .access-card h2 { margin-bottom:4px; color:var(--navy); font-size:1.05rem; }
+    .access-details { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:14px 0; }
+    .access-details div { padding:10px; border-radius:10px; background:#f8fafc; font-size:.8rem; word-break:break-word; }
+    .access-details small { display:block; color:var(--muted); }
+    .access-action { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:12px; border-top:1px solid var(--line); }
+    .access-action .button:disabled { cursor:not-allowed; opacity:.5; }
     .dashboard-head { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:28px; }
     .dashboard-head h1 { margin-bottom:7px; }
     .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
@@ -123,6 +131,7 @@
       .group-layout { grid-template-columns:1fr; }
       .payments-overview { grid-template-columns:repeat(2,1fr); }
       .payment-row { grid-template-columns:1fr 1fr; }
+      .access-details { grid-template-columns:1fr 1fr; }
     }
     @media (max-width:520px) {
       .topbar { padding:0 16px; }
@@ -138,6 +147,8 @@
       .card-actions select { width:100%; }
       .session-dates { grid-template-columns:1fr 1fr; }
       .payment-row { grid-template-columns:1fr; }
+      .admin-tabs { display:grid; grid-template-columns:1fr 1fr; }
+      .access-details { grid-template-columns:1fr; }
     }
   </style>
 </head>
@@ -167,6 +178,7 @@
         <button class="admin-tab" type="button" data-admin-tab="applications" aria-selected="true">Solicitudes (<span id="applications-tab-count">0</span>)</button>
         <button class="admin-tab" type="button" data-admin-tab="groups" aria-selected="false">Grupos (<span id="groups-tab-count">0</span>)</button>
         <button class="admin-tab" type="button" data-admin-tab="payments" aria-selected="false">Pagos (<span id="payments-tab-count">0</span>)</button>
+        <button class="admin-tab" type="button" data-admin-tab="access" aria-selected="false">Accesos (<span id="access-tab-count">0</span>)</button>
       </nav>
 
       <div id="applications-panel" data-admin-panel="applications">
@@ -253,9 +265,21 @@
         </div>
         <div id="payment-lists" class="payment-lists"></div>
       </section>
+
+      <section id="access-panel" class="hidden" data-admin-panel="access" aria-labelledby="access-title">
+        <div class="dashboard-head">
+          <div>
+            <p class="eyebrow">Portal del estudiante</p>
+            <h1 id="access-title">Solicitudes de acceso</h1>
+            <p class="muted">Compara la referencia con el proveedor de pago antes de activar.</p>
+          </div>
+        </div>
+        <p id="access-message" class="message hidden" role="status"></p>
+        <div id="access-list" class="applications"></div>
+      </section>
     </section>
   </main>
 
-  <script type="module" src="admin.js?v=20260824-6"></script>
+  <script type="module" src="admin.js?v=20260824-7"></script>
 </body>
 </html>

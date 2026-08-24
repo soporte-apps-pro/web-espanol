@@ -144,6 +144,61 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /studentProfiles/{userId} {
+      allow create: if request.auth != null &&
+        request.auth.uid == userId &&
+        request.resource.data.keys().hasOnly([
+          'fullName',
+          'email',
+          'paymentMethod',
+          'paymentReference',
+          'payerName',
+          'amountSubmitted',
+          'status',
+          'createdAt'
+        ]) &&
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 80 &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.paymentMethod in ['paypal', 'transfer', 'other'] &&
+        request.resource.data.paymentReference is string &&
+        request.resource.data.paymentReference.size() >= 4 &&
+        request.resource.data.paymentReference.size() <= 160 &&
+        request.resource.data.payerName is string &&
+        request.resource.data.payerName.size() >= 2 &&
+        request.resource.data.payerName.size() <= 100 &&
+        request.resource.data.amountSubmitted is number &&
+        request.resource.data.amountSubmitted > 0 &&
+        request.resource.data.amountSubmitted <= 10000 &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.createdAt == request.time;
+      allow read: if isAdmin() ||
+        (request.auth != null &&
+          request.auth.uid == userId &&
+          request.auth.token.email_verified == true);
+      allow update: if isAdmin() &&
+        resource.data.status == 'pending' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'applicationId',
+          'groupName',
+          'slot',
+          'sessionDates',
+          'activatedAt'
+        ]) &&
+        request.resource.data.status == 'active' &&
+        request.resource.data.applicationId is string &&
+        request.resource.data.groupName is string &&
+        request.resource.data.groupName.size() >= 2 &&
+        request.resource.data.groupName.size() <= 80 &&
+        request.resource.data.slot in ['monday-1000', 'tuesday-1700', 'wednesday-0800', 'thursday-1400', 'friday-1100'] &&
+        request.resource.data.sessionDates is list &&
+        request.resource.data.sessionDates.size() == 6 &&
+        request.resource.data.activatedAt == request.time;
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

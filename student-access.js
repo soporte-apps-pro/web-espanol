@@ -1,0 +1,54 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
+import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { doc, getFirestore, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
+
+const app = initializeApp(firebaseConfig);
+const appCheck = initializeAppCheck(app, { provider:new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey), isTokenAutoRefreshEnabled:true });
+const auth = getAuth(app);
+const database = getFirestore(app);
+
+function message(element, text, type="error") { element.textContent=text; element.className=`message ${type}`; }
+
+document.querySelector("#register-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector("button");
+  const output = document.querySelector("#register-message");
+  button.disabled=true; button.textContent="Creando cuenta…";
+  try {
+    await getToken(appCheck, true);
+    const email=document.querySelector("#register-email").value.trim().toLowerCase();
+    const credential=await createUserWithEmailAndPassword(auth,email,document.querySelector("#register-password").value);
+    await setDoc(doc(database,"studentProfiles",credential.user.uid),{
+      fullName:document.querySelector("#register-name").value.trim(), email,
+      paymentMethod:document.querySelector("#payment-method").value,
+      paymentReference:document.querySelector("#payment-reference").value.trim(),
+      payerName:document.querySelector("#payer-name").value.trim(),
+      amountSubmitted:Number(document.querySelector("#amount-submitted").value),
+      status:"pending", createdAt:serverTimestamp()
+    });
+    await sendEmailVerification(credential.user);
+    await signOut(auth);
+    event.currentTarget.reset();
+    message(output,"Cuenta creada. Revisa tu correo, verifica la dirección y espera la aprobación de Elkin.","success");
+  } catch(error) {
+    console.error(error); message(output,`No fue posible crear la cuenta (${error?.code || "error"}).`);
+  } finally { button.disabled=false; button.textContent="Crear cuenta y solicitar acceso"; }
+});
+
+document.querySelector("#login-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button=event.currentTarget.querySelector("button");
+  const output=document.querySelector("#login-message");
+  button.disabled=true; button.textContent="Ingresando…";
+  try {
+    const credential=await signInWithEmailAndPassword(auth,document.querySelector("#login-email").value.trim(),document.querySelector("#login-password").value);
+    if (!credential.user.emailVerified) {
+      await sendEmailVerification(credential.user); await signOut(auth);
+      message(output,"Debes verificar tu correo. Enviamos un nuevo mensaje de verificación."); return;
+    }
+    location.href="student-portal.html";
+  } catch(error) { console.error(error); message(output,"No fue posible iniciar sesión. Revisa el correo y la contraseña."); }
+  finally { button.disabled=false; button.textContent="Entrar al portal"; }
+});

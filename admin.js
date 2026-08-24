@@ -54,6 +54,8 @@ const groupsMessage = document.querySelector("#groups-message");
 const adminTabs = [...document.querySelectorAll("[data-admin-tab]")];
 const adminPanels = [...document.querySelectorAll("[data-admin-panel]")];
 const paymentLists = document.querySelector("#payment-lists");
+const accessList = document.querySelector("#access-list");
+const accessMessage = document.querySelector("#access-message");
 
 const statusLabels = {
   new: "Nueva",
@@ -72,6 +74,7 @@ const slotLabels = {
 
 let applications = [];
 let groups = [];
+let studentProfiles = [];
 
 function setMessage(element, text, type = "error") {
   element.textContent = text;
@@ -391,8 +394,96 @@ function openStudentPayment(applicationId) {
   requestAnimationFrame(() => card.querySelector("[data-payment-status]")?.scrollIntoView({ behavior: "smooth", block: "center" }));
 }
 
+function accessContext(profile) {
+  const application = applications.find((item) =>
+    String(item.email).toLowerCase() === String(profile.email).toLowerCase()
+  );
+  const group = application && groups.find((item) =>
+    (item.memberApplicationIds || []).includes(application.id)
+  );
+  const duplicateReference = studentProfiles.some((item) =>
+    item.id !== profile.id && item.paymentReference &&
+    item.paymentReference.toLowerCase() === String(profile.paymentReference).toLowerCase()
+  );
+  const canActivate = profile.status === "pending" && application?.paymentStatus === "paid" && group?.status === "confirmed" && !duplicateReference;
+  return { application, group, duplicateReference, canActivate };
+}
+
+function renderStudentAccess() {
+  document.querySelector("#access-tab-count").textContent = studentProfiles.filter((profile) => profile.status === "pending").length;
+  if (!studentProfiles.length) {
+    accessList.innerHTML = '<div class="empty">No hay solicitudes de acceso.</div>';
+    return;
+  }
+  accessList.innerHTML = studentProfiles.map((profile) => {
+    const { application, group, duplicateReference, canActivate } = accessContext(profile);
+    const reason = profile.status === "active" ? "Acceso activo" : duplicateReference ? "Referencia repetida: revisar" : !application ? "No coincide con una solicitud" : application.paymentStatus !== "paid" ? "Pago aún no verificado" : group?.status !== "confirmed" ? "Grupo no confirmado" : "Listo para activar";
+    return `
+      <article class="access-card" data-profile-id="${escapeHtml(profile.id)}">
+        <div class="access-card-head">
+          <div><h2>${escapeHtml(profile.fullName)}</h2><a href="mailto:${escapeHtml(profile.email)}">${escapeHtml(profile.email)}</a></div>
+          <span class="pill">${profile.status === "active" ? "Activo" : "Pendiente"}</span>
+        </div>
+        <div class="access-details">
+          <div><small>Método declarado</small><strong>${escapeHtml(profile.paymentMethod)}</strong></div>
+          <div><small>Referencia declarada</small><strong>${escapeHtml(profile.paymentReference)}</strong></div>
+          <div><small>Importe declarado</small><strong>US$${Number(profile.amountSubmitted || 0).toFixed(2)}</strong></div>
+          <div><small>Nombre del pagador</small><strong>${escapeHtml(profile.payerName)}</strong></div>
+          <div><small>Pago en panel</small><strong>${escapeHtml(application?.paymentStatus === "paid" ? "Pagado" : "Pendiente")}</strong></div>
+          <div><small>Grupo</small><strong>${escapeHtml(group?.name || "Sin grupo confirmado")}</strong></div>
+        </div>
+        <div class="access-action">
+          <span class="muted">${escapeHtml(reason)}</span>
+          ${profile.status === "pending" ? `<button class="button" type="button" data-activate-access ${canActivate ? "" : "disabled"}>Verificar y activar</button>` : ""}
+        </div>
+      </article>`;
+  }).join("");
+  accessList.querySelectorAll("[data-activate-access]").forEach((button) => {
+    button.addEventListener("click", activateStudentAccess);
+  });
+}
+
+async function loadStudentProfiles() {
+  const snapshot = await getDocsFromServer(query(
+    collection(database, "studentProfiles"),
+    orderBy("createdAt", "desc")
+  ));
+  studentProfiles = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+  renderStudentAccess();
+}
+
+async function activateStudentAccess(event) {
+  const button = event.currentTarget;
+  const card = button.closest("[data-profile-id]");
+  const profile = studentProfiles.find((item) => item.id === card?.dataset.profileId);
+  if (!profile) return;
+  const { application, group, canActivate } = accessContext(profile);
+  if (!canActivate) {
+    renderStudentAccess();
+    setMessage(accessMessage, "No se puede activar: vuelve a verificar pago, referencia y grupo.");
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "Activando…";
+  try {
+    await updateDoc(doc(database, "studentProfiles", profile.id), {
+      status: "active",
+      applicationId: application.id,
+      groupName: group.name,
+      slot: group.slot,
+      sessionDates: group.sessionDates,
+      activatedAt: serverTimestamp(),
+    });
+    Object.assign(profile, { status: "active", applicationId: application.id, groupName: group.name, slot: group.slot, sessionDates: group.sessionDates });
+    renderStudentAccess();
+    setMessage(accessMessage, `Acceso de ${profile.fullName} activado.`, "success");
+  } catch (error) {
+    setMessage(accessMessage, `No fue posible activar el acceso (${error?.code || "error"}).`);
+  }
+}
+
 function showAdminPanel(panelName, updateHash = true) {
-  const selectedPanel = ["groups", "payments"].includes(panelName) ? panelName : "applications";
+  const selectedPanel = ["groups", "payments", "access"].includes(panelName) ? panelName : "applications";
   adminTabs.forEach((tab) => {
     tab.setAttribute("aria-selected", String(tab.dataset.adminTab === selectedPanel));
   });
@@ -429,6 +520,7 @@ async function updateGroupMembers(event) {
     renderGroups();
     renderAcceptedMemberOptions();
     renderPayments();
+    renderStudentAccess();
     setMessage(groupsMessage, `Integrantes de ${group.name} actualizados.`, "success");
   } catch (error) {
     setMessage(groupsMessage, `No fue posible actualizar los integrantes (${error?.code || "error"}).`);
@@ -460,6 +552,7 @@ async function updateGroupStatus(event) {
     await updateDoc(doc(database, "speakingClubGroups", group.id), { status: select.value });
     group.status = select.value;
     renderGroups();
+    renderStudentAccess();
     setMessage(groupsMessage, `Estado de ${group.name} actualizado.`, "success");
   } catch (error) {
     select.value = previousStatus;
@@ -501,6 +594,7 @@ async function saveAdministrativeDetails(event) {
     Object.assign(application, administrativeDetails);
     renderGroups();
     renderPayments();
+    renderStudentAccess();
     setMessage(dashboardMessage, `Seguimiento de ${application.fullName} guardado.`, "success");
   } catch (error) {
     console.error("Could not save administrative details", error);
@@ -526,6 +620,7 @@ async function loadApplications() {
     updateStats();
     renderApplications();
     await loadGroups();
+    await loadStudentProfiles();
   } catch (error) {
     console.error("Could not load applications", error);
     const errorCode = error?.code ? ` (${error.code})` : "";

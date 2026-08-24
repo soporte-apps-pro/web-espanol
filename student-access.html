@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Acceso de estudiantes | Spanish with Elkin</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box} body{margin:0;font-family:Poppins,system-ui,sans-serif;color:#172554;background:radial-gradient(circle at 10% 10%,#ffedd5,transparent 35rem),#f8fafc} header{height:76px;display:flex;align-items:center;padding:0 max(22px,calc((100vw - 1050px)/2));background:#fff;border-bottom:1px solid #e2e8f0;font-weight:800;font-size:1.2rem;color:#1e3a8a} header span{color:#f97316}.shell{width:min(1050px,calc(100% - 32px));margin:46px auto;display:grid;grid-template-columns:1fr 1fr;gap:22px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;box-shadow:0 16px 50px rgba(15,23,42,.07)}h1,h2{margin-top:0}h1{font-size:2rem}.muted{color:#64748b}label{display:block;margin:15px 0 6px;font-size:.82rem;font-weight:700}input,select,button{width:100%;font:inherit;border-radius:12px;padding:12px 13px}input,select{border:1px solid #cbd5e1;background:#fff}button{margin-top:19px;border:0;background:#f97316;color:#fff;font-weight:800;cursor:pointer}.message{margin-top:16px;padding:12px;border-radius:11px;font-size:.84rem;font-weight:600}.error{color:#b91c1c;background:#fef2f2}.success{color:#047857;background:#ecfdf5}.hidden{display:none}.notice{padding:14px;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-size:.82rem}@media(max-width:760px){.shell{grid-template-columns:1fr;margin:24px auto}h1{font-size:1.6rem}}
+  </style>
+</head>
+<body>
+  <header>Spanish with <span>Elkin</span>&nbsp;· Estudiantes</header>
+  <main class="shell">
+    <section class="card">
+      <h1>Solicita tu acceso</h1>
+      <p class="muted">Crea tu cuenta después de recibir un grupo y realizar el pago.</p>
+      <p class="notice">Tu acceso quedará pendiente hasta que Elkin verifique la referencia, el pago y tu grupo.</p>
+      <form id="register-form">
+        <label for="register-name">Nombre completo</label><input id="register-name" required minlength="2" maxlength="80">
+        <label for="register-email">El mismo correo de tu solicitud</label><input id="register-email" type="email" required autocomplete="email">
+        <label for="register-password">Contraseña (mínimo 8 caracteres)</label><input id="register-password" type="password" required minlength="8" autocomplete="new-password">
+        <label for="payment-method">Método de pago</label>
+        <select id="payment-method" required><option value="">Selecciona</option><option value="paypal">PayPal</option><option value="transfer">Transferencia</option><option value="other">Otro</option></select>
+        <label for="payment-reference">Referencia o ID de transacción</label><input id="payment-reference" required minlength="4" maxlength="160">
+        <label for="payer-name">Nombre de quien realizó el pago</label><input id="payer-name" required minlength="2" maxlength="100">
+        <label for="amount-submitted">Importe enviado (USD)</label><input id="amount-submitted" type="number" min="0.01" max="10000" step="0.01" required>
+        <button type="submit">Crear cuenta y solicitar acceso</button>
+        <p id="register-message" class="message hidden" role="alert"></p>
+      </form>
+    </section>
+    <section class="card">
+      <h2>Ya tengo una cuenta</h2>
+      <p class="muted">Inicia sesión después de verificar tu correo.</p>
+      <form id="login-form">
+        <label for="login-email">Correo</label><input id="login-email" type="email" required autocomplete="username">
+        <label for="login-password">Contraseña</label><input id="login-password" type="password" required autocomplete="current-password">
+        <button type="submit">Entrar al portal</button>
+        <p id="login-message" class="message hidden" role="alert"></p>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="student-access.js?v=20260824-1"></script>
+</body>
+</html>
