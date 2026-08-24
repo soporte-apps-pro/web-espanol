@@ -55,8 +55,23 @@ service cloud.firestore {
 
       allow read: if isAdmin();
       allow update: if isAdmin() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
-        request.resource.data.status in ['new', 'contacted', 'accepted', 'rejected'];
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'contactDate',
+          'assignedGroup',
+          'adminNotes'
+        ]) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) ||
+          request.resource.data.status in ['new', 'contacted', 'accepted', 'rejected']) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['contactDate']) ||
+          (request.resource.data.contactDate is string &&
+            request.resource.data.contactDate.size() <= 10)) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['assignedGroup']) ||
+          (request.resource.data.assignedGroup is string &&
+            request.resource.data.assignedGroup.size() <= 80)) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminNotes']) ||
+          (request.resource.data.adminNotes is string &&
+            request.resource.data.adminNotes.size() <= 2000));
       allow delete: if false;
     }
 

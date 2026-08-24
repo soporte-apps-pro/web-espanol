@@ -122,6 +122,24 @@ function applicationCard(application) {
         <div class="detail"><b>Cohorte</b><span>${escapeHtml(application.cohort)}</span></div>
       </div>
       <p class="goal"><strong>Objetivo:</strong> ${escapeHtml(application.goal)}</p>
+      <section class="admin-fields" aria-label="Seguimiento administrativo">
+        <h3>Seguimiento privado</h3>
+        <div>
+          <label for="contact-date-${escapeHtml(application.id)}">Fecha de contacto</label>
+          <input id="contact-date-${escapeHtml(application.id)}" type="date" data-contact-date value="${escapeHtml(application.contactDate || "")}">
+        </div>
+        <div>
+          <label for="assigned-group-${escapeHtml(application.id)}">Grupo asignado</label>
+          <input id="assigned-group-${escapeHtml(application.id)}" type="text" data-assigned-group maxlength="80" placeholder="Ej. Grupo B1 · Lunes 10:00" value="${escapeHtml(application.assignedGroup || "")}">
+        </div>
+        <div class="admin-notes">
+          <label for="admin-notes-${escapeHtml(application.id)}">Notas administrativas</label>
+          <textarea id="admin-notes-${escapeHtml(application.id)}" data-admin-notes maxlength="2000" placeholder="Seguimiento, necesidades y acuerdos con el estudiante">${escapeHtml(application.adminNotes || "")}</textarea>
+        </div>
+        <div class="admin-save">
+          <button class="button" type="button" data-save-admin>Guardar seguimiento</button>
+        </div>
+      </section>
       <div class="card-actions">
         <label for="status-${escapeHtml(application.id)}">Estado</label>
         <select id="status-${escapeHtml(application.id)}" data-status-select>${statusOptions}</select>
@@ -145,6 +163,38 @@ function renderApplications() {
   applicationsContainer.querySelectorAll("[data-status-select]").forEach((select) => {
     select.addEventListener("change", updateApplicationStatus);
   });
+  applicationsContainer.querySelectorAll("[data-save-admin]").forEach((button) => {
+    button.addEventListener("click", saveAdministrativeDetails);
+  });
+}
+
+async function saveAdministrativeDetails(event) {
+  const button = event.currentTarget;
+  const card = button.closest("[data-application-id]");
+  const application = applications.find((item) => item.id === card?.dataset.applicationId);
+  if (!application) return;
+
+  const administrativeDetails = {
+    contactDate: card.querySelector("[data-contact-date]").value,
+    assignedGroup: card.querySelector("[data-assigned-group]").value.trim(),
+    adminNotes: card.querySelector("[data-admin-notes]").value.trim(),
+  };
+
+  button.disabled = true;
+  button.textContent = "Guardando…";
+  clearMessage(dashboardMessage);
+  try {
+    await updateDoc(doc(database, "speakingClubApplications", application.id), administrativeDetails);
+    Object.assign(application, administrativeDetails);
+    setMessage(dashboardMessage, `Seguimiento de ${application.fullName} guardado.`, "success");
+  } catch (error) {
+    console.error("Could not save administrative details", error);
+    const errorCode = error?.code ? ` (${error.code})` : "";
+    setMessage(dashboardMessage, `No fue posible guardar el seguimiento${errorCode}.`);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Guardar seguimiento";
+  }
 }
 
 async function loadApplications() {
