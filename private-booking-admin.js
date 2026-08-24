@@ -1,6 +1,6 @@
 import { getApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { collection, doc, getDocsFromServer, getFirestore, orderBy, query, serverTimestamp, Timestamp, updateDoc, writeBatch, addDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { collection, deleteDoc, doc, getDocsFromServer, getFirestore, orderBy, query, serverTimestamp, Timestamp, writeBatch, addDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
 
 const app = getApp();
@@ -26,10 +26,28 @@ function render() {
       <div class="group-card-head"><div><h3>${escapeHtml(formatColombia(slot.startAt))}</h3><span class="muted">50 minutos · hora Colombia</span></div><span class="pill">${escapeHtml(statusLabel(slot.status))}</span></div>
       ${request ? `<div class="private-meta"><div><small>Estudiante</small><strong>${escapeHtml(request.fullName)}</strong><br><a href="mailto:${escapeHtml(request.email)}">${escapeHtml(request.email)}</a></div><div><small>Paquete</small><strong>${escapeHtml(request.packageLabel)}</strong><br>US$${Number(request.amountUsd).toFixed(2)}</div><div><small>Zona del estudiante</small><strong>${escapeHtml(request.studentTimeZone)}</strong></div><div><small>Método</small><strong>${escapeHtml(request.paymentMethod)}</strong></div><div><small>Referencia</small><strong>${escapeHtml(request.paymentReference)}</strong></div><div><small>Pagador</small><strong>${escapeHtml(request.payerName)}</strong></div></div>
       ${request.status === "payment_review" ? '<div class="card-actions"><button class="button secondary" type="button" data-reject>Rechazar / liberar</button><button class="button" type="button" data-confirm>Pago verificado · confirmar</button></div>' : ""}` : '<p class="muted">Nadie ha iniciado el pago para este horario.</p>'}
+      ${slot.status === "available" && !request ? '<div class="card-actions"><button class="button secondary" type="button" data-close-slot>Cerrar horario disponible</button></div>' : ""}
     </article>`;
   }).join("") : '<div class="empty">Aún no has publicado horarios privados.</div>';
   list.querySelectorAll("[data-confirm]").forEach((button) => button.addEventListener("click", () => decide(button.closest("[data-slot-id]").dataset.slotId, true)));
   list.querySelectorAll("[data-reject]").forEach((button) => button.addEventListener("click", () => decide(button.closest("[data-slot-id]").dataset.slotId, false)));
+  list.querySelectorAll("[data-close-slot]").forEach((button) => button.addEventListener("click", () => closeAvailableSlot(button.closest("[data-slot-id]").dataset.slotId, button)));
+}
+
+async function closeAvailableSlot(slotId, button) {
+  const slot = slots.find((item) => item.id === slotId);
+  if (!slot || slot.status !== "available" || requestFor(slot)) return;
+  if (!window.confirm(`¿Cerrar el horario ${formatColombia(slot.startAt)}? Dejará de aparecer públicamente.`)) return;
+  button.disabled = true;
+  try {
+    await deleteDoc(doc(database, "privateAvailability", slotId));
+    setMessage("Horario disponible cerrado correctamente.", "success");
+    await load();
+  } catch (error) {
+    console.error(error);
+    setMessage(`No fue posible cerrar el horario (${error?.code || "error"}).`);
+    button.disabled = false;
+  }
 }
 
 async function load() {
