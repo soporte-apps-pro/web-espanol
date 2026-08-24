@@ -51,6 +51,8 @@ const groupForm = document.querySelector("#group-form");
 const groupMemberOptions = document.querySelector("#group-member-options");
 const groupsList = document.querySelector("#groups-list");
 const groupsMessage = document.querySelector("#groups-message");
+const adminTabs = [...document.querySelectorAll("[data-admin-tab]")];
+const adminPanels = [...document.querySelectorAll("[data-admin-panel]")];
 
 const statusLabels = {
   new: "Nueva",
@@ -99,6 +101,7 @@ function formatDate(timestamp) {
 }
 
 function updateStats() {
+  document.querySelector("#applications-tab-count").textContent = applications.length;
   document.querySelector("#stat-total").textContent = applications.length;
   document.querySelector("#stat-new").textContent = applications.filter((item) => item.status === "new").length;
   document.querySelector("#stat-contacted").textContent = applications.filter((item) => item.status === "contacted").length;
@@ -227,6 +230,7 @@ function groupStatusOptions(status, memberCount) {
 }
 
 function renderGroups() {
+  document.querySelector("#groups-tab-count").textContent = groups.length;
   if (!groups.length) {
     groupsList.innerHTML = '<div class="empty">Aún no has creado grupos.</div>';
     return;
@@ -270,6 +274,18 @@ function renderGroups() {
   groupsList.querySelectorAll("[data-save-group-members]").forEach((button) => {
     button.addEventListener("click", updateGroupMembers);
   });
+}
+
+function showAdminPanel(panelName, updateHash = true) {
+  const selectedPanel = panelName === "groups" ? "groups" : "applications";
+  adminTabs.forEach((tab) => {
+    tab.setAttribute("aria-selected", String(tab.dataset.adminTab === selectedPanel));
+  });
+  adminPanels.forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.adminPanel !== selectedPanel);
+  });
+  if (updateHash) history.replaceState(null, "", `#${selectedPanel}`);
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 async function updateGroupMembers(event) {
@@ -436,13 +452,20 @@ onAuthStateChanged(auth, async (user) => {
   loginView.classList.toggle("hidden", authorized);
   dashboardView.classList.toggle("hidden", !authorized);
   signOutButton.classList.toggle("hidden", !authorized);
-  if (authorized) await loadApplications();
+  if (authorized) {
+    showAdminPanel(location.hash.slice(1), false);
+    await loadApplications();
+  }
 });
 
 signOutButton.addEventListener("click", () => signOut(auth));
 refreshButton.addEventListener("click", loadApplications);
 searchInput.addEventListener("input", renderApplications);
 statusFilter.addEventListener("change", renderApplications);
+adminTabs.forEach((tab) => {
+  tab.addEventListener("click", () => showAdminPanel(tab.dataset.adminTab));
+});
+window.addEventListener("hashchange", () => showAdminPanel(location.hash.slice(1), false));
 groupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   clearMessage(groupsMessage);

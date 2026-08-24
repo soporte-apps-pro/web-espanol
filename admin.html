@@ -37,6 +37,9 @@
     .message.error { color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; }
     .message.success { color:#047857; background:#ecfdf5; border:1px solid #a7f3d0; }
     .dashboard { max-width:1180px; margin:0 auto; padding:36px 24px 70px; }
+    .admin-tabs { position:sticky; top:0; z-index:10; display:flex; gap:8px; margin:-12px 0 28px; padding:10px; border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,.96); box-shadow:0 8px 24px rgba(15,23,42,.07); }
+    .admin-tab { flex:1; border:0; border-radius:11px; padding:12px; color:var(--navy); background:transparent; font-weight:700; }
+    .admin-tab[aria-selected="true"] { color:#fff; background:var(--blue); }
     .dashboard-head { display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:28px; }
     .dashboard-head h1 { margin-bottom:7px; }
     .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
@@ -65,7 +68,7 @@
     .card-actions label { margin:0; }
     .card-actions select { width:180px; padding:9px 11px; }
     .empty { text-align:center; padding:55px 20px; background:#fff; border:1px dashed #cbd5e1; border-radius:20px; color:var(--muted); }
-    .groups-section { margin-top:52px; padding-top:34px; border-top:2px solid var(--line); }
+    .groups-section { margin-top:0; }
     .group-layout { display:grid; grid-template-columns:minmax(280px,380px) 1fr; gap:20px; align-items:start; }
     .group-form,.group-card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:22px; }
     .group-form h2,.groups-list h2 { color:var(--navy); margin-bottom:8px; }
@@ -130,6 +133,12 @@
     </section>
 
     <section id="dashboard-view" class="dashboard hidden">
+      <nav class="admin-tabs" aria-label="Secciones del panel">
+        <button class="admin-tab" type="button" data-admin-tab="applications" aria-selected="true">Solicitudes (<span id="applications-tab-count">0</span>)</button>
+        <button class="admin-tab" type="button" data-admin-tab="groups" aria-selected="false">Grupos (<span id="groups-tab-count">0</span>)</button>
+      </nav>
+
+      <div id="applications-panel" data-admin-panel="applications">
       <div class="dashboard-head">
         <div>
           <p class="eyebrow">Speaking Club 2026</p>
@@ -161,8 +170,9 @@
       <p id="dashboard-message" class="message hidden" role="status"></p>
       <div id="applications" class="applications"></div>
       <div id="empty-state" class="empty hidden">No hay solicitudes que coincidan con este filtro.</div>
+      </div>
 
-      <section class="groups-section" aria-labelledby="groups-title">
+      <section id="groups-panel" class="groups-section hidden" data-admin-panel="groups" aria-labelledby="groups-title">
         <div class="dashboard-head">
           <div>
             <p class="eyebrow">Organización académica</p>
@@ -198,6 +208,6 @@
     </section>
   </main>
 
-  <script type="module" src="admin.js?v=20260824-2"></script>
+  <script type="module" src="admin.js?v=20260824-3"></script>
 </body>
 </html>
