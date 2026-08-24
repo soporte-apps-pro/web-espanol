@@ -208,6 +208,22 @@ function formatStoredDate(date) {
   }).format(new Date(`${date}T12:00:00Z`));
 }
 
+function editableMembersForGroup(group) {
+  const membersOfOtherGroups = new Set(
+    groups.filter((item) => item.id !== group.id).flatMap((item) => item.memberApplicationIds || [])
+  );
+  return applications.filter((application) =>
+    (group.memberApplicationIds || []).includes(application.id) ||
+    (application.status === "accepted" && !membersOfOtherGroups.has(application.id))
+  );
+}
+
+function groupStatusOptions(status) {
+  if (status === "forming") return '<option value="forming" selected>En formación</option><option value="confirmed">Confirmado</option>';
+  if (status === "confirmed") return '<option value="confirmed" selected>Confirmado</option><option value="completed">Finalizado</option>';
+  return '<option value="completed" selected>Finalizado</option>';
+}
+
 function renderGroups() {
   if (!groups.length) {
     groupsList.innerHTML = '<div class="empty">Aún no has creado grupos.</div>';
@@ -217,6 +233,18 @@ function renderGroups() {
     const memberNames = (group.memberApplicationIds || []).map((id) =>
       applications.find((application) => application.id === id)?.fullName || "Solicitud no disponible"
     );
+    const memberEditor = group.status === "forming" ? `
+      <div class="group-member-editor">
+        <strong>Editar integrantes mientras está en formación</strong>
+        <div class="member-options">
+          ${editableMembersForGroup(group).map((application) => `
+            <label class="member-option">
+              <input type="checkbox" data-group-member value="${escapeHtml(application.id)}" ${(group.memberApplicationIds || []).includes(application.id) ? "checked" : ""}>
+              <span><strong>${escapeHtml(application.fullName)}</strong><br>${escapeHtml(application.email)}</span>
+            </label>`).join("")}
+        </div>
+        <button class="button secondary" type="button" data-save-group-members>Guardar integrantes</button>
+      </div>` : '<p class="locked-note">Integrantes bloqueados porque el grupo ya fue confirmado.</p>';
     return `
       <article class="group-card" data-group-id="${escapeHtml(group.id)}">
         <div class="group-card-head">
@@ -225,12 +253,11 @@ function renderGroups() {
         </div>
         <ul class="session-dates">${(group.sessionDates || []).map((date, index) => `<li><strong>Sesión ${index + 1}</strong><br>${escapeHtml(formatStoredDate(date))}</li>`).join("")}</ul>
         <p class="group-members"><strong>Estudiantes (${memberNames.length}/5):</strong> ${escapeHtml(memberNames.join(", ") || "Sin estudiantes")}</p>
+        ${memberEditor}
         <div class="group-status">
           <label for="group-status-${escapeHtml(group.id)}">Estado</label>
           <select id="group-status-${escapeHtml(group.id)}" data-group-status>
-            <option value="forming" ${group.status === "forming" ? "selected" : ""}>En formación</option>
-            <option value="confirmed" ${group.status === "confirmed" ? "selected" : ""}>Confirmado</option>
-            <option value="completed" ${group.status === "completed" ? "selected" : ""}>Finalizado</option>
+            ${groupStatusOptions(group.status)}
           </select>
         </div>
       </article>`;
@@ -238,6 +265,43 @@ function renderGroups() {
   groupsList.querySelectorAll("[data-group-status]").forEach((select) => {
     select.addEventListener("change", updateGroupStatus);
   });
+  groupsList.querySelectorAll("[data-save-group-members]").forEach((button) => {
+    button.addEventListener("click", updateGroupMembers);
+  });
+}
+
+async function updateGroupMembers(event) {
+  const button = event.currentTarget;
+  const card = button.closest("[data-group-id]");
+  const group = groups.find((item) => item.id === card?.dataset.groupId);
+  if (!group || group.status !== "forming") return;
+  const memberApplicationIds = [...card.querySelectorAll("[data-group-member]:checked")].map((input) => input.value);
+  if (!memberApplicationIds.length || memberApplicationIds.length > 5) {
+    setMessage(groupsMessage, "El grupo debe tener entre 1 y 5 estudiantes.");
+    return;
+  }
+  const membersOfOtherGroups = new Set(
+    groups.filter((item) => item.id !== group.id).flatMap((item) => item.memberApplicationIds || [])
+  );
+  if (memberApplicationIds.some((id) => membersOfOtherGroups.has(id))) {
+    await loadGroups();
+    setMessage(groupsMessage, "Un estudiante ya pertenece a otro grupo. La lista fue actualizada.");
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "Guardando…";
+  try {
+    await updateDoc(doc(database, "speakingClubGroups", group.id), { memberApplicationIds });
+    group.memberApplicationIds = memberApplicationIds;
+    renderGroups();
+    renderAcceptedMemberOptions();
+    setMessage(groupsMessage, `Integrantes de ${group.name} actualizados.`, "success");
+  } catch (error) {
+    setMessage(groupsMessage, `No fue posible actualizar los integrantes (${error?.code || "error"}).`);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Guardar integrantes";
+  }
 }
 
 async function loadGroups() {

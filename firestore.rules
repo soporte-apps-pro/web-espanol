@@ -100,9 +100,16 @@ service cloud.firestore {
         request.resource.data.memberApplicationIds.size() <= 5 &&
         request.resource.data.status == 'forming' &&
         request.resource.data.createdAt == request.time;
-      allow update: if isAdmin() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
-        request.resource.data.status in ['forming', 'confirmed', 'completed'];
+      allow update: if isAdmin() && (
+        (resource.data.status == 'forming' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberApplicationIds']) &&
+          request.resource.data.memberApplicationIds is list &&
+          request.resource.data.memberApplicationIds.size() >= 1 &&
+          request.resource.data.memberApplicationIds.size() <= 5) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+          ((resource.data.status == 'forming' && request.resource.data.status == 'confirmed') ||
+            (resource.data.status == 'confirmed' && request.resource.data.status == 'completed')))
+      );
       allow delete: if false;
     }
 
