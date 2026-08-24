@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /speakingClubApplications/{applicationId} {
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'fullName',
+          'email',
+          'country',
+          'spanishLevel',
+          'timeZone',
+          'candidateSlots',
+          'scheduleAcknowledged',
+          'scheduleTimeZone',
+          'cohort',
+          'goal',
+          'consent',
+          'status',
+          'source',
+          'createdAt'
+        ]) &&
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 80 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() >= 5 &&
+        request.resource.data.email.size() <= 120 &&
+        request.resource.data.country is string &&
+        request.resource.data.country.size() >= 2 &&
+        request.resource.data.country.size() <= 60 &&
+        request.resource.data.spanishLevel in ['B1', 'unsure'] &&
+        request.resource.data.timeZone is string &&
+        request.resource.data.timeZone.size() >= 2 &&
+        request.resource.data.timeZone.size() <= 80 &&
+        request.resource.data.candidateSlots is list &&
+        request.resource.data.candidateSlots.size() >= 1 &&
+        request.resource.data.candidateSlots.size() <= 5 &&
+        request.resource.data.candidateSlots.hasOnly(['monday-1000', 'tuesday-1700', 'wednesday-0800', 'thursday-1400', 'friday-1100']) &&
+        request.resource.data.scheduleAcknowledged == true &&
+        request.resource.data.scheduleTimeZone == 'America/Bogota' &&
+        request.resource.data.cohort == 'founding-2026-09' &&
+        request.resource.data.goal is string &&
+        request.resource.data.goal.size() >= 3 &&
+        request.resource.data.goal.size() <= 500 &&
+        request.resource.data.consent == true &&
+        request.resource.data.status == 'new' &&
+        request.resource.data.source == 'speaking-club-page' &&
+        request.resource.data.createdAt == request.time;
+
+      allow read, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
