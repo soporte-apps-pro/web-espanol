@@ -48,13 +48,19 @@
 </head>
 <body class="bg-white text-gray-800 antialiased pb-24 md:pb-20">
     <nav class="fixed inset-x-0 top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
             <a href="index.html" class="font-extrabold text-xl sm:text-2xl text-blue-900 tracking-tighter" aria-label="Spanish with Elkin home">
                 Spanish with <span class="text-orange-500">Elkin</span>
             </a>
+            <div class="hidden md:flex items-center gap-5 ml-auto text-sm font-semibold">
+                <a href="index.html" class="text-gray-600 hover:text-orange-500 transition">Home</a>
+                <a href="index.html#pricing" class="text-gray-600 hover:text-orange-500 transition">Private Classes</a>
+                <a href="speaking-club.html" class="text-blue-900" aria-current="page">Speaking Club</a>
+                <a href="student-access.html" class="text-gray-600 hover:text-orange-500 transition">Student Login</a>
+            </div>
             <a href="#join"
-               class="inline-flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white px-5 sm:px-7 py-3 rounded-full font-bold text-sm sm:text-base transition shadow-lg shadow-orange-200">
-                Check Availability
+               class="inline-flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white px-4 sm:px-6 py-3 rounded-full font-bold text-xs sm:text-sm transition shadow-lg shadow-orange-200 whitespace-nowrap">
+                <span class="sm:hidden">Apply Free</span><span class="hidden sm:inline">Check Availability</span>
             </a>
         </div>
     </nav>
