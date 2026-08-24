@@ -1,17 +1,26 @@
 import { getApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { collection, deleteDoc, doc, getDocsFromServer, getFirestore, orderBy, query, serverTimestamp, Timestamp, writeBatch, addDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { collection, deleteDoc, doc, getDocsFromServer, getFirestore, orderBy, query, serverTimestamp, Timestamp, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
 
 const app = getApp();
 const auth = getAuth(app);
 const database = getFirestore(app);
 const form = document.querySelector("#private-slot-form");
+const slotType = document.querySelector("#private-slot-type");
+const recurrenceFields = document.querySelector("#private-recurrence-fields");
+const recurrenceWeeks = document.querySelector("#private-recurrence-weeks");
 const list = document.querySelector("#private-bookings");
 const message = document.querySelector("#private-message");
 const GOOGLE_CHECK_MAX_AGE_MINUTES = 10;
 let slots = [];
 let requests = [];
+
+slotType.addEventListener("change", () => {
+  const recurring = slotType.value === "weekly";
+  recurrenceFields.hidden = !recurring;
+  recurrenceWeeks.required = recurring;
+});
 
 function escapeHtml(value) { return String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
 function setMessage(text, type="error") { message.textContent=text; message.className=`message ${type}`; }
@@ -122,10 +131,29 @@ async function decide(slotId, confirmed) {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault(); const data = new FormData(form); const date=String(data.get("date")); const time=String(data.get("time"));
+  const type = String(data.get("slotType"));
+  const weeks = type === "weekly" ? Number(data.get("weeks")) : 1;
   const start = new Date(`${date}T${time}:00-05:00`);
   if (!Number.isFinite(start.getTime()) || start <= new Date()) { setMessage("Selecciona una fecha y hora futuras."); return; }
+  if (!Number.isInteger(weeks) || weeks < 1 || weeks > 52 || (type === "weekly" && weeks < 2)) { setMessage("Selecciona una cantidad válida de semanas, entre 2 y 52."); return; }
+  const starts = Array.from({length:weeks}, (_, index) => new Date(start.getTime() + index * 7 * 24 * 60 * 60 * 1000));
+  const activeTimes = new Set(slots.filter((slot) => slot.status !== "closed").map((slot) => slot.startAt?.toMillis?.()));
+  const newStarts = starts.filter((item) => !activeTimes.has(item.getTime()));
+  const duplicates = starts.length - newStarts.length;
+  if (!newStarts.length) { setMessage("Todos esos horarios ya están publicados."); return; }
+  const description = type === "weekly" ? `${newStarts.length} horarios semanales` : "el horario individual";
+  const duplicateNotice = duplicates ? ` Se omitirán ${duplicates} que ya existen.` : "";
+  if (!window.confirm(`Vas a publicar ${description}, siempre en hora Colombia.${duplicateNotice} ¿Deseas continuar?`)) return;
   const submit=form.querySelector('[type="submit"]'); submit.disabled=true;
-  try { await addDoc(collection(database,"privateAvailability"), { startAt:Timestamp.fromDate(start), durationMinutes:50, colombiaTimeZone:"America/Bogota", status:"available", heldBy:"", holdExpiresAt:Timestamp.fromMillis(0), bookingRequestId:"", googleCalendarBlocked:true, googleCalendarCheckedAt:Timestamp.fromMillis(0), createdAt:serverTimestamp() }); form.reset(); setMessage("Horario publicado. Aparecerá públicamente cuando Google Calendar lo verifique.","success"); await load(); }
+  try {
+    const batch = writeBatch(database);
+    const seriesId = type === "weekly" ? crypto.randomUUID() : "";
+    newStarts.forEach((item) => batch.set(doc(collection(database,"privateAvailability")), { startAt:Timestamp.fromDate(item), durationMinutes:50, colombiaTimeZone:"America/Bogota", availabilityType:type, recurrenceSeriesId:seriesId, status:"available", heldBy:"", holdExpiresAt:Timestamp.fromMillis(0), bookingRequestId:"", googleCalendarBlocked:true, googleCalendarCheckedAt:Timestamp.fromMillis(0), createdAt:serverTimestamp() }));
+    await batch.commit();
+    form.reset(); slotType.dispatchEvent(new Event("change"));
+    setMessage(`${newStarts.length} horario${newStarts.length === 1 ? "" : "s"} publicado${newStarts.length === 1 ? "" : "s"}. Aparecerá${newStarts.length === 1 ? "" : "n"} públicamente cuando Google Calendar lo verifique.${duplicates ? ` Se omitieron ${duplicates} duplicados.` : ""}`,"success");
+    await load();
+  }
   catch(error){ console.error(error); setMessage(`No fue posible publicar (${error?.code || "error"}).`); }
   finally { submit.disabled=false; }
 });

@@ -317,8 +317,18 @@
         <div class="private-layout">
           <form id="private-slot-form" class="private-card">
             <h2>Publicar horario</h2>
+            <label for="private-slot-type">Tipo de horario</label>
+            <select id="private-slot-type" name="slotType" required>
+              <option value="single">Fecha individual</option>
+              <option value="weekly">Recurrente semanal</option>
+            </select>
             <label for="private-date">Fecha en Colombia</label><input id="private-date" name="date" type="date" required>
             <label for="private-time">Hora en Colombia</label><input id="private-time" name="time" type="time" min="07:00" max="18:00" step="1800" required>
+            <div id="private-recurrence-fields" hidden>
+              <label for="private-recurrence-weeks">Cantidad de semanas</label>
+              <input id="private-recurrence-weeks" name="weeks" type="number" min="2" max="52" value="6">
+              <p class="muted">Se publicará el mismo día de la semana y a la misma hora, comenzando en la fecha seleccionada.</p>
+            </div>
             <p class="muted">El estudiante verá la conversión automática en su zona horaria.</p>
             <button class="button" type="submit">Publicar disponibilidad</button>
           </form>
@@ -343,7 +353,7 @@
   </main>
 
   <script type="module" src="admin.js?v=20260824-8"></script>
-  <script type="module" src="private-booking-admin.js?v=20260824-2"></script>
+  <script type="module" src="private-booking-admin.js?v=20260824-3"></script>
   <script type="module" src="admin-calendar.js?v=20260824-2"></script>
 </body>
 </html>
