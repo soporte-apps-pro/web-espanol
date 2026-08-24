@@ -2,6 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.uid == 'QrpHgMUCY6dy7Gl6VX0r4orauqo1';
+    }
+
     match /speakingClubApplications/{applicationId} {
       allow create: if
         request.resource.data.keys().hasOnly([
@@ -48,7 +53,11 @@ service cloud.firestore {
         request.resource.data.source == 'speaking-club-page' &&
         request.resource.data.createdAt == request.time;
 
-      allow read, update, delete: if false;
+      allow read: if isAdmin();
+      allow update: if isAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+        request.resource.data.status in ['new', 'contacted', 'accepted', 'rejected'];
+      allow delete: if false;
     }
 
     match /{document=**} {

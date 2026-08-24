@@ -12,3 +12,6 @@ export const firebaseConfig = {
 // Public reCAPTCHA Enterprise site key used by Firebase App Check.
 export const recaptchaEnterpriseSiteKey =
   "6Lc2ZZYtAAAAAGPg5J6Mc-iISbNckzXpnVXyzIg0";
+
+// Set after creating the administrator in Firebase Authentication.
+export const adminUid = "QrpHgMUCY6dy7Gl6VX0r4orauqo1";
