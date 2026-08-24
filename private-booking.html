@@ -9,57 +9,57 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css">
   <style>body{font-family:Poppins,sans-serif}.slot[aria-pressed=true]{border-color:#f97316;background:#fff7ed}.message.success{background:#ecfdf5;color:#047857}.message.error{background:#fff1f2;color:#be123c}</style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen">
-  <header class="bg-white border-b border-slate-200">
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+  <header class="bg-white border-b border-gray-200">
     <div class="max-w-5xl mx-auto px-5 py-5 flex items-center justify-between gap-4">
       <a href="index.html" class="font-extrabold text-xl text-blue-900">Spanish with <span class="text-orange-500">Elkin</span></a>
       <a href="private-classes.html" class="text-sm font-bold text-blue-900">Private Coaching</a>
     </div>
   </header>
   <main class="max-w-5xl mx-auto px-5 py-10 lg:py-14">
-    <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-8 items-start">
+    <div class="grid lg:grid-cols-2 gap-8 items-start">
       <section>
         <p class="uppercase tracking-widest text-xs font-bold text-orange-500 mb-3">Secure scheduling</p>
         <h1 class="text-4xl md:text-5xl font-extrabold text-blue-950 leading-tight">See the time first. Pay before it is booked.</h1>
-        <p class="mt-5 text-slate-600 leading-relaxed">Elkin publishes every time in Colombia time. We convert it to your selected time zone automatically.</p>
+        <p class="mt-5 text-gray-600 leading-relaxed">Elkin publishes every time in Colombia time. We convert it to your selected time zone automatically.</p>
         <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-5 text-sm text-blue-950 space-y-2">
           <p><strong>Viewing or selecting a time does not block it.</strong></p>
           <p>When you continue to payment, it is held for 10 minutes. It becomes permanently booked only after Elkin verifies the payment reference.</p>
         </div>
       </section>
-      <section class="bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-sm">
+      <section class="bg-white border border-gray-200 rounded-3xl p-5 md:p-7 shadow-sm">
         <form id="booking-form">
           <div class="flex items-end justify-between gap-4 mb-5">
-            <div><p class="text-xs font-bold uppercase tracking-wider text-slate-500">Your time zone</p><h2 class="text-2xl font-extrabold text-blue-950">Available times</h2></div>
+            <div><p class="text-xs font-bold uppercase tracking-wider text-gray-500">Your time zone</p><h2 class="text-2xl font-extrabold text-blue-950">Available times</h2></div>
           </div>
           <label for="student-time-zone" class="block text-sm font-bold mb-2">Time zone</label>
-          <select id="student-time-zone" class="w-full rounded-xl border border-slate-300 px-4 py-3 mb-5" required></select>
-          <div id="slots" class="grid gap-3" aria-live="polite"><p class="text-slate-500">Loading availability…</p></div>
+          <select id="student-time-zone" class="w-full rounded-xl border border-gray-300 px-4 py-3 mb-5" required></select>
+          <div id="slots" class="grid gap-3" aria-live="polite"><p class="text-gray-500">Loading availability…</p></div>
           <div id="selection-panel" class="hidden mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4">
             <p id="selected-time" class="text-sm font-bold text-blue-950"></p>
-            <p class="text-xs text-slate-600 mt-1">This selection does not block the time yet.</p>
+            <p class="text-xs text-gray-600 mt-1">This selection does not block the time yet.</p>
             <button id="start-payment" class="w-full mt-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold py-3" type="button">Start Payment · Hold for 10 Minutes</button>
           </div>
-          <div id="hold-panel" class="hidden mt-6 border-t border-slate-200 pt-6">
-            <div class="rounded-xl bg-orange-50 border border-orange-200 p-4 mb-5"><strong id="hold-countdown" class="text-orange-700"></strong><p class="text-xs text-slate-600 mt-1">Submit your payment reference before this temporary hold expires.</p></div>
+          <div id="hold-panel" class="hidden mt-6 border-t border-gray-200 pt-6">
+            <div class="rounded-xl bg-orange-50 border border-orange-200 p-4 mb-5"><strong id="hold-countdown" class="text-orange-700"></strong><p class="text-xs text-gray-600 mt-1">Submit your payment reference before this temporary hold expires.</p></div>
             <label class="block text-sm font-bold mb-2" for="package">Package</label>
-            <select id="package" class="w-full rounded-xl border border-slate-300 px-4 py-3 mb-4" required>
+            <select id="package" class="w-full rounded-xl border border-gray-300 px-4 py-3 mb-4" required>
               <option value="single">1 private class · US$25</option>
               <option value="pack4" selected>4 private classes · US$84</option>
               <option value="pack8">8 private classes · US$152</option>
             </select>
             <div class="grid md:grid-cols-2 gap-4">
-              <div><label class="block text-sm font-bold mb-2" for="full-name">Full name</label><input id="full-name" class="w-full rounded-xl border border-slate-300 px-4 py-3" minlength="2" maxlength="80" required></div>
-              <div><label class="block text-sm font-bold mb-2" for="email">Email</label><input id="email" type="email" class="w-full rounded-xl border border-slate-300 px-4 py-3" maxlength="120" required></div>
-              <div><label class="block text-sm font-bold mb-2" for="payment-method">Payment method</label><select id="payment-method" class="w-full rounded-xl border border-slate-300 px-4 py-3" required><option value="">Choose one</option><option value="paypal">PayPal</option><option value="transfer">Bank transfer</option><option value="other">Other</option></select></div>
-              <div><label class="block text-sm font-bold mb-2" for="payer-name">Payer name</label><input id="payer-name" class="w-full rounded-xl border border-slate-300 px-4 py-3" minlength="2" maxlength="100" required></div>
+              <div><label class="block text-sm font-bold mb-2" for="full-name">Full name</label><input id="full-name" class="w-full rounded-xl border border-gray-300 px-4 py-3" minlength="2" maxlength="80" required></div>
+              <div><label class="block text-sm font-bold mb-2" for="email">Email</label><input id="email" type="email" class="w-full rounded-xl border border-gray-300 px-4 py-3" maxlength="120" required></div>
+              <div><label class="block text-sm font-bold mb-2" for="payment-method">Payment method</label><select id="payment-method" class="w-full rounded-xl border border-gray-300 px-4 py-3" required><option value="">Choose one</option><option value="paypal">PayPal</option><option value="transfer">Bank transfer</option><option value="other">Other</option></select></div>
+              <div><label class="block text-sm font-bold mb-2" for="payer-name">Payer name</label><input id="payer-name" class="w-full rounded-xl border border-gray-300 px-4 py-3" minlength="2" maxlength="100" required></div>
             </div>
             <label class="block text-sm font-bold mt-4 mb-2" for="payment-reference">Payment reference or transaction ID</label>
-            <input id="payment-reference" class="w-full rounded-xl border border-slate-300 px-4 py-3" minlength="4" maxlength="160" required>
-            <p class="text-xs text-slate-500 mt-2">Elkin will compare this reference with the payment provider before confirming the booking.</p>
+            <input id="payment-reference" class="w-full rounded-xl border border-gray-300 px-4 py-3" minlength="4" maxlength="160" required>
+            <p class="text-xs text-gray-500 mt-2">Elkin will compare this reference with the payment provider before confirming the booking.</p>
             <button id="submit-booking" class="w-full mt-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold py-4" type="submit">Send Payment for Verification</button>
           </div>
           <p id="booking-message" class="message hidden mt-5 rounded-xl p-4 text-sm font-semibold" role="status"></p>

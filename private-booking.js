@@ -41,8 +41,8 @@ function renderSlots() {
   const visible = slots.filter((slot) => available(slot) && slot.startAt?.toDate() > new Date()).sort((a,b) => a.startAt.seconds - b.startAt.seconds);
   slotsElement.innerHTML = visible.length ? visible.map((slot) => {
     const start = slot.startAt.toDate();
-    return `<button type="button" class="slot text-left rounded-2xl border border-slate-200 p-4 hover:border-orange-400" data-slot="${slot.id}" aria-pressed="${selectedSlot?.id === slot.id}"><strong class="block text-blue-950">${formatAt(start, zone)}</strong><span class="text-xs text-slate-500">${formatAt(start, COLOMBIA_ZONE)} · Colombia time</span><span class="block text-xs text-slate-500 mt-1">50 minutes</span></button>`;
-  }).join("") : '<p class="rounded-xl bg-slate-50 p-5 text-slate-500">No private times are currently available. Please check again soon.</p>';
+    return `<button type="button" class="slot text-left rounded-2xl border border-gray-200 p-4 hover:border-orange-400" data-slot="${slot.id}" aria-pressed="${selectedSlot?.id === slot.id}"><strong class="block text-blue-950">${formatAt(start, zone)}</strong><span class="text-xs text-gray-500">${formatAt(start, COLOMBIA_ZONE)} · Colombia time</span><span class="block text-xs text-gray-500 mt-1">50 minutes</span></button>`;
+  }).join("") : '<p class="rounded-xl bg-gray-50 p-5 text-gray-500">No private times are currently available. Please check again soon.</p>';
   slotsElement.querySelectorAll("[data-slot]").forEach((button) => button.addEventListener("click", () => selectSlot(button.dataset.slot)));
 }
 
