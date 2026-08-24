@@ -12,9 +12,14 @@ const recurrenceFields = document.querySelector("#private-recurrence-fields");
 const recurrenceWeeks = document.querySelector("#private-recurrence-weeks");
 const list = document.querySelector("#private-bookings");
 const message = document.querySelector("#private-message");
+const weekGrid = document.querySelector("#private-week-grid");
+const weekTitle = document.querySelector("#private-week-title");
 const GOOGLE_CHECK_MAX_AGE_MINUTES = 10;
+const START_HOUR = 7;
+const END_HOUR = 19;
 let slots = [];
 let requests = [];
+let visibleWeek = mondayOf(colombiaToday());
 
 slotType.addEventListener("change", () => {
   const recurring = slotType.value === "weekly";
@@ -29,9 +34,26 @@ function requestFor(slot) {
   if (slot.status === "available") return undefined;
   return requests.find((item) => item.slotId === slot.id && item.status !== "rejected");
 }
+function colombiaToday() { const parts=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:"America/Bogota",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).map((part)=>[part.type,part.value])); return new Date(Date.UTC(Number(parts.year),Number(parts.month)-1,Number(parts.day),12)); }
+function mondayOf(date) { const result=new Date(date); result.setUTCDate(result.getUTCDate()-((result.getUTCDay()+6)%7)); return result; }
+function addDays(date, days) { const result=new Date(date); result.setUTCDate(result.getUTCDate()+days); return result; }
+function dateKey(date) { return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,"0")}-${String(date.getUTCDate()).padStart(2,"0")}`; }
+function colombiaParts(timestamp) { const parts=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:"America/Bogota",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(timestamp.toDate()).map((part)=>[part.type,part.value])); return {date:`${parts.year}-${parts.month}-${parts.day}`,hour:Number(parts.hour),minute:Number(parts.minute)}; }
+function privateWeekHeading() { const end=addDays(visibleWeek,6); return `${new Intl.DateTimeFormat("es-CO",{day:"numeric",month:"short",timeZone:"UTC"}).format(visibleWeek)} – ${new Intl.DateTimeFormat("es-CO",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"}).format(end)}`; }
+function weekStatusClass(slot) { if (slot.googleCalendarBlocked === true || slot.status === "closed") return "blocked"; if (slot.status === "confirmed") return "confirmed"; if (["held","payment_review"].includes(slot.status)) return "pending"; return "available"; }
 function statusLabel(status) { return ({available:"Disponible",held:"Retención temporal",payment_review:"Pago por verificar",confirmed:"Confirmado",rejected:"Rechazado",closed:"Cerrado",cancelled_by_admin:"Cancelado por fuerza mayor"})[status] || status; }
 function googleCleared(slot) { const checkedAt=slot.googleCalendarCheckedAt?.toDate?.(); return slot.googleCalendarBlocked === false && checkedAt && checkedAt.getTime() >= Date.now() - GOOGLE_CHECK_MAX_AGE_MINUTES*60000; }
 function googleStatus(slot) { if (slot.googleCalendarBlocked === true) return "Google Calendar: bloqueado"; if (googleCleared(slot)) return "Google Calendar: libre y verificado"; return "Google Calendar: pendiente de revisión"; }
+
+function renderPrivateWeek() {
+  weekTitle.textContent=privateWeekHeading(); const today=dateKey(colombiaToday()); const rows=(END_HOUR-START_HOUR)*2; let html='<div class="week-corner"></div>';
+  for(let day=0;day<7;day++){const date=addDays(visibleWeek,day),key=dateKey(date);html+=`<div class="week-day-head ${key===today?"today":""}" style="grid-column:${day+2};grid-row:1">${new Intl.DateTimeFormat("es-CO",{weekday:"short",timeZone:"UTC"}).format(date)}<small>${new Intl.DateTimeFormat("es-CO",{day:"numeric",month:"short",timeZone:"UTC"}).format(date)}</small></div>`;}
+  for(let row=0;row<rows;row++){const total=START_HOUR*60+row*30,time=`${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;html+=`<div class="week-time" style="grid-column:1;grid-row:${row+2}">${row%2===0?time:""}</div>`;for(let day=0;day<7;day++){const date=dateKey(addDays(visibleWeek,day));html+=`<button class="week-cell" type="button" data-week-date="${date}" data-week-time="${time}" style="grid-column:${day+2};grid-row:${row+2}" aria-label="Preparar ${date} ${time}"></button>`;}}
+  slots.forEach(slot=>{if(!slot.startAt?.toDate)return;const parts=colombiaParts(slot.startAt),offset=Math.round((new Date(`${parts.date}T12:00:00Z`)-visibleWeek)/86400000);if(offset<0||offset>6||parts.hour<START_HOUR||parts.hour>=END_HOUR)return;const row=2+(parts.hour-START_HOUR)*2+(parts.minute>=30?1:0),request=requestFor(slot);html+=`<button class="week-event private-week-event ${weekStatusClass(slot)}" type="button" data-week-slot="${escapeHtml(slot.id)}" style="grid-column:${offset+2};grid-row:${row}/span 2"><strong>${String(parts.hour).padStart(2,"0")}:${String(parts.minute).padStart(2,"0")}</strong><br>${escapeHtml(request?.fullName||statusLabel(slot.status))}</button>`;});
+  weekGrid.innerHTML=html;
+  weekGrid.querySelectorAll("[data-week-date]").forEach(button=>button.addEventListener("click",()=>{form.elements.date.value=button.dataset.weekDate;form.elements.time.value=button.dataset.weekTime;form.scrollIntoView({behavior:"smooth",block:"center"});form.elements.slotType.focus();setMessage("Horario preparado. Elige si será individual o recurrente y publícalo.","success");}));
+  weekGrid.querySelectorAll("[data-week-slot]").forEach(button=>button.addEventListener("click",()=>{const card=list.querySelector(`[data-slot-id="${CSS.escape(button.dataset.weekSlot)}"]`);if(!card)return;card.closest(".private-series-card")?.setAttribute("open","");card.setAttribute("open","");card.scrollIntoView({behavior:"smooth",block:"center"});}));
+}
 
 function slotCard(slot) {
   const request = requestFor(slot);
@@ -81,6 +103,7 @@ function render() {
   list.querySelectorAll("[data-close-slot]").forEach((button) => button.addEventListener("click", () => closeAvailableSlot(button.closest("[data-slot-id]").dataset.slotId, button)));
   list.querySelectorAll("[data-cancel-booking]").forEach((button) => button.addEventListener("click", () => cancelConfirmedBooking(button.closest("[data-slot-id]").dataset.slotId, button)));
   list.querySelectorAll("[data-reschedule-booking]").forEach((button) => button.addEventListener("click", () => rescheduleConfirmedBooking(button.closest("[data-slot-id]").dataset.slotId, button)));
+  renderPrivateWeek();
 }
 
 function exceptionalReason(actionLabel) {
@@ -188,3 +211,6 @@ form.addEventListener("submit", async (event) => {
 });
 
 onAuthStateChanged(auth, (user) => { if (user?.uid === adminUid) load().catch((error) => { console.error(error); setMessage("No fue posible cargar el calendario privado."); }); });
+document.querySelector("#private-week-prev").addEventListener("click",()=>{ visibleWeek=addDays(visibleWeek,-7); renderPrivateWeek(); });
+document.querySelector("#private-week-next").addEventListener("click",()=>{ visibleWeek=addDays(visibleWeek,7); renderPrivateWeek(); });
+document.querySelector("#private-week-today").addEventListener("click",()=>{ visibleWeek=mondayOf(colombiaToday()); renderPrivateWeek(); });

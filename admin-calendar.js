@@ -3,60 +3,33 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { collection, getDocsFromServer, getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
 
-const app = getApp();
-const auth = getAuth(app);
-const database = getFirestore(app);
-const grid = document.querySelector("#calendar-grid");
-const monthTitle = document.querySelector("#calendar-month");
-const message = document.querySelector("#calendar-message");
-let events = [];
-let visibleMonth = colombiaToday();
+const app=getApp(),auth=getAuth(app),database=getFirestore(app);
+const grid=document.querySelector("#calendar-grid"),weekTitle=document.querySelector("#calendar-month"),message=document.querySelector("#calendar-message");
+const START_HOUR=7,END_HOUR=19,ROWS=(END_HOUR-START_HOUR)*2;
+let events=[],visibleWeek=mondayOf(colombiaToday());
 
-function escapeHtml(value) { return String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
-function colombiaToday() {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone:"America/Bogota", year:"numeric", month:"2-digit", day:"2-digit" }).formatToParts(new Date());
-  const value = Object.fromEntries(parts.map((part) => [part.type,part.value]));
-  return new Date(Date.UTC(Number(value.year),Number(value.month)-1,Number(value.day),12));
-}
-function dateKey(date) { return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,"0")}-${String(date.getUTCDate()).padStart(2,"0")}`; }
-function timestampKey(timestamp) { return new Intl.DateTimeFormat("en-CA", { timeZone:"America/Bogota", year:"numeric", month:"2-digit", day:"2-digit" }).format(timestamp.toDate()); }
-function colombiaTime(timestamp) { return new Intl.DateTimeFormat("es-CO", { timeZone:"America/Bogota", hour:"numeric", minute:"2-digit", hour12:true }).format(timestamp.toDate()); }
-function addDays(date, days) { const result=new Date(date); result.setUTCDate(result.getUTCDate()+days); return result; }
+function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+function colombiaToday(){const p=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:"America/Bogota",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date()).map(x=>[x.type,x.value]));return new Date(Date.UTC(+p.year,+p.month-1,+p.day,12));}
+function mondayOf(date){const d=new Date(date);d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d;}
+function addDays(date,days){const d=new Date(date);d.setUTCDate(d.getUTCDate()+days);return d;}
+function dateKey(date){return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,"0")}-${String(date.getUTCDate()).padStart(2,"0")}`;}
+function timestampKey(timestamp){return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Bogota",year:"numeric",month:"2-digit",day:"2-digit"}).format(timestamp.toDate());}
+function timeParts(timestamp){const p=Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:"America/Bogota",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(timestamp.toDate()).map(x=>[x.type,x.value]));return {hour:+p.hour,minute:+p.minute};}
+function parseDisplayTime(value){const s=String(value).toLowerCase(),m=s.match(/(\d{1,2}):(\d{2})/);if(!m)return {hour:8,minute:0};let hour=+m[1];if(s.includes("p.")&&hour<12)hour+=12;if(s.includes("a.")&&hour===12)hour=0;return {hour,minute:+m[2]};}
+function rowFor(time){return 2+(time.hour-START_HOUR)*2+(time.minute>=30?1:0);}
+function weekHeading(){const end=addDays(visibleWeek,6),same=visibleWeek.getUTCMonth()===end.getUTCMonth();const first=new Intl.DateTimeFormat("es-CO",{day:"numeric",month:same?undefined:"short",timeZone:"UTC"}).format(visibleWeek);const last=new Intl.DateTimeFormat("es-CO",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"}).format(end);return `${first} – ${last}`;}
 
-function renderCalendar() {
-  const year=visibleMonth.getUTCFullYear(); const month=visibleMonth.getUTCMonth();
-  monthTitle.textContent = new Intl.DateTimeFormat("es-CO", { month:"long", year:"numeric", timeZone:"UTC" }).format(new Date(Date.UTC(year,month,1)));
-  const first=new Date(Date.UTC(year,month,1,12)); const mondayOffset=(first.getUTCDay()+6)%7; const start=addDays(first,-mondayOffset); const todayKey=dateKey(colombiaToday());
-  let visibleCount=0;
-  grid.innerHTML=Array.from({length:42},(_,index)=>{
-    const day=addDays(start,index); const key=dateKey(day); const dayEvents=events.filter((event)=>event.date===key); visibleCount+=dayEvents.length;
-    return `<div class="calendar-day ${day.getUTCMonth()===month?"":"outside"} ${key===todayKey?"today":""}"><span class="calendar-number">${day.getUTCDate()}</span>${dayEvents.map((event)=>`<span class="calendar-event ${event.type}" title="${escapeHtml(event.details)}"><strong>${escapeHtml(event.time)}</strong> · ${escapeHtml(event.title)}<br>${escapeHtml(event.subtitle)}</span>`).join("")}</div>`;
-  }).join("");
-  document.querySelector("#calendar-tab-count").textContent=visibleCount;
+function renderCalendar(){
+  weekTitle.textContent=weekHeading();const today=dateKey(colombiaToday());let html='<div class="week-corner"></div>';
+  for(let day=0;day<7;day++){const d=addDays(visibleWeek,day);html+=`<div class="week-day-head ${dateKey(d)===today?"today":""}" style="grid-column:${day+2};grid-row:1">${new Intl.DateTimeFormat("es-CO",{weekday:"short",timeZone:"UTC"}).format(d)}<small>${new Intl.DateTimeFormat("es-CO",{day:"numeric",month:"short",timeZone:"UTC"}).format(d)}</small></div>`;}
+  for(let row=0;row<ROWS;row++){const total=START_HOUR*60+row*30,label=row%2===0?`${String(Math.floor(total/60)).padStart(2,"0")}:00`:"";html+=`<div class="week-time" style="grid-column:1;grid-row:${row+2}">${label}</div>`;for(let day=0;day<7;day++)html+=`<div class="week-cell" style="grid-column:${day+2};grid-row:${row+2}"></div>`;}
+  let visibleCount=0;events.forEach(event=>{const offset=Math.round((new Date(`${event.date}T12:00:00Z`)-visibleWeek)/86400000);if(offset<0||offset>6)return;const time=event.timeParts||parseDisplayTime(event.time),row=rowFor(time);if(row<2||row>ROWS+1)return;visibleCount++;html+=`<div class="week-event calendar-event ${event.type}" style="grid-column:${offset+2};grid-row:${row}/span 2" title="${escapeHtml(event.details)}"><strong>${escapeHtml(event.time)}</strong><br>${escapeHtml(event.title)}<br><span>${escapeHtml(event.subtitle)}</span></div>`;});grid.innerHTML=html;document.querySelector("#calendar-tab-count").textContent=visibleCount;
 }
 
-async function loadCalendar() {
-  message.className="message hidden";
-  try {
-    const [slotSnapshot,requestSnapshot,groupSnapshot]=await Promise.all([
-      getDocsFromServer(collection(database,"privateAvailability")),
-      getDocsFromServer(collection(database,"privateBookingRequests")),
-      getDocsFromServer(collection(database,"speakingClubGroups")),
-    ]);
-    const requests=new Map(requestSnapshot.docs.map((item)=>[item.id,item.data()]));
-    const privateEvents=slotSnapshot.docs.filter((item)=>item.data().status==="confirmed").map((item)=>{
-      const slot=item.data(); const request=requests.get(slot.bookingRequestId)||{};
-      return { type:"private", date:timestampKey(slot.startAt), time:colombiaTime(slot.startAt), title:"Clase privada", subtitle:request.fullName||"Estudiante", details:`${request.packageLabel||"Paquete privado"} · ${request.email||""}` };
-    });
-    const groupEvents=groupSnapshot.docs.filter((item)=>["confirmed","completed"].includes(item.data().status)).flatMap((item)=>{
-      const group=item.data(); return (group.sessionDates||[]).map((date,index)=>({ type:"group", date, time:({"monday-1000":"10:00 a. m.","tuesday-1700":"5:00 p. m.","wednesday-0800":"8:00 a. m.","thursday-1400":"2:00 p. m.","friday-1100":"11:00 a. m."})[group.slot]||"", title:group.name, subtitle:`Speaking Club · Sesión ${index+1}`, details:`${group.memberApplicationIds?.length||0} estudiantes` }));
-    });
-    events=[...privateEvents,...groupEvents]; renderCalendar();
-  } catch(error) { console.error(error); message.textContent="No fue posible cargar el calendario."; message.className="message error"; }
-}
+async function loadCalendar(){message.className="message hidden";try{const [ss,rs,gs]=await Promise.all([getDocsFromServer(collection(database,"privateAvailability")),getDocsFromServer(collection(database,"privateBookingRequests")),getDocsFromServer(collection(database,"speakingClubGroups"))]);const requests=new Map(rs.docs.map(item=>[item.id,item.data()]));const privateEvents=ss.docs.filter(item=>item.data().status==="confirmed").map(item=>{const slot=item.data(),request=requests.get(slot.bookingRequestId)||{};return {type:"private",date:timestampKey(slot.startAt),timeParts:timeParts(slot.startAt),time:new Intl.DateTimeFormat("es-CO",{timeZone:"America/Bogota",hour:"numeric",minute:"2-digit",hour12:true}).format(slot.startAt.toDate()),title:"Clase privada",subtitle:request.fullName||"Estudiante",details:`${request.packageLabel||"Paquete privado"} · ${request.email||""}`};});const labels={"monday-1000":"10:00 a. m.","tuesday-1700":"5:00 p. m.","wednesday-0800":"8:00 a. m.","thursday-1400":"2:00 p. m.","friday-1100":"11:00 a. m."};const groupEvents=gs.docs.filter(item=>["confirmed","completed"].includes(item.data().status)).flatMap(item=>{const group=item.data();return (group.sessionDates||[]).map((date,index)=>({type:"group",date,time:labels[group.slot]||"",title:group.name,subtitle:`Speaking Club · Sesión ${index+1}`,details:`${group.memberApplicationIds?.length||0} estudiantes`}));});events=[...privateEvents,...groupEvents];renderCalendar();}catch(error){console.error(error);message.textContent="No fue posible cargar el calendario.";message.className="message error";}}
 
-document.querySelector("#calendar-prev").addEventListener("click",()=>{ visibleMonth=new Date(Date.UTC(visibleMonth.getUTCFullYear(),visibleMonth.getUTCMonth()-1,1,12)); renderCalendar(); });
-document.querySelector("#calendar-next").addEventListener("click",()=>{ visibleMonth=new Date(Date.UTC(visibleMonth.getUTCFullYear(),visibleMonth.getUTCMonth()+1,1,12)); renderCalendar(); });
-document.querySelector("#calendar-today").addEventListener("click",()=>{ visibleMonth=colombiaToday(); renderCalendar(); });
+document.querySelector("#calendar-prev").addEventListener("click",()=>{visibleWeek=addDays(visibleWeek,-7);renderCalendar();});
+document.querySelector("#calendar-next").addEventListener("click",()=>{visibleWeek=addDays(visibleWeek,7);renderCalendar();});
+document.querySelector("#calendar-today").addEventListener("click",()=>{visibleWeek=mondayOf(colombiaToday());renderCalendar();});
 document.querySelector('[data-admin-tab="calendar"]').addEventListener("click",loadCalendar);
-onAuthStateChanged(auth,(user)=>{ if(user?.uid===adminUid) loadCalendar(); });
+onAuthStateChanged(auth,user=>{if(user?.uid===adminUid)loadCalendar();});
