@@ -37,7 +37,7 @@ function setSubmitting(submitting) {
   submitButton.disabled = submitting;
   submitLabel.textContent = submitting
     ? "Sending your information…"
-    : "Find My Group — It’s Free";
+    : "Submit Free Application";
 }
 
 form?.addEventListener("submit", async (event) => {
