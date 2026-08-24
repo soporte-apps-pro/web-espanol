@@ -16,7 +16,7 @@ function escapeHtml(value) { return String(value ?? "").replaceAll("&","&amp;").
 function setMessage(text, type="error") { message.textContent=text; message.className=`message ${type}`; }
 function formatColombia(timestamp) { return timestamp?.toDate ? new Intl.DateTimeFormat("es-CO", { dateStyle:"medium", timeStyle:"short", timeZone:"America/Bogota" }).format(timestamp.toDate()) : "Sin fecha"; }
 function requestFor(slot) { return requests.find((item) => item.slotId === slot.id); }
-function statusLabel(status) { return ({available:"Disponible",held:"Retención temporal",payment_review:"Pago por verificar",confirmed:"Confirmado",rejected:"Rechazado"})[status] || status; }
+function statusLabel(status) { return ({available:"Disponible",held:"Retención temporal",payment_review:"Pago por verificar",confirmed:"Confirmado",rejected:"Rechazado",closed:"Cerrado",cancelled_by_admin:"Cancelado por fuerza mayor"})[status] || status; }
 
 function render() {
   document.querySelector("#private-tab-count").textContent = requests.filter((item) => item.status === "payment_review").length;
@@ -26,12 +26,52 @@ function render() {
       <div class="group-card-head"><div><h3>${escapeHtml(formatColombia(slot.startAt))}</h3><span class="muted">50 minutos · hora Colombia</span></div><span class="pill">${escapeHtml(statusLabel(slot.status))}</span></div>
       ${request ? `<div class="private-meta"><div><small>Estudiante</small><strong>${escapeHtml(request.fullName)}</strong><br><a href="mailto:${escapeHtml(request.email)}">${escapeHtml(request.email)}</a></div><div><small>Paquete</small><strong>${escapeHtml(request.packageLabel)}</strong><br>US$${Number(request.amountUsd).toFixed(2)}</div><div><small>Zona del estudiante</small><strong>${escapeHtml(request.studentTimeZone)}</strong></div><div><small>Método</small><strong>${escapeHtml(request.paymentMethod)}</strong></div><div><small>Referencia</small><strong>${escapeHtml(request.paymentReference)}</strong></div><div><small>Pagador</small><strong>${escapeHtml(request.payerName)}</strong></div></div>
       ${request.status === "payment_review" ? '<div class="card-actions"><button class="button secondary" type="button" data-reject>Rechazar / liberar</button><button class="button" type="button" data-confirm>Pago verificado · confirmar</button></div>' : ""}` : '<p class="muted">Nadie ha iniciado el pago para este horario.</p>'}
+      ${request?.status === "confirmed" && slot.status === "confirmed" ? `<div class="group-member-editor"><strong>Acciones excepcionales</strong><p class="muted">Úsalas únicamente por fuerza mayor. Requieren confirmación escrita.</p><label for="reschedule-${escapeHtml(slot.id)}">Nuevo horario disponible</label><select id="reschedule-${escapeHtml(slot.id)}" data-reschedule-target><option value="">Selecciona un horario</option>${slots.filter((item) => item.status === "available" && item.startAt?.toDate() > new Date()).map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(formatColombia(item.startAt))}</option>`).join("")}</select><div class="card-actions"><button class="button secondary" type="button" data-cancel-booking>Cancelar por fuerza mayor</button><button class="button" type="button" data-reschedule-booking>Reagendar reserva</button></div></div>` : ""}
       ${slot.status === "available" && !request ? '<div class="card-actions"><button class="button secondary" type="button" data-close-slot>Cerrar horario disponible</button></div>' : ""}
     </article>`;
   }).join("") : '<div class="empty">Aún no has publicado horarios privados.</div>';
   list.querySelectorAll("[data-confirm]").forEach((button) => button.addEventListener("click", () => decide(button.closest("[data-slot-id]").dataset.slotId, true)));
   list.querySelectorAll("[data-reject]").forEach((button) => button.addEventListener("click", () => decide(button.closest("[data-slot-id]").dataset.slotId, false)));
   list.querySelectorAll("[data-close-slot]").forEach((button) => button.addEventListener("click", () => closeAvailableSlot(button.closest("[data-slot-id]").dataset.slotId, button)));
+  list.querySelectorAll("[data-cancel-booking]").forEach((button) => button.addEventListener("click", () => cancelConfirmedBooking(button.closest("[data-slot-id]").dataset.slotId, button)));
+  list.querySelectorAll("[data-reschedule-booking]").forEach((button) => button.addEventListener("click", () => rescheduleConfirmedBooking(button.closest("[data-slot-id]").dataset.slotId, button)));
+}
+
+function exceptionalReason(actionLabel) {
+  const reason = window.prompt(`Describe brevemente el motivo de fuerza mayor para ${actionLabel.toLowerCase()}. Este texto quedará registrado.`)?.trim();
+  if (!reason) return null;
+  if (!window.confirm(`${actionLabel}: esta acción afecta una reserva confirmada y requerirá avisar al estudiante. ¿Deseas continuar?`)) return null;
+  const confirmation = window.prompt(`Para confirmar definitivamente, escribe ${actionLabel.toUpperCase()}.`);
+  return confirmation === actionLabel.toUpperCase() ? reason : null;
+}
+
+async function cancelConfirmedBooking(slotId, button) {
+  const slot = slots.find((item) => item.id === slotId); const request = requestFor(slot);
+  if (!slot || slot.status !== "confirmed" || request?.status !== "confirmed") return;
+  const reason = exceptionalReason("CANCELAR");
+  if (!reason) { setMessage("Cancelación detenida. No se realizó ningún cambio."); return; }
+  button.disabled = true;
+  const batch = writeBatch(database);
+  batch.update(doc(database,"privateAvailability",slotId), { status:"closed" });
+  batch.update(doc(database,"privateBookingRequests",request.id), { status:"cancelled_by_admin", cancellationReason:reason, cancelledAt:serverTimestamp() });
+  try { await batch.commit(); setMessage("Reserva cancelada por fuerza mayor. El registro fue conservado; debes notificar al estudiante.","success"); await load(); }
+  catch(error) { console.error(error); setMessage(`No fue posible cancelar (${error?.code || "error"}).`); button.disabled=false; }
+}
+
+async function rescheduleConfirmedBooking(slotId, button) {
+  const card = button.closest("[data-slot-id]"); const targetId = card.querySelector("[data-reschedule-target]").value;
+  const slot = slots.find((item) => item.id === slotId); const target = slots.find((item) => item.id === targetId); const request = requestFor(slot);
+  if (!targetId) { setMessage("Selecciona primero el nuevo horario disponible."); return; }
+  if (!slot || slot.status !== "confirmed" || request?.status !== "confirmed" || !target || target.status !== "available") { setMessage("El nuevo horario ya no está disponible. Actualiza el panel."); return; }
+  const reason = exceptionalReason("REAGENDAR");
+  if (!reason) { setMessage("Reagendamiento detenido. No se realizó ningún cambio."); return; }
+  button.disabled = true;
+  const batch = writeBatch(database);
+  batch.update(doc(database,"privateAvailability",slotId), { status:"closed" });
+  batch.update(doc(database,"privateAvailability",targetId), { status:"confirmed", heldBy:request.studentUid, bookingRequestId:request.id });
+  batch.update(doc(database,"privateBookingRequests",request.id), { slotId:targetId, colombiaStart:target.startAt, rescheduleReason:reason, rescheduledAt:serverTimestamp() });
+  try { await batch.commit(); setMessage("Reserva reagendada y registro actualizado. Debes notificar al estudiante con la nueva hora local.","success"); await load(); }
+  catch(error) { console.error(error); setMessage(`No fue posible reagendar (${error?.code || "error"}).`); button.disabled=false; }
 }
 
 async function closeAvailableSlot(slotId, button) {
