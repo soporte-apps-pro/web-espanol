@@ -53,6 +53,7 @@ const groupsList = document.querySelector("#groups-list");
 const groupsMessage = document.querySelector("#groups-message");
 const adminTabs = [...document.querySelectorAll("[data-admin-tab]")];
 const adminPanels = [...document.querySelectorAll("[data-admin-panel]")];
+const paymentLists = document.querySelector("#payment-lists");
 
 const statusLabels = {
   new: "Nueva",
@@ -115,7 +116,7 @@ function applicationCard(application) {
   const slots = (application.candidateSlots || []).map((slot) => slotLabels[slot] || slot).join(" · ");
 
   return `
-    <details class="application" data-application-id="${escapeHtml(application.id)}">
+    <details class="application" id="application-${escapeHtml(application.id)}" data-application-id="${escapeHtml(application.id)}">
       <summary>
       <div class="application-top">
         <div>
@@ -335,8 +336,63 @@ function renderGroups() {
   });
 }
 
+function paymentStudents() {
+  const groupedIds = new Set(groups.flatMap((group) => group.memberApplicationIds || []));
+  return applications.filter((application) => groupedIds.has(application.id));
+}
+
+function paymentRow(application) {
+  const status = application.paymentStatus || "pending";
+  const statusText = status === "paid" ? "Pagado" : status === "refunded" ? "Reembolsado" : "Pendiente";
+  return `
+    <div class="payment-row">
+      <div><strong>${escapeHtml(application.fullName)}</strong><small>${escapeHtml(application.email)}</small></div>
+      <div><small>Estado</small><strong>${statusText}</strong></div>
+      <div><small>Recibido</small><strong>US$${Number(application.paidAmount || 0).toFixed(2)}</strong></div>
+      <button class="button secondary" type="button" data-open-payment="${escapeHtml(application.id)}">Ver / registrar pago</button>
+    </div>`;
+}
+
+function renderPayments() {
+  const students = paymentStudents();
+  const paid = students.filter((application) => application.paymentStatus === "paid");
+  const refunded = students.filter((application) => application.paymentStatus === "refunded");
+  const pending = students.filter((application) => !application.paymentStatus || application.paymentStatus === "pending");
+  const received = paid.reduce((total, application) => total + Number(application.paidAmount || 0), 0);
+  document.querySelector("#payments-tab-count").textContent = students.length;
+  document.querySelector("#payments-total").textContent = students.length;
+  document.querySelector("#payments-paid").textContent = paid.length;
+  document.querySelector("#payments-pending").textContent = pending.length;
+  document.querySelector("#payments-received").textContent = `US$${received.toFixed(2)}`;
+  const sections = [
+    ["Pendientes", pending, true],
+    ["Pagados", paid, false],
+    ["Reembolsados", refunded, false],
+  ];
+  paymentLists.innerHTML = sections.map(([label, items, open]) => `
+    <details class="payment-list-section" ${open ? "open" : ""}>
+      <summary>${label} (${items.length})</summary>
+      <div class="payment-list">${items.length ? items.map(paymentRow).join("") : '<p class="muted">No hay estudiantes en esta categoría.</p>'}</div>
+    </details>`).join("");
+  paymentLists.querySelectorAll("[data-open-payment]").forEach((button) => {
+    button.addEventListener("click", () => openStudentPayment(button.dataset.openPayment));
+  });
+}
+
+function openStudentPayment(applicationId) {
+  searchInput.value = "";
+  statusFilter.value = "all";
+  renderApplications();
+  showAdminPanel("applications");
+  const card = [...applicationsContainer.querySelectorAll("[data-application-id]")]
+    .find((item) => item.dataset.applicationId === applicationId);
+  if (!card) return;
+  card.open = true;
+  requestAnimationFrame(() => card.querySelector("[data-payment-status]")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+}
+
 function showAdminPanel(panelName, updateHash = true) {
-  const selectedPanel = panelName === "groups" ? "groups" : "applications";
+  const selectedPanel = ["groups", "payments"].includes(panelName) ? panelName : "applications";
   adminTabs.forEach((tab) => {
     tab.setAttribute("aria-selected", String(tab.dataset.adminTab === selectedPanel));
   });
@@ -372,6 +428,7 @@ async function updateGroupMembers(event) {
     group.memberApplicationIds = memberApplicationIds;
     renderGroups();
     renderAcceptedMemberOptions();
+    renderPayments();
     setMessage(groupsMessage, `Integrantes de ${group.name} actualizados.`, "success");
   } catch (error) {
     setMessage(groupsMessage, `No fue posible actualizar los integrantes (${error?.code || "error"}).`);
@@ -389,6 +446,7 @@ async function loadGroups() {
   groups = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
   renderGroups();
   renderAcceptedMemberOptions();
+  renderPayments();
 }
 
 async function updateGroupStatus(event) {
@@ -442,6 +500,7 @@ async function saveAdministrativeDetails(event) {
     await updateDoc(doc(database, "speakingClubApplications", application.id), administrativeDetails);
     Object.assign(application, administrativeDetails);
     renderGroups();
+    renderPayments();
     setMessage(dashboardMessage, `Seguimiento de ${application.fullName} guardado.`, "success");
   } catch (error) {
     console.error("Could not save administrative details", error);
