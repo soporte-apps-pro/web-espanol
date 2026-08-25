@@ -567,7 +567,7 @@
       const href = (link.getAttribute('href') || '').trim().toLowerCase();
       const label = link.textContent.trim().toLowerCase();
 
-      if (href === 'mailto:ontalkingspanish@gmail.com' || label === 'contact') {
+      if (href === 'mailto:hello@spanishwithelkin.com' || label === 'contact') {
         link.href = 'mailto:hello@spanishwithelkin.com';
       }
     });
@@ -575,7 +575,7 @@
     const emailWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     while (emailWalker.nextNode()) {
       emailWalker.currentNode.nodeValue = emailWalker.currentNode.nodeValue.replaceAll(
-        'ontalkingspanish@gmail.com',
+        'hello@spanishwithelkin.com',
         'hello@spanishwithelkin.com'
       );
     }
