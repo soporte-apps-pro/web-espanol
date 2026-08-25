@@ -90,7 +90,7 @@ form?.addEventListener("submit", async (event) => {
 
   if (!configured || !database || !appCheck) {
     showMessage(
-      "The form is ready, but Firebase still needs to be connected. Please contact ontalkingspanish@gmail.com for now.",
+      "The form is temporarily unavailable. Please refresh the page and try again in a few minutes.",
       "error"
     );
     return;
@@ -136,9 +136,11 @@ form?.addEventListener("submit", async (event) => {
     );
   } catch (error) {
     console.error("Speaking Club form submission failed", error);
-    const errorCode = error?.code ? ` (${error.code})` : "";
+    const isAppCheckError = String(error?.code || "").startsWith("appCheck/");
     showMessage(
-      `We could not send your information${errorCode}. Please refresh the page and try again, or email ontalkingspanish@gmail.com.`,
+      isAppCheckError
+        ? "We could not verify this browser yet. Please refresh the page and try again in a few minutes."
+        : "We could not send your information. Please refresh the page and try again.",
       "error"
     );
   } finally {
