@@ -486,7 +486,7 @@
             <span class="font-extrabold text-2xl text-blue-300 tracking-tighter">Spanish with <span class="text-orange-500">Elkin</span></span>
             <p class="text-gray-500 text-sm mt-4">&copy; 2026. Teaching Spanish to the World 🌎.</p>
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6">
-                <a href="mailto:ontalkingspanish@gmail.com" class="text-gray-400 hover:text-white transition">ontalkingspanish@gmail.com</a>
+                <a href="mailto:hello@spanishwithelkin.com" class="text-gray-400 hover:text-white transition">hello@spanishwithelkin.com</a>
                 <a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy Policy</a>
                 <a href="https://www.facebook.com/spanishwithelkin" target="_blank" rel="noopener noreferrer"
                    aria-label="Visit Spanish with Elkin on Facebook"
@@ -562,5 +562,23 @@
         }
     </script>
 
+  <script>
+    document.querySelectorAll('a').forEach((link) => {
+      const href = (link.getAttribute('href') || '').trim().toLowerCase();
+      const label = link.textContent.trim().toLowerCase();
+
+      if (href === 'mailto:ontalkingspanish@gmail.com' || label === 'contact') {
+        link.href = 'mailto:hello@spanishwithelkin.com';
+      }
+    });
+
+    const emailWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (emailWalker.nextNode()) {
+      emailWalker.currentNode.nodeValue = emailWalker.currentNode.nodeValue.replaceAll(
+        'ontalkingspanish@gmail.com',
+        'hello@spanishwithelkin.com'
+      );
+    }
+  </script>
 </body>
 </html>
