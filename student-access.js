@@ -28,10 +28,22 @@ document.querySelector("#register-form").addEventListener("submit", async (event
       amountSubmitted:Number(document.querySelector("#amount-submitted").value),
       status:"pending", createdAt:serverTimestamp()
     });
-    await sendEmailVerification(credential.user);
+    let verificationEmailSent = true;
+    try {
+      await sendEmailVerification(credential.user);
+    } catch (verificationError) {
+      verificationEmailSent = false;
+      console.error("Verification email could not be sent", verificationError);
+    }
     await signOut(auth);
     event.currentTarget.reset();
-    message(output,"Cuenta creada. Revisa tu correo, verifica la dirección y espera la aprobación de Elkin.","success");
+    message(
+      output,
+      verificationEmailSent
+        ? "Solicitud enviada correctamente. Revisa tu correo y verifica tu dirección. Elkin te avisará cuando tu acceso esté activo."
+        : "Solicitud enviada correctamente. No pudimos enviar ahora el correo de verificación, pero puedes solicitar uno nuevo al intentar iniciar sesión.",
+      "success"
+    );
   } catch(error) {
     console.error(error); message(output,`No fue posible crear la cuenta (${error?.code || "error"}).`);
   } finally { button.disabled=false; button.textContent="Crear cuenta y solicitar acceso"; }
