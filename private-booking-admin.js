@@ -14,6 +14,7 @@ const list = document.querySelector("#private-bookings");
 const message = document.querySelector("#private-message");
 const weekGrid = document.querySelector("#private-week-grid");
 const weekTitle = document.querySelector("#private-week-title");
+const mobileWeek = document.querySelector("#private-week-mobile");
 const GOOGLE_CHECK_MAX_AGE_MINUTES = 10;
 const START_HOUR = 7;
 const END_HOUR = 19;
@@ -53,6 +54,10 @@ function renderPrivateWeek() {
   weekGrid.innerHTML=html;
   weekGrid.querySelectorAll("[data-week-date]").forEach(button=>button.addEventListener("click",()=>{form.elements.date.value=button.dataset.weekDate;form.elements.time.value=button.dataset.weekTime;form.scrollIntoView({behavior:"smooth",block:"center"});form.elements.slotType.focus();setMessage("Horario preparado. Elige si será individual o recurrente y publícalo.","success");}));
   weekGrid.querySelectorAll("[data-week-slot]").forEach(button=>button.addEventListener("click",()=>{const card=list.querySelector(`[data-slot-id="${CSS.escape(button.dataset.weekSlot)}"]`);if(!card)return;card.closest(".private-series-card")?.setAttribute("open","");card.setAttribute("open","");card.scrollIntoView({behavior:"smooth",block:"center"});}));
+  const slotsByDate=new Map();slots.forEach(slot=>{if(!slot.startAt?.toDate)return;const parts=colombiaParts(slot.startAt);if(!slotsByDate.has(parts.date))slotsByDate.set(parts.date,[]);slotsByDate.get(parts.date).push({slot,parts});});
+  mobileWeek.innerHTML=Array.from({length:7},(_,day)=>{const date=addDays(visibleWeek,day),key=dateKey(date),daySlots=slotsByDate.get(key)||[];const rows=Array.from({length:(END_HOUR-START_HOUR)*2},(_,row)=>{const total=START_HOUR*60+row*30,time=`${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`,match=daySlots.find(item=>item.parts.hour===Math.floor(total/60)&&item.parts.minute===total%60);if(match){const request=requestFor(match.slot);return `<button class="mobile-time-row ${weekStatusClass(match.slot)}" type="button" data-mobile-slot="${escapeHtml(match.slot.id)}"><strong>${time}</strong><span>${escapeHtml(request?.fullName||statusLabel(match.slot.status))}</span></button>`;}return `<button class="mobile-time-row available" type="button" data-mobile-date="${key}" data-mobile-time="${time}"><strong>${time}</strong><span>Preparar disponibilidad</span></button>`;}).join("");return `<details class="mobile-day ${key===today?"today":""}" ${key===today?"open":""}><summary>${new Intl.DateTimeFormat("es-CO",{weekday:"long",day:"numeric",month:"short",timeZone:"UTC"}).format(date)}</summary><div class="mobile-day-body">${rows}</div></details>`;}).join("");
+  mobileWeek.querySelectorAll("[data-mobile-date]").forEach(button=>button.addEventListener("click",()=>{form.elements.date.value=button.dataset.mobileDate;form.elements.time.value=button.dataset.mobileTime;form.scrollIntoView({behavior:"smooth",block:"center"});setMessage("Horario preparado. Elige si será individual o recurrente y publícalo.","success");}));
+  mobileWeek.querySelectorAll("[data-mobile-slot]").forEach(button=>button.addEventListener("click",()=>{const card=list.querySelector(`[data-slot-id="${CSS.escape(button.dataset.mobileSlot)}"]`);if(!card)return;card.closest(".private-series-card")?.setAttribute("open","");card.setAttribute("open","");card.scrollIntoView({behavior:"smooth",block:"center"});}));
 }
 
 function slotCard(slot) {
