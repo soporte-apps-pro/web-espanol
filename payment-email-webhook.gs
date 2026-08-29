@@ -12,9 +12,10 @@ function doPost(e) {
     const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const type = String(payload.type || '');
     const documentId = String(payload.documentId || '');
-    if (!['private', 'group'].includes(type) || !/^[A-Za-z0-9_-]{10,160}$/.test(documentId)) {
+    if (!['private', 'group', 'activation'].includes(type) || !/^[A-Za-z0-9_-]{10,160}$/.test(documentId)) {
       return swePaymentResponse_({ ok: false, error: 'invalid-request' });
     }
+    if (type === 'activation') return sweSendActivationEmail_(documentId);
 
     const collectionName = type === 'private' ? 'privateBookingRequests' : 'studentProfiles';
     const document = swePaymentGetDocument_(collectionName, documentId);
@@ -93,6 +94,86 @@ function doPost(e) {
   }
 }
 
+function sweSendActivationEmail_(documentId) {
+  const document = swePaymentGetDocument_('studentProfiles', documentId);
+  const fields = document.fields || {};
+  if (swePaymentString_(fields.status) !== 'active') {
+    return swePaymentResponse_({ ok: false, error: 'access-not-active' });
+  }
+  if (fields.activationEmailSentAt && fields.activationEmailSentAt.timestampValue) {
+    return swePaymentResponse_({ ok: true, alreadySent: true });
+  }
+
+  const email = swePaymentString_(fields.email).trim().toLowerCase();
+  const fullName = swePaymentString_(fields.fullName).trim();
+  const groupName = swePaymentString_(fields.groupName).trim();
+  const slot = swePaymentString_(fields.slot).trim();
+  const dates = ((fields.sessionDates || {}).arrayValue || {}).values || [];
+  const sessionDates = dates.map(function(value) { return swePaymentString_(value); }).filter(Boolean);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !fullName || !groupName || sessionDates.length !== 6) {
+    return swePaymentResponse_({ ok: false, error: 'incomplete-activation' });
+  }
+
+  const slotLabels = {
+    'monday-1000':'Mondays at 10:00 a.m. Colombia time',
+    'tuesday-1700':'Tuesdays at 5:00 p.m. Colombia time',
+    'wednesday-0800':'Wednesdays at 8:00 a.m. Colombia time',
+    'thursday-1400':'Thursdays at 2:00 p.m. Colombia time',
+    'friday-1100':'Fridays at 11:00 a.m. Colombia time'
+  };
+  const schedule = slotLabels[slot] || slot;
+  const formattedDates = sessionDates.map(function(date) {
+    return Utilities.formatDate(new Date(date + 'T12:00:00Z'), 'UTC', 'EEEE, MMMM d, yyyy');
+  });
+  const portalUrl = 'https://spanishwithelkin.com/student-access.html';
+  const safeName = swePaymentEscapeHtml_(fullName);
+  const safeGroup = swePaymentEscapeHtml_(groupName);
+  const safeSchedule = swePaymentEscapeHtml_(schedule);
+  const dateItems = formattedDates.map(function(date, index) {
+    return '<li style="margin:6px 0"><strong>Session ' + (index + 1) + ':</strong> ' + swePaymentEscapeHtml_(date) + '</li>';
+  }).join('');
+
+  const subject = 'Your Speaking Club access is active';
+  const plainText = [
+    'Hi ' + fullName + ',', '',
+    'Your payment has been verified, your group has been confirmed, and your student portal is now active.', '',
+    'GROUP: ' + groupName,
+    'WEEKLY SCHEDULE: ' + schedule, '',
+    'YOUR SIX SESSIONS:',
+    formattedDates.map(function(date, index) { return 'Session ' + (index + 1) + ': ' + date; }).join('\n'), '',
+    'WHAT TO DO NOW:',
+    '1. Open ' + portalUrl,
+    '2. Choose “I already have an account” and sign in with ' + email + '.',
+    '3. Use the password you created when you submitted your payment information.',
+    '4. Review your group and save all six dates in your calendar.', '',
+    'WHAT TO EXPECT NEXT:',
+    'Elkin will send the online meeting link and any preparation details before your first session. Your group meets at the same weekly time for all six sessions.', '',
+    'If you need help, reply to this email or contact ' + SWE_SUPPORT_EMAIL + '.', '',
+    'Spanish with Elkin'
+  ].join('\n');
+  const html = '<div style="font-family:Arial,sans-serif;color:#172554;line-height:1.6;max-width:620px">' +
+    '<h2 style="color:#1e3a8a">Your Speaking Club access is active</h2>' +
+    '<p>Hi ' + safeName + ',</p>' +
+    '<p><strong>Your payment has been verified, your group has been confirmed, and your student portal is now active.</strong></p>' +
+    '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px">' +
+    '<strong>Group:</strong> ' + safeGroup + '<br><strong>Weekly schedule:</strong> ' + safeSchedule + '</div>' +
+    '<h3 style="color:#1e3a8a">Your six sessions</h3><ol style="padding-left:22px">' + dateItems + '</ol>' +
+    '<h3 style="color:#1e3a8a">What to do now</h3><ol style="padding-left:22px">' +
+    '<li>Open your student access page.</li><li>Choose <strong>I already have an account</strong> and sign in with <strong>' + swePaymentEscapeHtml_(email) + '</strong>.</li>' +
+    '<li>Use the password you created when you submitted your payment information.</li><li>Review your group and save all six dates in your calendar.</li></ol>' +
+    '<p><a href="' + portalUrl + '" style="display:inline-block;background:#f97316;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px">Open my student portal</a></p>' +
+    '<h3 style="color:#1e3a8a">What to expect next</h3>' +
+    '<p>Elkin will send the online meeting link and any preparation details before your first session. Your group meets at the same weekly time for all six sessions.</p>' +
+    '<p>If you need help, reply to this email or contact <a href="mailto:' + SWE_SUPPORT_EMAIL + '">' + SWE_SUPPORT_EMAIL + '</a>.</p><p>Spanish with Elkin</p></div>';
+
+  if (MailApp.getRemainingDailyQuota() < 1) {
+    return swePaymentResponse_({ ok: false, error: 'email-quota-exhausted' });
+  }
+  MailApp.sendEmail({ to:email, subject:subject, body:plainText, htmlBody:html, name:'Spanish with Elkin', replyTo:SWE_SUPPORT_EMAIL });
+  sweActivationMarkSent_(documentId);
+  return swePaymentResponse_({ ok: true });
+}
+
 function swePaymentGetDocument_(collectionName, documentId) {
   const url = 'https://firestore.googleapis.com/v1/projects/' + SWE_PAYMENT_PROJECT_ID +
     '/databases/(default)/documents/' + encodeURIComponent(collectionName) + '/' + encodeURIComponent(documentId);
@@ -119,6 +200,21 @@ function swePaymentMarkSent_(collectionName, documentId) {
     muteHttpExceptions: true
   });
   if (response.getResponseCode() !== 200) throw new Error('Firestore email marker failed: ' + response.getResponseCode());
+}
+
+function sweActivationMarkSent_(documentId) {
+  const url = 'https://firestore.googleapis.com/v1/projects/' + SWE_PAYMENT_PROJECT_ID +
+    '/databases/(default)/documents/studentProfiles/' + encodeURIComponent(documentId) +
+    '?updateMask.fieldPaths=activationEmailSentAt&updateMask.fieldPaths=activationEmailStatus';
+  const response = UrlFetchApp.fetch(url, {
+    method: 'patch', contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    payload: JSON.stringify({ fields: {
+      activationEmailSentAt: { timestampValue: new Date().toISOString() },
+      activationEmailStatus: { stringValue: 'sent' }
+    }}), muteHttpExceptions: true
+  });
+  if (response.getResponseCode() !== 200) throw new Error('Firestore activation email marker failed: ' + response.getResponseCode());
 }
 
 function swePaymentString_(field) { return field && field.stringValue ? field.stringValue : ''; }

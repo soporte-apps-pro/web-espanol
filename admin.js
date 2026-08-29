@@ -27,6 +27,8 @@ import {
   recaptchaEnterpriseSiteKey,
 } from "./firebase-config.js";
 
+const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbwW0dtawkiixLv6akVE2mdPIO8AZwKCRtrRut1D_Hn8QWN7yrPeG9_33JtvaK3Yy7xC/exec";
+
 const app = initializeApp(firebaseConfig);
 const appCheck = initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey),
@@ -75,6 +77,15 @@ const slotLabels = {
 let applications = [];
 let groups = [];
 let studentProfiles = [];
+
+async function notifyAccessActivation(documentId) {
+  try {
+    await fetch(PAYMENT_NOTIFICATION_URL, {
+      method: "POST", mode: "no-cors", headers: { "Content-Type":"text/plain;charset=UTF-8" },
+      body: JSON.stringify({ type:"activation", documentId }),
+    });
+  } catch (error) { console.error("Activation email could not be requested", error); }
+}
 
 function setMessage(element, text, type = "error") {
   element.textContent = text;
@@ -474,9 +485,10 @@ async function activateStudentAccess(event) {
       sessionDates: group.sessionDates,
       activatedAt: serverTimestamp(),
     });
+    await notifyAccessActivation(profile.id);
     Object.assign(profile, { status: "active", applicationId: application.id, groupName: group.name, slot: group.slot, sessionDates: group.sessionDates });
     renderStudentAccess();
-    setMessage(accessMessage, `Acceso de ${profile.fullName} activado.`, "success");
+    setMessage(accessMessage, `Acceso de ${profile.fullName} activado. Solicitamos el correo automático con sus próximos pasos.`, "success");
   } catch (error) {
     setMessage(accessMessage, `No fue posible activar el acceso (${error?.code || "error"}).`);
   }
