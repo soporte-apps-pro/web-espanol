@@ -12,6 +12,13 @@
   <style>
     *{box-sizing:border-box} body{margin:0;font-family:Poppins,system-ui,sans-serif;color:#172554;background:radial-gradient(circle at 10% 10%,#ffedd5,transparent 35rem),#f8fafc} header{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:12px max(22px,calc((100vw - 1050px)/2));background:#fff;border-bottom:1px solid #e2e8f0;color:#1e3a8a}.brand{font-weight:800;font-size:1.2rem;color:#1e3a8a;text-decoration:none;white-space:nowrap}.brand span{color:#f97316}.public-nav{display:flex;align-items:center;justify-content:flex-end;gap:18px}.public-nav a{color:#475569;text-decoration:none;font-size:.82rem;font-weight:700}.public-nav a:hover,.public-nav a[aria-current="page"]{color:#f97316}.shell{width:min(1050px,calc(100% - 32px));margin:46px auto;display:grid;grid-template-columns:1fr 1fr;gap:22px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:28px;box-shadow:0 16px 50px rgba(15,23,42,.07)}h1,h2{margin-top:0}h1{font-size:2rem}.muted{color:#64748b}label{display:block;margin:15px 0 6px;font-size:.82rem;font-weight:700}input,select,button{width:100%;font:inherit;border-radius:12px;padding:12px 13px}input,select{border:1px solid #cbd5e1;background:#fff}button{margin-top:19px;border:0;background:#f97316;color:#fff;font-weight:800;cursor:pointer}.message{margin-top:16px;padding:12px;border-radius:11px;font-size:.84rem;font-weight:600}.error{color:#b91c1c;background:#fef2f2}.success{color:#047857;background:#ecfdf5}.hidden{display:none}.notice{padding:14px;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-size:.82rem}@media(max-width:760px){header{align-items:flex-start;flex-direction:column;gap:8px}.public-nav{width:100%;justify-content:flex-start;gap:14px;overflow-x:auto;padding-bottom:3px}.public-nav a{white-space:nowrap}.shell{grid-template-columns:1fr;margin:24px auto}h1{font-size:1.6rem}}
   </style>
+  <style>
+    .wise-box{margin:16px 0;padding:16px;border:1px solid #bbf7d0;border-radius:14px;background:#f0fdf4}
+    .wise-box strong{display:block;margin-bottom:4px}
+    .wise-pay{display:block;margin-top:12px;padding:12px;border-radius:12px;background:#15803d;color:#fff;text-align:center;text-decoration:none;font-weight:800;transition:.18s ease}
+    .wise-pay:hover{background:#166534;transform:translateY(-1px)}
+    .help-link{color:#1e40af;font-weight:700}
+  </style>
 </head>
 <body>
   <header>
@@ -28,15 +35,21 @@
       <h1>Solicita tu acceso</h1>
       <p class="muted">Crea tu cuenta después de recibir un grupo y realizar el pago.</p>
       <p class="notice"><strong>Después de enviar:</strong> verás una confirmación en esta pantalla. Elkin revisará tu pago y tu grupo antes de activar el acceso.</p>
+      <div class="wise-box">
+        <strong>Speaking Club · 6 sesiones · US$84</strong>
+        <span class="muted">Paga solamente después de recibir la confirmación de tu grupo y horario.</span>
+        <a class="wise-pay" href="https://wise.com/pay/r/fG7w5Ne0IQCt3hA" target="_blank" rel="noopener noreferrer">Pagar US$84 con Wise ↗</a>
+        <p class="muted">Mantén esta página abierta. Después del pago, regresa e introduce la referencia de Wise.</p>
+        <p class="muted">¿Cerraste la página o necesitas ayuda? Escribe a <a class="help-link" href="mailto:hello@spanishwithelkin.com?subject=Ayuda%20con%20pago%20del%20Speaking%20Club">hello@spanishwithelkin.com</a>.</p>
+      </div>
       <form id="register-form">
         <label for="register-name">Nombre completo</label><input id="register-name" required minlength="2" maxlength="80">
         <label for="register-email">El mismo correo de tu solicitud</label><input id="register-email" type="email" required autocomplete="email">
         <label for="register-password">Contraseña (mínimo 8 caracteres)</label><input id="register-password" type="password" required minlength="8" autocomplete="new-password">
-        <label for="payment-method">Método de pago</label>
-        <select id="payment-method" required><option value="">Selecciona</option><option value="paypal">PayPal</option><option value="transfer">Transferencia</option><option value="other">Otro</option></select>
-        <label for="payment-reference">Referencia o ID de transacción</label><input id="payment-reference" required minlength="4" maxlength="160">
+        <input id="payment-method" type="hidden" value="transfer">
+        <label for="payment-reference">Referencia de la transferencia de Wise</label><input id="payment-reference" required minlength="4" maxlength="160">
         <label for="payer-name">Nombre de quien realizó el pago</label><input id="payer-name" required minlength="2" maxlength="100">
-        <label for="amount-submitted">Importe enviado (USD)</label><input id="amount-submitted" type="number" min="0.01" max="10000" step="0.01" required>
+        <input id="amount-submitted" type="hidden" value="84">
         <button type="submit">Crear cuenta y solicitar acceso</button>
         <p id="register-message" class="message hidden" role="alert"></p>
       </form>
