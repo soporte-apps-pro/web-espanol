@@ -129,5 +129,6 @@ function swePaymentEscapeHtml_(value) {
   });
 }
 function swePaymentResponse_(payload) {
+  console.log(JSON.stringify(payload));
   return ContentService.createTextOutput(JSON.stringify(payload)).setMimeType(ContentService.MimeType.JSON);
 }
