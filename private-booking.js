@@ -19,6 +19,8 @@ initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(recaptchaEnt
 const auth = getAuth(app);
 const database = getFirestore(app);
 const zoneSelect = document.querySelector("#student-time-zone");
+const zoneSearch = document.querySelector("#time-zone-search");
+const zoneHelp = document.querySelector("#time-zone-help");
 const slotsElement = document.querySelector("#slots");
 const selectionPanel = document.querySelector("#selection-panel");
 const holdPanel = document.querySelector("#hold-panel");
@@ -28,6 +30,66 @@ let selectedSlot = null;
 let selectedDayKey = "";
 let holdExpiresAt = null;
 let countdownTimer = null;
+let zoneRecords = [];
+
+const zoneCountryTerms = {
+  "America/Bogota":"Colombia Bogota Bogotá",
+  "America/Mexico_City":"Mexico México Ciudad de Mexico CDMX",
+  "America/Cancun":"Mexico México Cancun Cancún",
+  "America/Tijuana":"Mexico México Tijuana",
+  "America/Lima":"Peru Perú Lima",
+  "America/Guayaquil":"Ecuador Guayaquil Quito",
+  "America/Caracas":"Venezuela Caracas",
+  "America/Santiago":"Chile Santiago",
+  "America/Argentina/Buenos_Aires":"Argentina Buenos Aires",
+  "America/Montevideo":"Uruguay Montevideo",
+  "America/Asuncion":"Paraguay Asuncion Asunción",
+  "America/La_Paz":"Bolivia La Paz",
+  "America/Panama":"Panama Panamá",
+  "America/Costa_Rica":"Costa Rica San Jose José",
+  "America/Guatemala":"Guatemala",
+  "America/El_Salvador":"El Salvador",
+  "America/Tegucigalpa":"Honduras Tegucigalpa",
+  "America/Managua":"Nicaragua Managua",
+  "America/Havana":"Cuba Havana Habana",
+  "America/Santo_Domingo":"Dominican Republic Republica Dominicana República Santo Domingo",
+  "America/Puerto_Rico":"Puerto Rico San Juan",
+  "America/New_York":"United States USA Estados Unidos New York Miami Eastern",
+  "America/Chicago":"United States USA Estados Unidos Chicago Dallas Central",
+  "America/Denver":"United States USA Estados Unidos Denver Mountain",
+  "America/Los_Angeles":"United States USA Estados Unidos Los Angeles California Pacific",
+  "America/Phoenix":"United States USA Estados Unidos Arizona Phoenix",
+  "America/Toronto":"Canada Toronto Ontario Eastern",
+  "America/Vancouver":"Canada Vancouver British Columbia Pacific",
+  "America/Edmonton":"Canada Edmonton Alberta Mountain",
+  "Europe/London":"United Kingdom UK Britain Inglaterra Reino Unido London Londres",
+  "Europe/Madrid":"Spain España Madrid",
+  "Europe/Paris":"France Francia Paris París",
+  "Europe/Berlin":"Germany Alemania Berlin Berlín",
+  "Europe/Rome":"Italy Italia Rome Roma",
+  "Europe/Lisbon":"Portugal Lisbon Lisboa",
+  "Europe/Amsterdam":"Netherlands Holanda Amsterdam",
+  "Europe/Brussels":"Belgium Belgica Bélgica Brussels Bruselas",
+  "Europe/Zurich":"Switzerland Suiza Zurich Zúrich",
+  "Europe/Dublin":"Ireland Irlanda Dublin",
+  "Australia/Sydney":"Australia Sydney",
+  "Australia/Melbourne":"Australia Melbourne",
+  "Pacific/Auckland":"New Zealand Nueva Zelanda Auckland",
+  "Asia/Tokyo":"Japan Japon Japón Tokyo Tokio",
+  "Asia/Shanghai":"China Shanghai Beijing Pekin Pekín",
+  "Asia/Kolkata":"India Kolkata Delhi Mumbai",
+  "Asia/Dubai":"United Arab Emirates UAE Emiratos Arabes Árabes Dubai",
+  "Africa/Johannesburg":"South Africa Sudafrica Sudáfrica Johannesburg"
+};
+const multiwordCountryNames = {
+  "America/Costa_Rica":"Costa Rica", "America/El_Salvador":"El Salvador",
+  "America/Santo_Domingo":"Dominican Republic", "America/Puerto_Rico":"Puerto Rico",
+  "America/New_York":"United States", "America/Chicago":"United States",
+  "America/Denver":"United States", "America/Los_Angeles":"United States",
+  "America/Phoenix":"United States", "Europe/London":"United Kingdom",
+  "Pacific/Auckland":"New Zealand", "Asia/Dubai":"United Arab Emirates",
+  "Africa/Johannesburg":"South Africa"
+};
 
 function setMessage(text, type = "error") { message.textContent = text; message.className = `message ${type} mt-5 rounded-xl p-4 text-sm font-semibold`; }
 function formatAt(date, timeZone) { return new Intl.DateTimeFormat("en-US", { weekday:"long", month:"short", day:"numeric", hour:"numeric", minute:"2-digit", hour12:true, timeZone }).format(date); }
@@ -67,10 +129,38 @@ function insideBookingWindow(slot) {
 }
 function available(slot) { return insideBookingWindow(slot) && googleCleared(slot) && (slot.status === "available" || (slot.status === "held" && slot.holdExpiresAt?.toDate() <= new Date())); }
 
+function normalizeZoneSearch(value) { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
+function zoneLabel(zone) {
+  const location = zone.replaceAll("_", " ");
+  const country = multiwordCountryNames[zone] || zoneCountryTerms[zone]?.split(" ")[0];
+  return country ? `${location} — ${country}` : location;
+}
+function renderZoneOptions(query = "") {
+  const previous = zoneSelect.value;
+  const term = normalizeZoneSearch(query);
+  const matches = zoneRecords.filter(({ zone, search }) => !term || search.includes(term));
+  zoneSelect.replaceChildren();
+  if (!matches.length) {
+    zoneSelect.add(new Option("No matching time zones", ""));
+    zoneHelp.textContent = "No matches. Try another country, city, or time-zone name.";
+    return;
+  }
+  matches.forEach(({ zone, label }) => zoneSelect.add(new Option(label, zone)));
+  zoneSelect.value = matches.some(({ zone }) => zone === previous) ? previous : matches[0].zone;
+  zoneHelp.textContent = term ? `${matches.length} matching ${matches.length === 1 ? "option" : "options"}. Choose the correct city if your country has several time zones.` : "Your device time zone is selected automatically. Search to see matching options.";
+  if (zoneSelect.value !== previous) resetZoneSelection();
+}
+function resetZoneSelection() {
+  selectedDayKey = "";
+  selectedSlot = null;
+  selectionPanel.classList.add("hidden");
+  renderSlots();
+}
 function configureZones() {
   const detected = Intl.DateTimeFormat().resolvedOptions().timeZone || COLOMBIA_ZONE;
   const zones = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [COLOMBIA_ZONE, detected];
-  [...new Set([detected, COLOMBIA_ZONE, ...zones])].forEach((zone) => zoneSelect.add(new Option(zone.replaceAll("_", " "), zone)));
+  zoneRecords = [...new Set([detected, COLOMBIA_ZONE, ...zones])].map((zone) => ({ zone, label:zoneLabel(zone), search:normalizeZoneSearch(`${zone.replaceAll("_", " ")} ${zoneCountryTerms[zone] || ""}`) }));
+  renderZoneOptions();
   zoneSelect.value = detected;
 }
 
@@ -189,12 +279,9 @@ document.querySelector("#booking-form").addEventListener("submit", async (event)
   finally { button.disabled = false; button.textContent = "I've Paid · Send for Verification"; }
 });
 
-zoneSelect.addEventListener("change", () => {
-  selectedDayKey = "";
-  selectedSlot = null;
-  selectionPanel.classList.add("hidden");
-  renderSlots();
-});
+zoneSearch.addEventListener("input", () => renderZoneOptions(zoneSearch.value));
+zoneSearch.addEventListener("search", () => renderZoneOptions(zoneSearch.value));
+zoneSelect.addEventListener("change", resetZoneSelection);
 document.querySelector("#start-payment").addEventListener("click", () => selectedSlot && startHold(selectedSlot.id));
 document.querySelector("#package").addEventListener("change", updateWisePaymentLink);
 configureZones();

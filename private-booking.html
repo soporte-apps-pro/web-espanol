@@ -71,8 +71,11 @@
           <div class="flex items-end justify-between gap-4 mb-5">
             <div><p class="text-xs font-bold uppercase tracking-wider text-gray-500">Your time zone</p><h2 class="text-2xl font-extrabold text-blue-950">Available times</h2></div>
           </div>
-          <label for="student-time-zone" class="block text-sm font-bold mb-2">Time zone</label>
-          <select id="student-time-zone" class="w-full rounded-xl border border-gray-300 px-4 py-3 mb-5" required></select>
+          <label for="time-zone-search" class="block text-sm font-bold mb-2">Search your country or city</label>
+          <input id="time-zone-search" type="search" autocomplete="off" placeholder="For example: Colombia, Mexico or London" class="w-full rounded-xl border border-gray-300 px-4 py-3 mb-2">
+          <label for="student-time-zone" class="sr-only">Choose time zone</label>
+          <select id="student-time-zone" class="w-full rounded-xl border border-gray-300 px-4 py-3" required></select>
+          <p id="time-zone-help" class="mb-5 mt-2 text-xs text-gray-500" aria-live="polite">Your device time zone is selected automatically. Search to see matching options.</p>
           <p class="mb-5 text-xs text-gray-500">New times become available on a rolling basis. You can book up to three weeks in advance.</p>
           <div id="slots" aria-live="polite"><p class="text-gray-500">Loading availability…</p></div>
           <div id="selection-panel" class="hidden mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4">
@@ -113,6 +116,6 @@
       </section>
     </div>
   </main>
-  <script type="module" src="private-booking.js?v=20260829-2"></script>
+  <script type="module" src="private-booking.js?v=20260829-3"></script>
 </body>
 </html>
