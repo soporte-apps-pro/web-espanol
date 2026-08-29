@@ -87,6 +87,13 @@ async function notifyAccessActivation(documentId) {
   } catch (error) { console.error("Activation email could not be requested", error); }
 }
 
+async function notifyGroupInvitation(documentId) {
+  await fetch(PAYMENT_NOTIFICATION_URL, {
+    method: "POST", mode: "no-cors", headers: { "Content-Type":"text/plain;charset=UTF-8" },
+    body: JSON.stringify({ type:"group_invitation", documentId }),
+  });
+}
+
 function setMessage(element, text, type = "error") {
   element.textContent = text;
   element.className = `message ${type}`;
@@ -341,6 +348,9 @@ function renderGroups() {
     const receivedTotal = memberApplications.reduce((total, application) =>
       total + (application.paymentStatus === "paid" ? Number(application.paidAmount || 0) : 0), 0
     );
+    const invitationsSent = memberApplications.length > 0 && memberApplications.every((application) =>
+      application.groupInvitationGroupId === group.id && application.groupInvitationSentAt
+    );
     const memberEditor = group.status === "forming" ? `
       <div class="group-member-editor">
         <strong>Editar integrantes mientras está en formación</strong>
@@ -373,6 +383,14 @@ function renderGroups() {
           <button class="button secondary" type="button" data-save-meeting-url>Guardar enlace de Meet</button>
         </div>
         ${memberEditor}
+        ${group.status === "confirmed" ? `
+          <div class="group-member-editor">
+            <strong>InvitaciÃ³n de horario y pago</strong>
+            <p class="muted">EnvÃ­a a cada integrante las seis fechas, su horario local y los pasos para pagar US$84 con Wise.</p>
+            <button class="button secondary" type="button" data-send-group-invitations ${invitationsSent ? "disabled" : ""}>
+              ${invitationsSent ? "Invitaciones enviadas" : "Enviar invitaciones de pago"}
+            </button>
+          </div>` : ""}
         <div class="group-status">
           <label for="group-status-${escapeHtml(group.id)}">Estado</label>
           <select id="group-status-${escapeHtml(group.id)}" data-group-status>
@@ -390,6 +408,31 @@ function renderGroups() {
   groupsList.querySelectorAll("[data-save-meeting-url]").forEach((button) => {
     button.addEventListener("click", saveGroupMeetingUrl);
   });
+  groupsList.querySelectorAll("[data-send-group-invitations]").forEach((button) => {
+    button.addEventListener("click", sendGroupInvitations);
+  });
+}
+
+async function sendGroupInvitations(event) {
+  const button = event.currentTarget;
+  const card = button.closest("[data-group-id]");
+  const group = groups.find((item) => item.id === card?.dataset.groupId);
+  if (!group || group.status !== "confirmed") return;
+  const memberCount = (group.memberApplicationIds || []).length;
+  if (!window.confirm(`Se enviarÃ¡ la invitaciÃ³n de pago a ${memberCount} estudiante${memberCount === 1 ? "" : "s"}. Â¿Continuar?`)) return;
+  button.disabled = true;
+  button.textContent = "Enviandoâ€¦";
+  clearMessage(groupsMessage);
+  try {
+    await notifyGroupInvitation(group.id);
+    setMessage(groupsMessage, "Solicitud enviada. Apps Script enviarÃ¡ una sola invitaciÃ³n a cada estudiante del grupo.", "success");
+    button.textContent = "EnvÃ­o solicitado";
+  } catch (error) {
+    console.error("Group invitations could not be requested", error);
+    setMessage(groupsMessage, "No fue posible solicitar el envÃ­o de las invitaciones.");
+    button.disabled = false;
+    button.textContent = "Enviar invitaciones de pago";
+  }
 }
 
 function paymentStudents() {
