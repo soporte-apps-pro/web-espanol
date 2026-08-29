@@ -220,7 +220,7 @@ function sweSendApplicationEmail_(documentId) {
     'IMPORTANT: You do not need to pay yet.', '',
     'WHAT HAPPENS NEXT:',
     '1. Elkin reviews your B1 level, availability, country, and time zone.',
-    '2. He looks for a compatible group of 4 to 5 learners.',
+    '2. He looks for a compatible group of 3 to 5 learners.',
     '3. By September 18, you will receive an email telling you whether a compatible group was found.',
     '4. If you are matched, that email will show the exact weekly schedule and guide you through payment.', '',
     'Applications close September 15. Groups begin during the week of September 21.', '',
@@ -237,7 +237,7 @@ function sweSendApplicationEmail_(documentId) {
     '<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:16px"><strong>Important: You do not need to pay yet.</strong></div>' +
     '<h3 style="color:#1e3a8a">What happens next</h3><ol style="padding-left:22px">' +
     '<li>Elkin reviews your B1 level, availability, country, and time zone.</li>' +
-    '<li>He looks for a compatible group of 4 to 5 learners.</li>' +
+    '<li>He looks for a compatible group of 3 to 5 learners.</li>' +
     '<li>By <strong>September 18</strong>, you will receive an email telling you whether a compatible group was found.</li>' +
     '<li>If you are matched, that email will show the exact weekly schedule and guide you through payment.</li></ol>' +
     '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px">' +

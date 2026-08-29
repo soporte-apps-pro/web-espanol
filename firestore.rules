@@ -135,15 +135,22 @@ service cloud.firestore {
           request.resource.data.memberApplicationIds is list &&
           request.resource.data.memberApplicationIds.size() >= 1 &&
           request.resource.data.memberApplicationIds.size() <= 5) ||
+        (resource.data.status == 'confirmed' &&
+          resource.data.memberApplicationIds.size() >= 3 &&
+          resource.data.memberApplicationIds.size() < 5 &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberApplicationIds']) &&
+          request.resource.data.memberApplicationIds is list &&
+          request.resource.data.memberApplicationIds.size() == resource.data.memberApplicationIds.size() + 1 &&
+          request.resource.data.memberApplicationIds.hasAll(resource.data.memberApplicationIds)) ||
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
           ((resource.data.status == 'forming' &&
-              resource.data.memberApplicationIds.size() >= 4 &&
+              resource.data.memberApplicationIds.size() >= 3 &&
               request.resource.data.status == 'confirmed') ||
             (resource.data.status == 'confirmed' &&
-              resource.data.memberApplicationIds.size() < 4 &&
+              resource.data.memberApplicationIds.size() < 3 &&
               request.resource.data.status == 'forming') ||
             (resource.data.status == 'confirmed' &&
-              resource.data.memberApplicationIds.size() >= 4 &&
+              resource.data.memberApplicationIds.size() >= 3 &&
               request.resource.data.status == 'completed')))
       );
       allow delete: if false;

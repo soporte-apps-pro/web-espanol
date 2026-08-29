@@ -289,10 +289,19 @@ function editableMembersForGroup(group) {
   );
 }
 
+function availableAdditionalMembers() {
+  const assignedApplicationIds = new Set(
+    groups.flatMap((group) => group.memberApplicationIds || [])
+  );
+  return applications.filter((application) =>
+    application.status === "accepted" && !assignedApplicationIds.has(application.id)
+  );
+}
+
 function groupStatusOptions(status, memberCount) {
-  if (status === "forming" && memberCount < 4) return '<option value="forming" selected>En formación · faltan integrantes</option>';
+  if (status === "forming" && memberCount < 3) return '<option value="forming" selected>En formación · faltan integrantes</option>';
   if (status === "forming") return '<option value="forming" selected>En formación</option><option value="confirmed">Confirmado</option>';
-  if (status === "confirmed" && memberCount < 4) return '<option value="confirmed" selected>Confirmado · incompleto</option><option value="forming">Reabrir formación</option>';
+  if (status === "confirmed" && memberCount < 3) return '<option value="confirmed" selected>Confirmado · incompleto</option><option value="forming">Reabrir formación</option>';
   if (status === "confirmed") return '<option value="confirmed" selected>Confirmado</option><option value="completed">Finalizado</option>';
   return '<option value="completed" selected>Finalizado</option>';
 }
@@ -348,9 +357,13 @@ function renderGroups() {
     const receivedTotal = memberApplications.reduce((total, application) =>
       total + (application.paymentStatus === "paid" ? Number(application.paidAmount || 0) : 0), 0
     );
-    const invitationsSent = memberApplications.length > 0 && memberApplications.every((application) =>
+    const invitedCount = memberApplications.filter((application) =>
       application.groupInvitationGroupId === group.id && application.groupInvitationSentAt
-    );
+    ).length;
+    const invitationsSent = memberApplications.length > 0 && invitedCount === memberApplications.length;
+    const additionalMemberCandidates = group.status === "confirmed" && memberNames.length >= 3 && memberNames.length < 5
+      ? availableAdditionalMembers()
+      : [];
     const memberEditor = group.status === "forming" ? `
       <div class="group-member-editor">
         <strong>Editar integrantes mientras está en formación</strong>
@@ -362,6 +375,17 @@ function renderGroups() {
             </label>`).join("")}
         </div>
         <button class="button secondary" type="button" data-save-group-members>Guardar integrantes</button>
+      </div>` : group.status === "confirmed" && memberNames.length >= 3 && memberNames.length < 5 ? `
+      <div class="group-member-editor">
+        <strong>A&ntilde;adir otro estudiante (${memberNames.length}/5)</strong>
+        <p class="muted">Los integrantes actuales permanecen bloqueados. Puedes agregar una solicitud aceptada hasta completar cinco.</p>
+        ${additionalMemberCandidates.length ? `
+          <select data-additional-member aria-label="Seleccionar estudiante para agregar">
+            <option value="">Selecciona un estudiante</option>
+            ${additionalMemberCandidates.map((application) => `<option value="${escapeHtml(application.id)}">${escapeHtml(application.fullName)} &middot; ${escapeHtml(application.email)}</option>`).join("")}
+          </select>
+          <button class="button secondary" type="button" data-add-additional-member>A&ntilde;adir estudiante</button>`
+          : '<p class="locked-note">No hay solicitudes aceptadas disponibles para agregar.</p>'}
       </div>` : '<p class="locked-note">Integrantes bloqueados porque el grupo ya fue confirmado.</p>';
     return `
       <article class="group-card" data-group-id="${escapeHtml(group.id)}">
@@ -385,10 +409,10 @@ function renderGroups() {
         ${memberEditor}
         ${group.status === "confirmed" ? `
           <div class="group-member-editor">
-            <strong>InvitaciÃ³n de horario y pago</strong>
-            <p class="muted">EnvÃ­a a cada integrante las seis fechas, su horario local y los pasos para pagar US$84 con Wise.</p>
+            <strong>Invitaci&oacute;n de horario y pago</strong>
+            <p class="muted">Env&iacute;a a cada integrante las seis fechas, su horario local y los pasos para pagar US$84 con Wise.</p>
             <button class="button secondary" type="button" data-send-group-invitations ${invitationsSent ? "disabled" : ""}>
-              ${invitationsSent ? "Invitaciones enviadas" : "Enviar invitaciones de pago"}
+              ${invitationsSent ? "Invitaciones enviadas" : invitedCount ? "Enviar invitaci&oacute;n al nuevo estudiante" : "Enviar invitaciones de pago"}
             </button>
           </div>` : ""}
         <div class="group-status">
@@ -405,6 +429,9 @@ function renderGroups() {
   groupsList.querySelectorAll("[data-save-group-members]").forEach((button) => {
     button.addEventListener("click", updateGroupMembers);
   });
+  groupsList.querySelectorAll("[data-add-additional-member]").forEach((button) => {
+    button.addEventListener("click", addAdditionalMember);
+  });
   groupsList.querySelectorAll("[data-save-meeting-url]").forEach((button) => {
     button.addEventListener("click", saveGroupMeetingUrl);
   });
@@ -413,23 +440,63 @@ function renderGroups() {
   });
 }
 
+async function addAdditionalMember(event) {
+  const button = event.currentTarget;
+  const card = button.closest("[data-group-id]");
+  const group = groups.find((item) => item.id === card?.dataset.groupId);
+  const applicationId = card?.querySelector("[data-additional-member]")?.value || "";
+  const application = applications.find((item) => item.id === applicationId);
+  if (!group || group.status !== "confirmed" || (group.memberApplicationIds || []).length < 3 || (group.memberApplicationIds || []).length >= 5) {
+    setMessage(groupsMessage, "Este grupo ya no admite otro integrante.");
+    return;
+  }
+  if (!application || application.status !== "accepted") {
+    setMessage(groupsMessage, "Selecciona una solicitud aceptada para agregar al grupo.");
+    return;
+  }
+  const assignedIds = new Set(groups.flatMap((item) => item.memberApplicationIds || []));
+  if (assignedIds.has(applicationId)) {
+    await loadGroups();
+    setMessage(groupsMessage, "Ese estudiante ya pertenece a otro grupo. La lista fue actualizada.");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "A\u00f1adiendo\u2026";
+  try {
+    const memberApplicationIds = [...group.memberApplicationIds, applicationId];
+    await updateDoc(doc(database, "speakingClubGroups", group.id), { memberApplicationIds });
+    group.memberApplicationIds = memberApplicationIds;
+    renderGroups();
+    renderAcceptedMemberOptions();
+    renderPayments();
+    renderStudentAccess();
+    setMessage(groupsMessage, `${application.fullName} fue a\u00f1adido al grupo. Ahora env\u00eda su invitaci\u00f3n de pago.`, "success");
+  } catch (error) {
+    console.error("Could not add another group member", error);
+    setMessage(groupsMessage, `No fue posible a\u00f1adir el estudiante (${error?.code || "error"}).`);
+    button.disabled = false;
+    button.textContent = "A\u00f1adir estudiante";
+  }
+}
+
 async function sendGroupInvitations(event) {
   const button = event.currentTarget;
   const card = button.closest("[data-group-id]");
   const group = groups.find((item) => item.id === card?.dataset.groupId);
   if (!group || group.status !== "confirmed") return;
   const memberCount = (group.memberApplicationIds || []).length;
-  if (!window.confirm(`Se enviarÃ¡ la invitaciÃ³n de pago a ${memberCount} estudiante${memberCount === 1 ? "" : "s"}. Â¿Continuar?`)) return;
+  if (!window.confirm(`Se enviar\u00e1 la invitaci\u00f3n de pago a ${memberCount} estudiante${memberCount === 1 ? "" : "s"}. \u00bfContinuar?`)) return;
   button.disabled = true;
-  button.textContent = "Enviandoâ€¦";
+  button.textContent = "Enviando\u2026";
   clearMessage(groupsMessage);
   try {
     await notifyGroupInvitation(group.id);
-    setMessage(groupsMessage, "Solicitud enviada. Apps Script enviarÃ¡ una sola invitaciÃ³n a cada estudiante del grupo.", "success");
-    button.textContent = "EnvÃ­o solicitado";
+    setMessage(groupsMessage, "Solicitud enviada. Apps Script enviar\u00e1 una sola invitaci\u00f3n a cada estudiante del grupo.", "success");
+    button.textContent = "Env\u00edo solicitado";
   } catch (error) {
     console.error("Group invitations could not be requested", error);
-    setMessage(groupsMessage, "No fue posible solicitar el envÃ­o de las invitaciones.");
+    setMessage(groupsMessage, "No fue posible solicitar el env\u00edo de las invitaciones.");
     button.disabled = false;
     button.textContent = "Enviar invitaciones de pago";
   }
