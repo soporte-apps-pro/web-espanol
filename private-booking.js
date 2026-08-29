@@ -9,9 +9,9 @@ const HOLD_MINUTES = 10;
 const GOOGLE_CHECK_MAX_AGE_MINUTES = 35;
 const BOOKING_WINDOW_DAYS = 21;
 const packages = {
-  single: { label: "1 private class", amount: 25 },
-  pack4: { label: "4 private classes", amount: 84 },
-  pack8: { label: "8 private classes", amount: 152 },
+  single: { label: "1 private class", amount: 25, wiseUrl: "https://wise.com/pay/r/1By27Avdd7FtOHo" },
+  pack4: { label: "4 private classes", amount: 84, wiseUrl: "https://wise.com/pay/r/_QkFPSyF9SuYEwg" },
+  pack8: { label: "8 private classes", amount: 152, wiseUrl: "https://wise.com/pay/r/-r1YnKwtgKPqFT8" },
 };
 const app = initializeApp(firebaseConfig);
 initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey), isTokenAutoRefreshEnabled: true });
@@ -40,6 +40,12 @@ function dayLabel(date, timeZone) {
   return Object.fromEntries(parts.map((part) => [part.type, part.value]));
 }
 function timeLabel(date, timeZone) { return new Intl.DateTimeFormat("en-US", { hour:"numeric", minute:"2-digit", hour12:true, timeZone }).format(date); }
+function updateWisePaymentLink() {
+  const selectedPackage = packages[document.querySelector("#package").value] || packages.pack4;
+  const link = document.querySelector("#wise-payment-link");
+  link.href = selectedPackage.wiseUrl;
+  document.querySelector("#wise-payment-amount").textContent = `US$${selectedPackage.amount}`;
+}
 function googleCleared(slot) {
   const checkedAt = slot.googleCalendarCheckedAt?.toDate?.();
   return slot.googleCalendarBlocked === false && checkedAt && checkedAt.getTime() >= Date.now() - GOOGLE_CHECK_MAX_AGE_MINUTES * 60000;
@@ -167,7 +173,7 @@ document.querySelector("#booking-form").addEventListener("submit", async (event)
     setMessage("Payment reference received. The time is pending verification and is not available to anyone else. Elkin will email you after checking the payment.", "success");
     await loadSlots();
   } catch (error) { console.error(error); setMessage("We could not submit the payment reference. Confirm that the hold is still active and try again."); }
-  finally { button.disabled = false; button.textContent = "Send Payment for Verification"; }
+  finally { button.disabled = false; button.textContent = "I've Paid · Send for Verification"; }
 });
 
 zoneSelect.addEventListener("change", () => {
@@ -177,5 +183,7 @@ zoneSelect.addEventListener("change", () => {
   renderSlots();
 });
 document.querySelector("#start-payment").addEventListener("click", () => selectedSlot && startHold(selectedSlot.id));
+document.querySelector("#package").addEventListener("change", updateWisePaymentLink);
 configureZones();
+updateWisePaymentLink();
 loadSlots();
