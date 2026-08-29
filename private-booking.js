@@ -8,6 +8,7 @@ const COLOMBIA_ZONE = "America/Bogota";
 const HOLD_MINUTES = 10;
 const GOOGLE_CHECK_MAX_AGE_MINUTES = 35;
 const BOOKING_WINDOW_DAYS = 21;
+const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbxdoknbcKh-8huEREXD9aH_iD5x3z2JQDDF-Gt5ANDzaFzcjqcYnFOy3PG2bgQ6Uk6i/exec";
 const packages = {
   single: { label: "1 private class", amount: 25, wiseUrl: "https://wise.com/pay/r/1By27Avdd7FtOHo" },
   pack4: { label: "4 private classes", amount: 84, wiseUrl: "https://wise.com/pay/r/_QkFPSyF9SuYEwg" },
@@ -40,6 +41,16 @@ function dayLabel(date, timeZone) {
   return Object.fromEntries(parts.map((part) => [part.type, part.value]));
 }
 function timeLabel(date, timeZone) { return new Intl.DateTimeFormat("en-US", { hour:"numeric", minute:"2-digit", hour12:true, timeZone }).format(date); }
+async function notifyPaymentReceipt(type, documentId) {
+  try {
+    await fetch(PAYMENT_NOTIFICATION_URL, {
+      method:"POST",
+      mode:"no-cors",
+      headers:{ "Content-Type":"text/plain;charset=UTF-8" },
+      body:JSON.stringify({ type, documentId }),
+    });
+  } catch (error) { console.error("Payment acknowledgement email could not be requested", error); }
+}
 function updateWisePaymentLink() {
   const selectedPackage = packages[document.querySelector("#package").value] || packages.pack4;
   const link = document.querySelector("#wise-payment-link");
@@ -169,8 +180,10 @@ document.querySelector("#booking-form").addEventListener("submit", async (event)
       payerName:document.querySelector("#payer-name").value.trim(), status:"payment_review", createdAt:serverTimestamp(),
     });
     batch.update(slotRef, { status:"payment_review", heldBy:user.uid, holdExpiresAt:Timestamp.fromDate(holdExpiresAt), bookingRequestId:requestRef.id });
-    await batch.commit(); clearInterval(countdownTimer); holdPanel.classList.add("hidden");
-    setMessage("Payment reference received. The time is pending verification and is not available to anyone else. Elkin will email you after checking the payment.", "success");
+    await batch.commit();
+    await notifyPaymentReceipt("private", requestRef.id);
+    clearInterval(countdownTimer); holdPanel.classList.add("hidden");
+    setMessage("Payment reference received. We sent an acknowledgement to your email. The time is pending verification and is not available to anyone else. Elkin will email you again after checking the payment.", "success");
     await loadSlots();
   } catch (error) { console.error(error); setMessage("We could not submit the payment reference. Confirm that the hold is still active and try again."); }
   finally { button.disabled = false; button.textContent = "I've Paid · Send for Verification"; }

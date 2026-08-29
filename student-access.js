@@ -8,8 +8,19 @@ const app = initializeApp(firebaseConfig);
 const appCheck = initializeAppCheck(app, { provider:new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey), isTokenAutoRefreshEnabled:true });
 const auth = getAuth(app);
 const database = getFirestore(app);
+const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbxdoknbcKh-8huEREXD9aH_iD5x3z2JQDDF-Gt5ANDzaFzcjqcYnFOy3PG2bgQ6Uk6i/exec";
 
 function message(element, text, type="error") { element.textContent=text; element.className=`message ${type}`; }
+async function notifyPaymentReceipt(documentId) {
+  try {
+    await fetch(PAYMENT_NOTIFICATION_URL, {
+      method:"POST",
+      mode:"no-cors",
+      headers:{ "Content-Type":"text/plain;charset=UTF-8" },
+      body:JSON.stringify({ type:"group", documentId }),
+    });
+  } catch (error) { console.error("Payment acknowledgement email could not be requested", error); }
+}
 
 document.querySelector("#register-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -28,6 +39,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
       amountSubmitted:Number(document.querySelector("#amount-submitted").value),
       status:"pending", createdAt:serverTimestamp()
     });
+    await notifyPaymentReceipt(credential.user.uid);
     let verificationEmailSent = true;
     try {
       await sendEmailVerification(credential.user);
@@ -40,7 +52,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     message(
       output,
       verificationEmailSent
-        ? "Solicitud enviada correctamente. Revisa tu correo y verifica tu dirección. Elkin te avisará cuando tu acceso esté activo."
+        ? "Solicitud enviada correctamente. Enviamos la recepción del pago y la verificación de tu dirección al correo. Elkin te avisará cuando tu acceso esté activo."
         : "Solicitud enviada correctamente. No pudimos enviar ahora el correo de verificación, pero puedes solicitar uno nuevo al intentar iniciar sesión.",
       "success"
     );
