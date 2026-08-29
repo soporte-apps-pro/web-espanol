@@ -15,6 +15,9 @@ import {
   recaptchaEnterpriseSiteKey,
 } from "./firebase-config.js";
 
+const PAYMENT_NOTIFICATION_URL =
+  "https://script.google.com/macros/s/AKfycbwW0dtawkiixLv6akVE2mdPIO8AZwKCRtrRut1D_Hn8QWN7yrPeG9_33JtvaK3Yy7xC/exec";
+
 const form = document.querySelector("#club-interest-form");
 const message = document.querySelector("#form-message");
 const submitButton = document.querySelector("#submit-interest");
@@ -52,6 +55,19 @@ function setSubmitting(submitting) {
   submitLabel.textContent = submitting
     ? "Sending your information…"
     : "Submit Free Application";
+}
+
+async function notifyApplicationReceipt(documentId) {
+  try {
+    await fetch(PAYMENT_NOTIFICATION_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ type: "application", documentId }),
+    });
+  } catch (error) {
+    console.warn("Application receipt notification failed", error);
+  }
 }
 
 form?.addEventListener("submit", async (event) => {
@@ -122,7 +138,11 @@ form?.addEventListener("submit", async (event) => {
   setSubmitting(true);
   try {
     await getToken(appCheck, true);
-    await addDoc(collection(database, "speakingClubApplications"), application);
+    const applicationDocument = await addDoc(
+      collection(database, "speakingClubApplications"),
+      application
+    );
+    void notifyApplicationReceipt(applicationDocument.id);
     localStorage.setItem("clubFormSubmittedAt", String(Date.now()));
     form.reset();
     if (timeZoneInput) {

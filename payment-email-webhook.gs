@@ -12,10 +12,11 @@ function doPost(e) {
     const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const type = String(payload.type || '');
     const documentId = String(payload.documentId || '');
-    if (!['private', 'group', 'activation'].includes(type) || !/^[A-Za-z0-9_-]{10,160}$/.test(documentId)) {
+    if (!['private', 'group', 'activation', 'application'].includes(type) || !/^[A-Za-z0-9_-]{10,160}$/.test(documentId)) {
       return swePaymentResponse_({ ok: false, error: 'invalid-request' });
     }
     if (type === 'activation') return sweSendActivationEmail_(documentId);
+    if (type === 'application') return sweSendApplicationEmail_(documentId);
 
     const collectionName = type === 'private' ? 'privateBookingRequests' : 'studentProfiles';
     const document = swePaymentGetDocument_(collectionName, documentId);
@@ -92,6 +93,67 @@ function doPost(e) {
   } finally {
     if (lock.hasLock()) lock.releaseLock();
   }
+}
+
+function sweSendApplicationEmail_(documentId) {
+  const document = swePaymentGetDocument_('speakingClubApplications', documentId);
+  const fields = document.fields || {};
+  if (fields.applicationEmailSentAt && fields.applicationEmailSentAt.timestampValue) {
+    return swePaymentResponse_({ ok: true, alreadySent: true });
+  }
+
+  const email = swePaymentString_(fields.email).trim().toLowerCase();
+  const fullName = swePaymentString_(fields.fullName).trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !fullName) {
+    return swePaymentResponse_({ ok: false, error: 'incomplete-application' });
+  }
+
+  const subject = 'We received your Speaking Club application';
+  const plainText = [
+    'Hi ' + fullName + ',', '',
+    'We received your free application for the B1 Spanish Speaking Club.', '',
+    'IMPORTANT: You do not need to pay yet.', '',
+    'WHAT HAPPENS NEXT:',
+    '1. Elkin reviews your B1 level, availability, country, and time zone.',
+    '2. He looks for a compatible group of 4 to 5 learners.',
+    '3. By September 18, you will receive an email telling you whether a compatible group was found.',
+    '4. If you are matched, that email will show the exact weekly schedule and guide you through payment.', '',
+    'Applications close September 15. Groups begin during the week of September 21.', '',
+    'Submitting an application does not reserve a place. Your place is confirmed only after you are assigned to a group and your payment is verified.', '',
+    'If you need help, reply to this email or contact ' + SWE_SUPPORT_EMAIL + '.', '',
+    'Spanish with Elkin'
+  ].join('\n');
+
+  const safeName = swePaymentEscapeHtml_(fullName);
+  const html = '<div style="font-family:Arial,sans-serif;color:#172554;line-height:1.6;max-width:620px">' +
+    '<h2 style="color:#1e3a8a">We received your Speaking Club application</h2>' +
+    '<p>Hi ' + safeName + ',</p>' +
+    '<p>We received your free application for the <strong>B1 Spanish Speaking Club</strong>.</p>' +
+    '<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:16px"><strong>Important: You do not need to pay yet.</strong></div>' +
+    '<h3 style="color:#1e3a8a">What happens next</h3><ol style="padding-left:22px">' +
+    '<li>Elkin reviews your B1 level, availability, country, and time zone.</li>' +
+    '<li>He looks for a compatible group of 4 to 5 learners.</li>' +
+    '<li>By <strong>September 18</strong>, you will receive an email telling you whether a compatible group was found.</li>' +
+    '<li>If you are matched, that email will show the exact weekly schedule and guide you through payment.</li></ol>' +
+    '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px">' +
+    '<strong>Applications close:</strong> September 15<br><strong>Groups begin:</strong> the week of September 21</div>' +
+    '<p><strong>Submitting an application does not reserve a place.</strong> Your place is confirmed only after you are assigned to a group and your payment is verified.</p>' +
+    '<p>If you need help, reply to this email or contact <a href="mailto:' + SWE_SUPPORT_EMAIL + '">' + SWE_SUPPORT_EMAIL + '</a>.</p>' +
+    '<p>Spanish with Elkin</p></div>';
+
+  if (MailApp.getRemainingDailyQuota() < 1) {
+    return swePaymentResponse_({ ok: false, error: 'email-quota-exhausted' });
+  }
+  MailApp.sendEmail({
+    to: email,
+    subject: subject,
+    body: plainText,
+    htmlBody: html,
+    name: 'Spanish with Elkin',
+    replyTo: SWE_SUPPORT_EMAIL
+  });
+  sweApplicationMarkSent_(documentId);
+  return swePaymentResponse_({ ok: true });
 }
 
 function sweSendActivationEmail_(documentId) {
@@ -221,6 +283,21 @@ function sweActivationMarkSent_(documentId) {
     }}), muteHttpExceptions: true
   });
   if (response.getResponseCode() !== 200) throw new Error('Firestore activation email marker failed: ' + response.getResponseCode());
+}
+
+function sweApplicationMarkSent_(documentId) {
+  const url = 'https://firestore.googleapis.com/v1/projects/' + SWE_PAYMENT_PROJECT_ID +
+    '/databases/(default)/documents/speakingClubApplications/' + encodeURIComponent(documentId) +
+    '?updateMask.fieldPaths=applicationEmailSentAt&updateMask.fieldPaths=applicationEmailStatus';
+  const response = UrlFetchApp.fetch(url, {
+    method: 'patch', contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    payload: JSON.stringify({ fields: {
+      applicationEmailSentAt: { timestampValue: new Date().toISOString() },
+      applicationEmailStatus: { stringValue: 'sent' }
+    }}), muteHttpExceptions: true
+  });
+  if (response.getResponseCode() !== 200) throw new Error('Firestore application email marker failed: ' + response.getResponseCode());
 }
 
 function swePaymentString_(field) { return field && field.stringValue ? field.stringValue : ''; }
