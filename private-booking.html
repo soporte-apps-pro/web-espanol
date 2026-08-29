@@ -11,7 +11,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <style>
+    html,body{max-width:100%;overflow-x:hidden}
     body{font-family:Poppins,sans-serif}
+    main,main>div,main section,form,#slots,#selection-panel,#hold-panel{min-width:0;max-width:100%}
+    select,input,button,a{max-width:100%}
     .date-picker{display:flex;gap:.65rem;overflow-x:auto;padding:.15rem .1rem .65rem;scrollbar-width:thin;scroll-snap-type:x proximity}
     .date-option{min-width:5.35rem;scroll-snap-align:start;border:1px solid #e5e7eb;border-radius:1rem;background:#fff;padding:.75rem .6rem;text-align:center;color:#172554;transition:.18s ease}
     .date-option:hover{border-color:#fb923c;transform:translateY(-1px)}
@@ -27,6 +30,21 @@
     .wise-payment-button:hover{background:#166534;transform:translateY(-1px);box-shadow:0 7px 18px rgba(21,128,61,.28)}
     .wise-payment-button:focus-visible{outline:3px solid #86efac;outline-offset:3px}
     .message.success{background:#ecfdf5;color:#047857}.message.error{background:#fff1f2;color:#be123c}
+    @media(max-width:479px){
+      main{padding-left:.75rem!important;padding-right:.75rem!important;padding-top:1.5rem!important}
+      main>div{gap:1.25rem!important}
+      main section:last-child{padding:1rem!important;border-radius:1.25rem!important}
+      h1{font-size:2rem!important;line-height:1.12!important}
+      header>div{padding-left:.85rem!important;padding-right:.85rem!important;flex-wrap:wrap}
+      header a:first-child{font-size:1.05rem}
+      header a:last-child{font-size:.75rem}
+      .date-option{min-width:4.8rem;padding:.65rem .45rem}
+      .time-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #hold-panel .grid{grid-template-columns:minmax(0,1fr)}
+      #hold-panel .flex{flex-wrap:wrap}
+      .wise-payment-button{padding:.85rem .65rem}
+    }
+    @media(max-width:339px){.time-grid{grid-template-columns:minmax(0,1fr)}}
     @media(min-width:640px){.time-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
   </style>
 </head>
@@ -38,8 +56,8 @@
     </div>
   </header>
   <main class="max-w-5xl mx-auto px-5 py-10 lg:py-14">
-    <div class="grid lg:grid-cols-2 gap-8 items-start">
-      <section>
+    <div class="grid lg:grid-cols-2 gap-8 items-start min-w-0">
+      <section class="min-w-0">
         <p class="uppercase tracking-widest text-xs font-bold text-orange-500 mb-3">Secure scheduling</p>
         <h1 class="text-4xl md:text-5xl font-extrabold text-blue-950 leading-tight">Choose your time. Secure it with payment.</h1>
         <p class="mt-5 text-gray-600 leading-relaxed">Elkin publishes every time in Colombia time. We convert it to your selected time zone automatically.</p>
@@ -48,7 +66,7 @@
           <p>When you continue to payment, it is held for 10 minutes. It becomes permanently booked only after Elkin verifies the payment reference.</p>
         </div>
       </section>
-      <section class="bg-white border border-gray-200 rounded-3xl p-5 md:p-7 shadow-sm">
+      <section class="min-w-0 bg-white border border-gray-200 rounded-3xl p-5 md:p-7 shadow-sm">
         <form id="booking-form">
           <div class="flex items-end justify-between gap-4 mb-5">
             <div><p class="text-xs font-bold uppercase tracking-wider text-gray-500">Your time zone</p><h2 class="text-2xl font-extrabold text-blue-950">Available times</h2></div>
