@@ -40,7 +40,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
       amountSubmitted:Number(document.querySelector("#amount-submitted").value),
       status:"pending", createdAt:serverTimestamp()
     });
-    await notifyPaymentReceipt(credential.user.uid);
+    void notifyPaymentReceipt(credential.user.uid);
     let verificationEmailSent = true;
     try {
       await sendEmailVerification(credential.user);

@@ -181,7 +181,7 @@ document.querySelector("#booking-form").addEventListener("submit", async (event)
     });
     batch.update(slotRef, { status:"payment_review", heldBy:user.uid, holdExpiresAt:Timestamp.fromDate(holdExpiresAt), bookingRequestId:requestRef.id });
     await batch.commit();
-    await notifyPaymentReceipt("private", requestRef.id);
+    void notifyPaymentReceipt("private", requestRef.id);
     clearInterval(countdownTimer); holdPanel.classList.add("hidden");
     setMessage("Payment reference received. We sent an acknowledgement to your email. The time is pending verification and is not available to anyone else. Elkin will email you again after checking the payment.", "success");
     await loadSlots();
