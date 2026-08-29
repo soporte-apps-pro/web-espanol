@@ -24,11 +24,22 @@ const holdPanel = document.querySelector("#hold-panel");
 const message = document.querySelector("#booking-message");
 let slots = [];
 let selectedSlot = null;
+let selectedDayKey = "";
 let holdExpiresAt = null;
 let countdownTimer = null;
 
 function setMessage(text, type = "error") { message.textContent = text; message.className = `message ${type} mt-5 rounded-xl p-4 text-sm font-semibold`; }
 function formatAt(date, timeZone) { return new Intl.DateTimeFormat("en-US", { weekday:"long", month:"short", day:"numeric", hour:"numeric", minute:"2-digit", hour12:true, timeZone }).format(date); }
+function dateKey(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-CA", { year:"numeric", month:"2-digit", day:"2-digit", timeZone }).formatToParts(date);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
+function dayLabel(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-US", { weekday:"short", month:"short", day:"numeric", timeZone }).formatToParts(date);
+  return Object.fromEntries(parts.map((part) => [part.type, part.value]));
+}
+function timeLabel(date, timeZone) { return new Intl.DateTimeFormat("en-US", { hour:"numeric", minute:"2-digit", hour12:true, timeZone }).format(date); }
 function googleCleared(slot) {
   const checkedAt = slot.googleCalendarCheckedAt?.toDate?.();
   return slot.googleCalendarBlocked === false && checkedAt && checkedAt.getTime() >= Date.now() - GOOGLE_CHECK_MAX_AGE_MINUTES * 60000;
@@ -49,10 +60,26 @@ function configureZones() {
 function renderSlots() {
   const zone = zoneSelect.value || COLOMBIA_ZONE;
   const visible = slots.filter(available).sort((a,b) => a.startAt.seconds - b.startAt.seconds);
-  slotsElement.innerHTML = visible.length ? visible.map((slot) => {
-    const start = slot.startAt.toDate();
-    return `<button type="button" class="slot text-left rounded-2xl border border-gray-200 p-4 hover:border-orange-400" data-slot="${slot.id}" aria-pressed="${selectedSlot?.id === slot.id}"><strong class="block text-blue-950">${formatAt(start, zone)}</strong><span class="text-xs text-gray-500">${formatAt(start, COLOMBIA_ZONE)} · Colombia time</span><span class="block text-xs text-gray-500 mt-1">50 minutes</span></button>`;
-  }).join("") : '<p class="rounded-xl bg-gray-50 p-5 text-gray-500">No private times are currently available. Please check again soon.</p>';
+  if (!visible.length) {
+    selectedDayKey = "";
+    slotsElement.innerHTML = '<p class="rounded-xl bg-gray-50 p-5 text-gray-500">No private times are currently available. Please check again soon.</p>';
+    return;
+  }
+  const grouped = new Map();
+  visible.forEach((slot) => {
+    const key = dateKey(slot.startAt.toDate(), zone);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(slot);
+  });
+  if (!grouped.has(selectedDayKey)) selectedDayKey = grouped.keys().next().value;
+  const selectedDay = grouped.get(selectedDayKey);
+  const dates = [...grouped.entries()].map(([key, daySlots]) => {
+    const label = dayLabel(daySlots[0].startAt.toDate(), zone);
+    return `<button type="button" class="date-option" data-day="${key}" aria-pressed="${key === selectedDayKey}"><span>${label.weekday}</span><strong>${label.day}</strong><small>${label.month} · ${daySlots.length} ${daySlots.length === 1 ? "time" : "times"}</small></button>`;
+  }).join("");
+  const times = selectedDay.map((slot) => `<button type="button" class="slot" data-slot="${slot.id}" aria-pressed="${selectedSlot?.id === slot.id}">${timeLabel(slot.startAt.toDate(), zone)}<span class="block text-xs font-normal text-gray-500 mt-1">50 min</span></button>`).join("");
+  slotsElement.innerHTML = `<div class="date-picker" aria-label="Available dates">${dates}</div><div class="flex items-center justify-between gap-3 mt-3 mb-3"><p class="text-sm font-bold text-blue-950">Choose a time</p><p class="text-xs text-gray-500">${selectedDay.length} available</p></div><div class="time-grid">${times}</div>`;
+  slotsElement.querySelectorAll("[data-day]").forEach((button) => button.addEventListener("click", () => { selectedDayKey = button.dataset.day; selectedSlot = null; selectionPanel.classList.add("hidden"); renderSlots(); }));
   slotsElement.querySelectorAll("[data-slot]").forEach((button) => button.addEventListener("click", () => selectSlot(button.dataset.slot)));
 }
 
@@ -62,6 +89,7 @@ function selectSlot(slotId) {
   document.querySelector("#selected-time").textContent = `${formatAt(selectedSlot.startAt.toDate(), zoneSelect.value)} (${formatAt(selectedSlot.startAt.toDate(), COLOMBIA_ZONE)} Colombia)`;
   selectionPanel.classList.remove("hidden");
   renderSlots();
+  requestAnimationFrame(() => selectionPanel.scrollIntoView({ behavior:"smooth", block:"center" }));
 }
 
 function updateCountdown() {
@@ -142,7 +170,12 @@ document.querySelector("#booking-form").addEventListener("submit", async (event)
   finally { button.disabled = false; button.textContent = "Send Payment for Verification"; }
 });
 
-zoneSelect.addEventListener("change", renderSlots);
+zoneSelect.addEventListener("change", () => {
+  selectedDayKey = "";
+  selectedSlot = null;
+  selectionPanel.classList.add("hidden");
+  renderSlots();
+});
 document.querySelector("#start-payment").addEventListener("click", () => selectedSlot && startHold(selectedSlot.id));
 configureZones();
 loadSlots();

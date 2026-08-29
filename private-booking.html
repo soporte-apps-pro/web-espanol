@@ -10,7 +10,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <style>body{font-family:Poppins,sans-serif}.slot[aria-pressed=true]{border-color:#f97316;background:#fff7ed}.message.success{background:#ecfdf5;color:#047857}.message.error{background:#fff1f2;color:#be123c}</style>
+  <style>
+    body{font-family:Poppins,sans-serif}
+    .date-picker{display:flex;gap:.65rem;overflow-x:auto;padding:.15rem .1rem .65rem;scrollbar-width:thin;scroll-snap-type:x proximity}
+    .date-option{min-width:5.35rem;scroll-snap-align:start;border:1px solid #e5e7eb;border-radius:1rem;background:#fff;padding:.75rem .6rem;text-align:center;color:#172554;transition:.18s ease}
+    .date-option:hover{border-color:#fb923c;transform:translateY(-1px)}
+    .date-option[aria-pressed=true]{border-color:#f97316;background:#fff7ed;box-shadow:0 0 0 2px #fed7aa}
+    .date-option span{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;color:#6b7280}
+    .date-option strong{display:block;font-size:1.35rem;line-height:1.25}
+    .date-option small{display:block;font-size:.68rem;color:#6b7280}
+    .time-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem}
+    .slot{border:1px solid #e5e7eb;border-radius:.9rem;background:#fff;padding:.8rem;text-align:center;font-weight:700;color:#172554;transition:.18s ease}
+    .slot:hover{border-color:#fb923c;background:#fff7ed}
+    .slot[aria-pressed=true]{border-color:#f97316;background:#fff7ed;box-shadow:0 0 0 2px #fed7aa}
+    .message.success{background:#ecfdf5;color:#047857}.message.error{background:#fff1f2;color:#be123c}
+    @media(min-width:640px){.time-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
   <header class="bg-white border-b border-gray-200">
@@ -38,7 +53,7 @@
           <label for="student-time-zone" class="block text-sm font-bold mb-2">Time zone</label>
           <select id="student-time-zone" class="w-full rounded-xl border border-gray-300 px-4 py-3 mb-5" required></select>
           <p class="mb-5 text-xs text-gray-500">New times become available on a rolling basis. You can book up to three weeks in advance.</p>
-          <div id="slots" class="grid gap-3" aria-live="polite"><p class="text-gray-500">Loading availability…</p></div>
+          <div id="slots" aria-live="polite"><p class="text-gray-500">Loading availability…</p></div>
           <div id="selection-panel" class="hidden mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4">
             <p id="selected-time" class="text-sm font-bold text-blue-950"></p>
             <p class="text-xs text-gray-600 mt-1">This selection does not block the time yet.</p>
@@ -68,6 +83,6 @@
       </section>
     </div>
   </main>
-  <script type="module" src="private-booking.js?v=20260828-1"></script>
+  <script type="module" src="private-booking.js?v=20260828-2"></script>
 </body>
 </html>
