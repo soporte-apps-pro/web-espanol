@@ -65,11 +65,11 @@
   timeZoneSelect.value = detectedTimeZone;
 
   const candidateSlots = [
-    { id: "monday-1000", label: "Monday", date: "2026-09-28", hour: 10 },
-    { id: "tuesday-1700", label: "Tuesday", date: "2026-09-29", hour: 17 },
-    { id: "wednesday-0800", label: "Wednesday", date: "2026-09-30", hour: 8 },
-    { id: "thursday-1400", label: "Thursday", date: "2026-10-01", hour: 14 },
-    { id: "friday-1100", label: "Friday", date: "2026-10-02", hour: 11 },
+    { id: "monday-1000", label: "Monday", date: "2026-09-21", hour: 10 },
+    { id: "tuesday-1700", label: "Tuesday", date: "2026-09-22", hour: 17 },
+    { id: "wednesday-0800", label: "Wednesday", date: "2026-09-23", hour: 8 },
+    { id: "thursday-1400", label: "Thursday", date: "2026-09-24", hour: 14 },
+    { id: "friday-1100", label: "Friday", date: "2026-09-25", hour: 11 },
   ];
 
   function formatTime(date, timeZone) {
