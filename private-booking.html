@@ -23,6 +23,9 @@
     .slot{border:1px solid #e5e7eb;border-radius:.9rem;background:#fff;padding:.8rem;text-align:center;font-weight:700;color:#172554;transition:.18s ease}
     .slot:hover{border-color:#fb923c;background:#fff7ed}
     .slot[aria-pressed=true]{border-color:#f97316;background:#fff7ed;box-shadow:0 0 0 2px #fed7aa}
+    .wise-payment-button{display:block;width:100%;border-radius:.75rem;background:#15803d;color:#fff;text-align:center;font-weight:700;padding:.8rem 1rem;box-shadow:0 4px 12px rgba(21,128,61,.2);transition:background-color .18s ease,transform .18s ease,box-shadow .18s ease}
+    .wise-payment-button:hover{background:#166534;transform:translateY(-1px);box-shadow:0 7px 18px rgba(21,128,61,.28)}
+    .wise-payment-button:focus-visible{outline:3px solid #86efac;outline-offset:3px}
     .message.success{background:#ecfdf5;color:#047857}.message.error{background:#fff1f2;color:#be123c}
     @media(min-width:640px){.time-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
   </style>
@@ -69,7 +72,7 @@
             </select>
             <div class="rounded-2xl border border-green-200 bg-green-50 p-4 mb-5">
               <div class="flex items-center justify-between gap-3 mb-3"><div><p class="text-xs font-bold uppercase tracking-wider text-green-700">Secure payment with Wise</p><p class="text-sm text-gray-600 mt-1">Pay <strong id="wise-payment-amount" class="text-blue-950">US$84</strong> in a secure Wise window.</p></div><span class="rounded-full bg-white px-3 py-1 text-sm font-extrabold text-green-700 border border-green-200">WISE</span></div>
-              <a id="wise-payment-link" href="#" target="_blank" rel="noopener noreferrer" class="block w-full rounded-xl bg-green-600 hover:bg-green-700 text-white text-center font-bold py-3">Pay securely with Wise ↗</a>
+              <a id="wise-payment-link" href="https://wise.com/pay/r/_QkFPSyF9SuYEwg" target="_blank" rel="noopener noreferrer" class="wise-payment-button">Pay securely with Wise ↗</a>
               <p class="text-xs text-gray-600 mt-3">Keep this booking page open. After paying, return here and enter your Wise transfer reference below.</p>
             </div>
             <input id="payment-method" type="hidden" value="transfer">
@@ -88,6 +91,6 @@
       </section>
     </div>
   </main>
-  <script type="module" src="private-booking.js?v=20260828-3"></script>
+  <script type="module" src="private-booking.js?v=20260828-4"></script>
 </body>
 </html>
