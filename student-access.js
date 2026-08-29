@@ -8,7 +8,7 @@ const app = initializeApp(firebaseConfig);
 const appCheck = initializeAppCheck(app, { provider:new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey), isTokenAutoRefreshEnabled:true });
 const auth = getAuth(app);
 const database = getFirestore(app);
-const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbxdoknbcKh-8huEREXD9aH_iD5x3z2JQDDF-Gt5ANDzaFzcjqcYnFOy3PG2bgQ6Uk6i/exec";
+const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbwW0dtawkiixLv6akVE2mdPIO8AZwKCRtrRut1D_Hn8QWN7yrPeG9_33JtvaK3Yy7xC/exec";
 
 function message(element, text, type="error") { element.textContent=text; element.className=`message ${type}`; }
 async function notifyPaymentReceipt(documentId) {

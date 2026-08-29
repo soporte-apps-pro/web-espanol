@@ -8,7 +8,7 @@ const COLOMBIA_ZONE = "America/Bogota";
 const HOLD_MINUTES = 10;
 const GOOGLE_CHECK_MAX_AGE_MINUTES = 35;
 const BOOKING_WINDOW_DAYS = 21;
-const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbxdoknbcKh-8huEREXD9aH_iD5x3z2JQDDF-Gt5ANDzaFzcjqcYnFOy3PG2bgQ6Uk6i/exec";
+const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbwW0dtawkiixLv6akVE2mdPIO8AZwKCRtrRut1D_Hn8QWN7yrPeG9_33JtvaK3Yy7xC/exec";
 const packages = {
   single: { label: "1 private class", amount: 25, wiseUrl: "https://wise.com/pay/r/1By27Avdd7FtOHo" },
   pack4: { label: "4 private classes", amount: 84, wiseUrl: "https://wise.com/pay/r/_QkFPSyF9SuYEwg" },
