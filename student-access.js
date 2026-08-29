@@ -24,7 +24,8 @@ async function notifyPaymentReceipt(documentId) {
 
 document.querySelector("#register-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const button = event.currentTarget.querySelector("button");
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
   const output = document.querySelector("#register-message");
   button.disabled=true; button.textContent="Creando cuenta…";
   try {
@@ -48,7 +49,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
       console.error("Verification email could not be sent", verificationError);
     }
     await signOut(auth);
-    event.currentTarget.reset();
+    form.reset();
     message(
       output,
       verificationEmailSent
@@ -63,7 +64,8 @@ document.querySelector("#register-form").addEventListener("submit", async (event
 
 document.querySelector("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const button=event.currentTarget.querySelector("button");
+  const form=event.currentTarget;
+  const button=form.querySelector("button");
   const output=document.querySelector("#login-message");
   button.disabled=true; button.textContent="Ingresando…";
   try {
