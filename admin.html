@@ -48,7 +48,7 @@
     .payment-list-section { border:1px solid var(--line); border-radius:16px; background:#fff; overflow:hidden; }
     .payment-list-section > summary { padding:15px 18px; cursor:pointer; color:var(--navy); font-weight:800; }
     .payment-list { display:grid; gap:8px; padding:0 14px 14px; }
-    .payment-row { display:grid; grid-template-columns:minmax(180px,1fr) 130px 130px auto; gap:12px; align-items:center; padding:12px; border-radius:12px; background:#f8fafc; }
+    .payment-row { display:grid; grid-template-columns:minmax(180px,1fr) minmax(150px,.8fr) 110px 120px auto; gap:12px; align-items:center; padding:12px; border-radius:12px; background:#f8fafc; }
     .payment-row small { display:block; color:var(--muted); }
     .payment-row .button { padding:8px 13px; font-size:.78rem; }
     .access-card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px; }
@@ -395,7 +395,7 @@
   </main>
   <button id="back-to-top" class="back-to-top" type="button" aria-label="Volver al inicio" title="Volver al inicio">↑</button>
 
-  <script type="module" src="admin.js?v=20260829-4"></script>
+  <script type="module" src="admin.js?v=20260829-5"></script>
   <script type="module" src="private-booking-admin.js?v=20260828-1"></script>
   <script type="module" src="admin-calendar.js?v=20260824-4"></script>
   <script>const backToTop=document.querySelector('#back-to-top');addEventListener('scroll',()=>backToTop.classList.toggle('visible',scrollY>500),{passive:true});backToTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));</script>

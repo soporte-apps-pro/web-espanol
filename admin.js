@@ -510,9 +510,13 @@ function paymentStudents() {
 function paymentRow(application) {
   const status = application.paymentStatus || "pending";
   const statusText = status === "paid" ? "Pagado" : status === "refunded" ? "Reembolsado" : "Pendiente";
+  const assignedGroup = groups.find((group) =>
+    (group.memberApplicationIds || []).includes(application.id)
+  );
   return `
     <div class="payment-row">
       <div><strong>${escapeHtml(application.fullName)}</strong><small>${escapeHtml(application.email)}</small></div>
+      <div><small>Grupo asignado</small><strong>${escapeHtml(assignedGroup?.name || "Sin grupo")}</strong></div>
       <div><small>Estado</small><strong>${statusText}</strong></div>
       <div><small>Recibido</small><strong>US$${Number(application.paidAmount || 0).toFixed(2)}</strong></div>
       <button class="button secondary" type="button" data-open-payment="${escapeHtml(application.id)}">Ver / registrar pago</button>
