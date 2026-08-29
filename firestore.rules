@@ -215,7 +215,7 @@ service cloud.firestore {
               (resource.data.status == 'held' && resource.data.holdExpiresAt <= request.time)) &&
             resource.data.googleCalendarBlocked == false &&
             resource.data.googleCalendarCheckedAt is timestamp &&
-            resource.data.googleCalendarCheckedAt >= request.time - duration.value(10, 'm') &&
+            resource.data.googleCalendarCheckedAt >= request.time - duration.value(35, 'm') &&
             resource.data.startAt is timestamp &&
             resource.data.startAt > request.time &&
             resource.data.startAt <= request.time + duration.value(21, 'd') &&
@@ -230,7 +230,7 @@ service cloud.firestore {
             resource.data.holdExpiresAt > request.time &&
             resource.data.googleCalendarBlocked == false &&
             resource.data.googleCalendarCheckedAt is timestamp &&
-            resource.data.googleCalendarCheckedAt >= request.time - duration.value(10, 'm') &&
+            resource.data.googleCalendarCheckedAt >= request.time - duration.value(35, 'm') &&
             resource.data.startAt is timestamp &&
             resource.data.startAt > request.time &&
             resource.data.startAt <= request.time + duration.value(21, 'd') &&

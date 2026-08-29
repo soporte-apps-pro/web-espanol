@@ -6,7 +6,7 @@ import { firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js
 
 const COLOMBIA_ZONE = "America/Bogota";
 const HOLD_MINUTES = 10;
-const GOOGLE_CHECK_MAX_AGE_MINUTES = 10;
+const GOOGLE_CHECK_MAX_AGE_MINUTES = 35;
 const BOOKING_WINDOW_DAYS = 21;
 const packages = {
   single: { label: "1 private class", amount: 25 },
