@@ -108,9 +108,10 @@ function sweSendActivationEmail_(documentId) {
   const fullName = swePaymentString_(fields.fullName).trim();
   const groupName = swePaymentString_(fields.groupName).trim();
   const slot = swePaymentString_(fields.slot).trim();
+  const meetingUrl = swePaymentString_(fields.meetingUrl).trim();
   const dates = ((fields.sessionDates || {}).arrayValue || {}).values || [];
   const sessionDates = dates.map(function(value) { return swePaymentString_(value); }).filter(Boolean);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !fullName || !groupName || sessionDates.length !== 6) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !fullName || !groupName || !/^https:\/\/meet\.google\.com\/[A-Za-z]{3}-[A-Za-z]{4}-[A-Za-z]{3}\/?$/.test(meetingUrl) || sessionDates.length !== 6) {
     return swePaymentResponse_({ ok: false, error: 'incomplete-activation' });
   }
 
@@ -141,6 +142,8 @@ function sweSendActivationEmail_(documentId) {
     'WEEKLY SCHEDULE: ' + schedule, '',
     'YOUR SIX SESSIONS:',
     formattedDates.map(function(date, index) { return 'Session ' + (index + 1) + ': ' + date; }).join('\n'), '',
+    'GOOGLE MEET: ' + meetingUrl,
+    'Use this same link for all six sessions. Join about 5 minutes before the scheduled start.', '',
     'WHAT TO DO NOW:',
     '1. Open ' + portalUrl,
     '2. Choose “I already have an account” and sign in with ' + email + '.',
@@ -158,6 +161,9 @@ function sweSendActivationEmail_(documentId) {
     '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px">' +
     '<strong>Group:</strong> ' + safeGroup + '<br><strong>Weekly schedule:</strong> ' + safeSchedule + '</div>' +
     '<h3 style="color:#1e3a8a">Your six sessions</h3><ol style="padding-left:22px">' + dateItems + '</ol>' +
+    '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:12px;padding:16px"><strong>Your Google Meet link</strong><br>' +
+    '<a href="' + meetingUrl + '" style="display:inline-block;background:#15803d;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:12px 18px;margin:10px 0">Join Google Meet</a><br>' +
+    '<span style="font-size:14px">Use this same link for all six sessions. Join about 5 minutes before the scheduled start.</span></div>' +
     '<h3 style="color:#1e3a8a">What to do now</h3><ol style="padding-left:22px">' +
     '<li>Open your student access page.</li><li>Choose <strong>I already have an account</strong> and sign in with <strong>' + swePaymentEscapeHtml_(email) + '</strong>.</li>' +
     '<li>Use the password you created when you submitted your payment information.</li><li>Review your group and save all six dates in your calendar.</li></ol>' +

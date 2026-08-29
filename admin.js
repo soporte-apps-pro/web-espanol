@@ -290,6 +290,39 @@ function groupStatusOptions(status, memberCount) {
   return '<option value="completed" selected>Finalizado</option>';
 }
 
+function validMeetUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "meet.google.com" && /^\/[a-z]{3}-[a-z]{4}-[a-z]{3}\/?$/i.test(url.pathname);
+  } catch { return false; }
+}
+
+async function saveGroupMeetingUrl(event) {
+  const button = event.currentTarget;
+  const card = button.closest("[data-group-id]");
+  const group = groups.find((item) => item.id === card?.dataset.groupId);
+  const meetingUrl = card?.querySelector("[data-group-meeting-url]")?.value.trim() || "";
+  if (!group || !validMeetUrl(meetingUrl)) {
+    setMessage(groupsMessage, "Pega un enlace válido de Google Meet, por ejemplo https://meet.google.com/abc-defg-hij.");
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "Guardando…";
+  try {
+    await updateDoc(doc(database, "speakingClubGroups", group.id), { meetingUrl, meetingUrlUpdatedAt:serverTimestamp() });
+    group.meetingUrl = meetingUrl;
+    renderGroups();
+    renderStudentAccess();
+    setMessage(groupsMessage, "Enlace de Google Meet guardado. Ya puede incluirse al activar estudiantes.", "success");
+  } catch (error) {
+    console.error("Could not save Google Meet link", error);
+    setMessage(groupsMessage, `No fue posible guardar el enlace (${error?.code || "error"}).`);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Guardar enlace de Meet";
+  }
+}
+
 function renderGroups() {
   document.querySelector("#groups-tab-count").textContent = groups.length;
   if (!groups.length) {
@@ -333,6 +366,12 @@ function renderGroups() {
           <div><strong>US$${expectedTotal.toFixed(2)}</strong>esperado</div>
           <div><strong>US$${receivedTotal.toFixed(2)}</strong>recibido</div>
         </div>
+        <div class="group-member-editor">
+          <strong>Google Meet para las seis sesiones</strong>
+          <p class="muted">Crea el evento recurrente en Google Calendar y pega aquí su enlace antes de activar estudiantes.</p>
+          <input type="url" data-group-meeting-url value="${escapeHtml(group.meetingUrl || "")}" placeholder="https://meet.google.com/abc-defg-hij" aria-label="Enlace de Google Meet para ${escapeHtml(group.name)}">
+          <button class="button secondary" type="button" data-save-meeting-url>Guardar enlace de Meet</button>
+        </div>
         ${memberEditor}
         <div class="group-status">
           <label for="group-status-${escapeHtml(group.id)}">Estado</label>
@@ -347,6 +386,9 @@ function renderGroups() {
   });
   groupsList.querySelectorAll("[data-save-group-members]").forEach((button) => {
     button.addEventListener("click", updateGroupMembers);
+  });
+  groupsList.querySelectorAll("[data-save-meeting-url]").forEach((button) => {
+    button.addEventListener("click", saveGroupMeetingUrl);
   });
 }
 
@@ -416,7 +458,7 @@ function accessContext(profile) {
     item.id !== profile.id && item.paymentReference &&
     item.paymentReference.toLowerCase() === String(profile.paymentReference).toLowerCase()
   );
-  const canActivate = profile.status === "pending" && application?.paymentStatus === "paid" && group?.status === "confirmed" && !duplicateReference;
+  const canActivate = profile.status === "pending" && application?.paymentStatus === "paid" && group?.status === "confirmed" && validMeetUrl(group?.meetingUrl || "") && !duplicateReference;
   return { application, group, duplicateReference, canActivate };
 }
 
@@ -428,7 +470,7 @@ function renderStudentAccess() {
   }
   accessList.innerHTML = studentProfiles.map((profile) => {
     const { application, group, duplicateReference, canActivate } = accessContext(profile);
-    const reason = profile.status === "active" ? "Acceso activo" : duplicateReference ? "Referencia repetida: revisar" : !application ? "No coincide con una solicitud" : application.paymentStatus !== "paid" ? "Pago aún no verificado" : group?.status !== "confirmed" ? "Grupo no confirmado" : "Listo para activar";
+    const reason = profile.status === "active" ? "Acceso activo" : duplicateReference ? "Referencia repetida: revisar" : !application ? "No coincide con una solicitud" : application.paymentStatus !== "paid" ? "Pago aún no verificado" : group?.status !== "confirmed" ? "Grupo no confirmado" : !validMeetUrl(group?.meetingUrl || "") ? "Falta guardar el enlace de Google Meet del grupo" : "Listo para activar";
     return `
       <article class="access-card" data-profile-id="${escapeHtml(profile.id)}">
         <div class="access-card-head">
@@ -483,10 +525,11 @@ async function activateStudentAccess(event) {
       groupName: group.name,
       slot: group.slot,
       sessionDates: group.sessionDates,
+      meetingUrl: group.meetingUrl,
       activatedAt: serverTimestamp(),
     });
     await notifyAccessActivation(profile.id);
-    Object.assign(profile, { status: "active", applicationId: application.id, groupName: group.name, slot: group.slot, sessionDates: group.sessionDates });
+    Object.assign(profile, { status: "active", applicationId: application.id, groupName: group.name, slot: group.slot, sessionDates: group.sessionDates, meetingUrl:group.meetingUrl });
     renderStudentAccess();
     setMessage(accessMessage, `Acceso de ${profile.fullName} activado. Solicitamos el correo automático con sus próximos pasos.`, "success");
   } catch (error) {

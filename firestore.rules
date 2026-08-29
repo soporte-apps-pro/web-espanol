@@ -125,6 +125,11 @@ service cloud.firestore {
         request.resource.data.status == 'forming' &&
         request.resource.data.createdAt == request.time;
       allow update: if isAdmin() && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['meetingUrl', 'meetingUrlUpdatedAt']) &&
+          request.resource.data.meetingUrl is string &&
+          request.resource.data.meetingUrl.size() <= 120 &&
+          request.resource.data.meetingUrl.matches('https://meet\\.google\\.com/[A-Za-z]{3}-[A-Za-z]{4}-[A-Za-z]{3}/?') &&
+          request.resource.data.meetingUrlUpdatedAt == request.time) ||
         (resource.data.status == 'forming' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberApplicationIds']) &&
           request.resource.data.memberApplicationIds is list &&
@@ -185,6 +190,7 @@ service cloud.firestore {
           'groupName',
           'slot',
           'sessionDates',
+          'meetingUrl',
           'activatedAt'
         ]) &&
         request.resource.data.status == 'active' &&
@@ -195,6 +201,9 @@ service cloud.firestore {
         request.resource.data.slot in ['monday-1000', 'tuesday-1700', 'wednesday-0800', 'thursday-1400', 'friday-1100'] &&
         request.resource.data.sessionDates is list &&
         request.resource.data.sessionDates.size() == 6 &&
+        request.resource.data.meetingUrl is string &&
+        request.resource.data.meetingUrl.size() <= 120 &&
+        request.resource.data.meetingUrl.matches('https://meet\\.google\\.com/[A-Za-z]{3}-[A-Za-z]{4}-[A-Za-z]{3}/?') &&
         request.resource.data.activatedAt == request.time;
       allow delete: if false;
     }

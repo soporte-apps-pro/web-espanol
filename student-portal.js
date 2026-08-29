@@ -23,6 +23,8 @@ onAuthStateChanged(auth,async(user)=>{
     if(profile.status!=="active"){show("#pending");return;}
     document.querySelector("#group-name").textContent=profile.groupName;
     document.querySelector("#group-slot").textContent=slotLabels[profile.slot]||profile.slot;
+    const meetingLink=document.querySelector("#meeting-link");
+    meetingLink.href=profile.meetingUrl;
     document.querySelector("#sessions").innerHTML=(profile.sessionDates||[]).map((date,index)=>`<div class="session"><small>Sesión ${index+1}</small><strong>${formatDate(date)}</strong></div>`).join("");
     show("#active");
   }catch(error){console.error(error);hide("#loading");document.querySelector("#error").textContent="No fue posible cargar tu acceso. Contacta a Elkin.";show("#error");}
