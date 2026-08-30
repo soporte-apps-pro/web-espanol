@@ -160,6 +160,20 @@
     .card-actions select { width:180px; padding:9px 11px; }
     .empty { text-align:center; padding:55px 20px; background:#fff; border:1px dashed #cbd5e1; border-radius:20px; color:var(--muted); }
     .groups-section { margin-top:0; }
+    .group-suggestions { margin-bottom:20px; padding:20px; border:1px solid #bfdbfe; border-radius:20px; background:#eff6ff; }
+    .group-suggestions-head { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:14px; }
+    .group-suggestions-head h2 { margin:0 0 5px; color:var(--navy); }
+    .suggestion-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .suggestion-card { padding:15px; border:1px solid #dbeafe; border-radius:14px; background:#fff; }
+    .suggestion-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+    .suggestion-card h3 { margin:0; color:var(--navy); font-size:.94rem; }
+    .suggestion-status { display:inline-flex; padding:4px 8px; border-radius:999px; background:#e0f2fe; color:#075985; font-size:.68rem; font-weight:800; text-transform:uppercase; }
+    .suggestion-status.ideal { background:#dcfce7; color:#166534; }
+    .suggestion-status.possible { background:#ffedd5; color:#9a3412; }
+    .suggestion-members { margin:11px 0; padding:0; list-style:none; }
+    .suggestion-members li { padding:7px 0; border-top:1px solid #eef2f7; font-size:.78rem; }
+    .suggestion-members small { display:block; color:var(--muted); }
+    .suggestion-card .button { padding:8px 12px; font-size:.76rem; }
     .group-layout { display:grid; grid-template-columns:minmax(280px,380px) 1fr; gap:20px; align-items:start; }
     .group-form,.group-card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:22px; }
     .group-form h2,.groups-list h2 { color:var(--navy); margin-bottom:8px; }
@@ -190,6 +204,7 @@
       .details { grid-template-columns:1fr 1fr; }
       .dashboard-head { flex-direction:column; }
       .group-layout { grid-template-columns:1fr; }
+      .suggestion-grid { grid-template-columns:1fr; }
       .payments-overview { grid-template-columns:repeat(2,1fr); }
       .payment-row { grid-template-columns:1fr 1fr; }
       .access-details { grid-template-columns:1fr 1fr; }
@@ -293,6 +308,12 @@
           </div>
         </div>
         <p id="groups-message" class="message hidden" role="status"></p>
+        <section class="group-suggestions" aria-labelledby="suggestions-title">
+          <div class="group-suggestions-head">
+            <div><h2 id="suggestions-title">Sugerencias automáticas</h2><p class="muted">Compara las disponibilidades de solicitudes aceptadas y aún no asignadas. Una persona puede aparecer en más de una opción hasta que crees el grupo.</p></div>
+          </div>
+          <div id="group-suggestions" class="suggestion-grid"></div>
+        </section>
         <div class="group-layout">
           <form id="group-form" class="group-form">
             <h2>Crear grupo</h2>
@@ -395,7 +416,7 @@
   </main>
   <button id="back-to-top" class="back-to-top" type="button" aria-label="Volver al inicio" title="Volver al inicio">↑</button>
 
-  <script type="module" src="admin.js?v=20260829-5"></script>
+  <script type="module" src="admin.js?v=20260830-1"></script>
   <script type="module" src="private-booking-admin.js?v=20260828-1"></script>
   <script type="module" src="admin-calendar.js?v=20260824-4"></script>
   <script>const backToTop=document.querySelector('#back-to-top');addEventListener('scroll',()=>backToTop.classList.toggle('visible',scrollY>500),{passive:true});backToTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));</script>

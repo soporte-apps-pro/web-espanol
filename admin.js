@@ -51,6 +51,7 @@ const emptyState = document.querySelector("#empty-state");
 const resultCount = document.querySelector("#result-count");
 const groupForm = document.querySelector("#group-form");
 const groupMemberOptions = document.querySelector("#group-member-options");
+const groupSuggestions = document.querySelector("#group-suggestions");
 const groupsList = document.querySelector("#groups-list");
 const groupsMessage = document.querySelector("#groups-message");
 const adminTabs = [...document.querySelectorAll("[data-admin-tab]")];
@@ -261,6 +262,67 @@ function renderAcceptedMemberOptions() {
         <span><strong>${escapeHtml(application.fullName)}</strong><br>${escapeHtml(application.email)}</span>
       </label>`).join("")
     : '<p class="muted">No hay estudiantes aceptados pendientes de asignación.</p>';
+  renderGroupSuggestions(accepted);
+}
+
+function suggestionCandidates(accepted, slot) {
+  return accepted
+    .filter((application) => (application.candidateSlots || []).includes(slot))
+    .sort((first, second) => {
+      const flexibility = (first.candidateSlots?.length || 0) - (second.candidateSlots?.length || 0);
+      if (flexibility) return flexibility;
+      const firstCreated = first.createdAt?.toMillis?.() || 0;
+      const secondCreated = second.createdAt?.toMillis?.() || 0;
+      return firstCreated - secondCreated;
+    });
+}
+
+function renderGroupSuggestions(accepted) {
+  if (!groupSuggestions) return;
+  const suggestions = Object.keys(slotLabels).map((slot) => ({
+    slot,
+    candidates: suggestionCandidates(accepted, slot),
+  })).filter((suggestion) => suggestion.candidates.length);
+
+  if (!suggestions.length) {
+    groupSuggestions.innerHTML = '<p class="muted">Aún no hay coincidencias. Las sugerencias aparecerán cuando existan solicitudes aceptadas con horarios compatibles.</p>';
+    return;
+  }
+
+  suggestions.sort((first, second) => second.candidates.length - first.candidates.length);
+  groupSuggestions.innerHTML = suggestions.map(({ slot, candidates }) => {
+    const proposed = candidates.slice(0, 5);
+    const statusClass = candidates.length >= 4 ? "ideal" : candidates.length === 3 ? "possible" : "";
+    const statusText = candidates.length >= 4 ? "Grupo ideal" : candidates.length === 3 ? "Posible con 3" : `Faltan ${3 - candidates.length}`;
+    return `<article class="suggestion-card" data-suggestion-slot="${escapeHtml(slot)}">
+      <div class="suggestion-card-head"><h3>${escapeHtml(slotLabels[slot])}</h3><span class="suggestion-status ${statusClass}">${escapeHtml(statusText)}</span></div>
+      <ul class="suggestion-members">${proposed.map((application) => `<li><strong>${escapeHtml(application.fullName)}</strong><small>${escapeHtml(application.country || "País no indicado")} · ${escapeHtml(application.timeZone || "Zona no indicada")}</small></li>`).join("")}</ul>
+      ${candidates.length > 5 ? `<p class="muted">Hay ${candidates.length - 5} candidato${candidates.length - 5 === 1 ? "" : "s"} adicional${candidates.length - 5 === 1 ? "" : "es"}; puedes cambiar la selección en el formulario.</p>` : ""}
+      <button class="button secondary" type="button" data-use-suggestion>Usar esta propuesta</button>
+    </article>`;
+  }).join("");
+
+  groupSuggestions.querySelectorAll("[data-use-suggestion]").forEach((button) => {
+    button.addEventListener("click", loadGroupSuggestion);
+  });
+}
+
+function loadGroupSuggestion(event) {
+  const card = event.currentTarget.closest("[data-suggestion-slot]");
+  const slot = card?.dataset.suggestionSlot;
+  if (!slot) return;
+  const assignedApplicationIds = new Set(groups.flatMap((group) => group.memberApplicationIds || []));
+  const accepted = applications.filter((application) => application.status === "accepted" && !assignedApplicationIds.has(application.id));
+  const candidateIds = suggestionCandidates(accepted, slot).slice(0, 5).map((application) => application.id);
+  groupForm.elements.slot.value = slot;
+  if (!groupForm.elements.name.value.trim()) {
+    groupForm.elements.name.value = `B1 · ${slotLabels[slot].split(" · ")[0]}`;
+  }
+  groupMemberOptions.querySelectorAll('input[name="memberApplicationIds"]').forEach((input) => {
+    input.checked = candidateIds.includes(input.value);
+  });
+  setMessage(groupsMessage, `Propuesta cargada con ${candidateIds.length} candidato${candidateIds.length === 1 ? "" : "s"}. Revisa la selección y elige la fecha de la primera sesión antes de crear el grupo.`, "success");
+  groupForm.scrollIntoView({ behavior:"smooth", block:"start" });
 }
 
 function createSessionDates(startDate) {
