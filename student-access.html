@@ -18,6 +18,8 @@
     .wise-pay{display:block;margin-top:12px;padding:12px;border-radius:12px;background:#15803d;color:#fff;text-align:center;text-decoration:none;font-weight:800;transition:.18s ease}
     .wise-pay:hover{background:#166534;transform:translateY(-1px)}
     .help-link{color:#1e40af;font-weight:700}
+    .password-reset{width:auto;margin:10px 0 0;padding:2px 0;border:0;border-radius:0;background:transparent;color:#1e40af;text-align:left;font-size:.82rem;font-weight:700;text-decoration:underline}
+    .password-reset:hover{color:#f97316}
   </style>
 </head>
 <body>
@@ -60,11 +62,12 @@
       <form id="login-form">
         <label for="login-email">Email</label><input id="login-email" type="email" required autocomplete="username">
         <label for="login-password">Password</label><input id="login-password" type="password" required autocomplete="current-password">
+        <button id="forgot-password" class="password-reset" type="button">Forgot your password?</button>
         <button type="submit">Open student portal</button>
         <p id="login-message" class="message hidden" role="alert"></p>
       </form>
     </section>
   </main>
-  <script type="module" src="student-access.js?v=20260829-3"></script>
+  <script type="module" src="student-access.js?v=20260829-4"></script>
 </body>
 </html>

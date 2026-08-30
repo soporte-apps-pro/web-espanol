@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
-import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { doc, getFirestore, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
 
@@ -77,4 +77,32 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
     location.href="student-portal.html";
   } catch(error) { console.error(error); message(output,"We could not sign you in. Check your email and password."); }
   finally { button.disabled=false; button.textContent="Open student portal"; }
+});
+
+document.querySelector("#forgot-password").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const emailInput = document.querySelector("#login-email");
+  const output = document.querySelector("#login-message");
+  const email = emailInput.value.trim().toLowerCase();
+  if (!email || !emailInput.checkValidity()) {
+    message(output, "Enter a valid email address above, then select Forgot your password?");
+    emailInput.focus();
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Sending reset email…";
+  try {
+    await sendPasswordResetEmail(auth, email);
+    message(output, "If an account exists for this email, Firebase sent a password reset link. Check your inbox and Spam folder.", "success");
+  } catch (error) {
+    console.error("Password reset email could not be sent", error);
+    const tooManyRequests = error?.code === "auth/too-many-requests";
+    message(output, tooManyRequests
+      ? "Too many attempts. Please wait a few minutes before trying again."
+      : "We could not send the reset email. Check the address and try again.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Forgot your password?";
+  }
 });
