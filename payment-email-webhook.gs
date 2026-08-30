@@ -52,6 +52,19 @@ function doPost(e) {
     const safeReference = swePaymentEscapeHtml_(reference);
     const amountLabel = amount ? 'US$' + amount : '';
     const subject = 'We received your Wise payment information';
+    const verificationPlain = type === 'group' ? [
+      'NEXT STEP — VERIFY YOUR EMAIL ADDRESS:',
+      'Firebase will send you a separate verification message from noreply@spanish-with-elkin.firebaseapp.com.',
+      'Open that email and select its verification link. Check your Spam folder if you do not see it.',
+      'This step verifies your email address only. It does not confirm your payment or activate your place.'
+    ].join('\n') : '';
+    const verificationHtml = type === 'group'
+      ? '<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:12px;padding:14px;margin-top:14px">' +
+        '<strong>Next step: verify your email address</strong><br>' +
+        'Firebase will send you a separate verification message from <strong>noreply@spanish-with-elkin.firebaseapp.com</strong>. ' +
+        'Open that email and select its verification link. Check your Spam folder if you do not see it.<br><br>' +
+        '<strong>This step verifies your email address only.</strong> It does not confirm your payment or activate your place.</div>'
+      : '';
     const plainText = [
       'Hi ' + fullName + ',',
       '',
@@ -60,6 +73,8 @@ function doPost(e) {
       '',
       'Your payment is now being reviewed. Your class or group access is not confirmed yet. We will email you again as soon as the payment has been verified.',
       '',
+      verificationPlain,
+      verificationPlain ? '' : null,
       'If you need help, reply to this email or contact ' + SWE_SUPPORT_EMAIL + '.',
       '',
       'Spanish with Elkin'
@@ -72,6 +87,7 @@ function doPost(e) {
       '<p><strong>Reference:</strong> ' + safeReference + '</p>' +
       '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px">' +
       '<strong>Your payment is being reviewed.</strong><br>Your class or group access is not confirmed yet. We will email you again as soon as the payment has been verified.</div>' +
+      verificationHtml +
       '<p>If you need help, reply to this email or contact <a href="mailto:' + SWE_SUPPORT_EMAIL + '">' + SWE_SUPPORT_EMAIL + '</a>.</p>' +
       '<p>Spanish with Elkin</p></div>';
 

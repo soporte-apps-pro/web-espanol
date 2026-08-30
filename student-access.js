@@ -40,7 +40,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
       amountSubmitted:Number(document.querySelector("#amount-submitted").value),
       status:"pending", createdAt:serverTimestamp()
     });
-    void notifyPaymentReceipt(credential.user.uid);
+    await notifyPaymentReceipt(credential.user.uid);
     let verificationEmailSent = true;
     try {
       await sendEmailVerification(credential.user);
@@ -53,7 +53,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     message(
       output,
       verificationEmailSent
-        ? "Information submitted successfully. We emailed your payment receipt confirmation and an address verification link. Elkin will notify you when your access is active."
+        ? "Information submitted successfully. Check for two emails: Payment information received from Spanish with Elkin, and a separate Firebase verification email from noreply@spanish-with-elkin.firebaseapp.com. Open the verification link and check Spam if necessary. Elkin will notify you after reviewing your payment."
         : "Information submitted successfully. We could not send the verification email now, but you can request another one when you try to sign in.",
       "success"
     );
