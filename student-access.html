@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex,nofollow">
-  <title>Acceso de estudiantes | Spanish with Elkin</title>
+  <title>Student Access | Spanish with Elkin</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,48 +23,48 @@
 <body>
   <header>
     <a class="brand" href="index.html">Spanish with <span>Elkin</span></a>
-    <nav class="public-nav" aria-label="Navegación pública">
-      <a href="index.html">Inicio</a>
-      <a href="private-classes.html">Clases privadas</a>
+    <nav class="public-nav" aria-label="Public navigation">
+      <a href="index.html">Home</a>
+      <a href="private-classes.html">Private Classes</a>
       <a href="speaking-club.html">Speaking Club</a>
-      <a href="student-access.html" aria-current="page">Acceso estudiantes</a>
+      <a href="student-access.html" aria-current="page">Student Access</a>
     </nav>
   </header>
   <main class="shell">
     <section class="card">
-      <h1>Solicita tu acceso</h1>
-      <p class="muted">Crea tu cuenta después de recibir un grupo y realizar el pago.</p>
-      <p class="notice"><strong>Después de enviar:</strong> verás una confirmación en esta pantalla. Elkin revisará tu pago y tu grupo antes de activar el acceso.</p>
+      <h1>Request your access</h1>
+      <p class="muted">Create your account only after receiving your group assignment and completing the payment.</p>
+      <p class="notice"><strong>After submitting:</strong> you will see a confirmation on this screen. Elkin will review your payment and group before activating your access.</p>
       <div class="wise-box">
-        <strong>Speaking Club · 6 sesiones · US$84</strong>
-        <span class="muted">Paga solamente después de recibir la confirmación de tu grupo y horario.</span>
-        <a class="wise-pay" href="https://wise.com/pay/r/fG7w5Ne0IQCt3hA" target="_blank" rel="noopener noreferrer">Pagar US$84 con Wise ↗</a>
-        <p class="muted">Mantén esta página abierta. Después del pago, regresa e introduce la referencia de Wise.</p>
-        <p class="muted">¿Cerraste la página o necesitas ayuda? Escribe a <a class="help-link" href="mailto:hello@spanishwithelkin.com?subject=Ayuda%20con%20pago%20del%20Speaking%20Club">hello@spanishwithelkin.com</a>.</p>
+        <strong>Speaking Club · 6 sessions · US$84</strong>
+        <span class="muted">Pay only after receiving confirmation of your group and schedule.</span>
+        <a class="wise-pay" href="https://wise.com/pay/r/fG7w5Ne0IQCt3hA" target="_blank" rel="noopener noreferrer">Pay US$84 with Wise ↗</a>
+        <p class="muted">Keep this page open. After paying, return here and enter your Wise transfer reference.</p>
+        <p class="muted">Closed this page or need help? Email <a class="help-link" href="mailto:hello@spanishwithelkin.com?subject=Speaking%20Club%20payment%20help">hello@spanishwithelkin.com</a>.</p>
       </div>
       <form id="register-form">
-        <label for="register-name">Nombre completo</label><input id="register-name" required minlength="2" maxlength="80">
-        <label for="register-email">El mismo correo de tu solicitud</label><input id="register-email" type="email" required autocomplete="email">
-        <label for="register-password">Contraseña (mínimo 8 caracteres)</label><input id="register-password" type="password" required minlength="8" autocomplete="new-password">
+        <label for="register-name">Full name</label><input id="register-name" required minlength="2" maxlength="80">
+        <label for="register-email">The same email used in your application</label><input id="register-email" type="email" required autocomplete="email">
+        <label for="register-password">Password (minimum 8 characters)</label><input id="register-password" type="password" required minlength="8" autocomplete="new-password">
         <input id="payment-method" type="hidden" value="transfer">
-        <label for="payment-reference">Referencia de la transferencia de Wise</label><input id="payment-reference" required minlength="4" maxlength="160">
-        <label for="payer-name">Nombre de quien realizó el pago</label><input id="payer-name" required minlength="2" maxlength="100">
+        <label for="payment-reference">Wise transfer reference</label><input id="payment-reference" required minlength="4" maxlength="160">
+        <label for="payer-name">Name of the person who made the payment</label><input id="payer-name" required minlength="2" maxlength="100">
         <input id="amount-submitted" type="hidden" value="84">
-        <button type="submit">Crear cuenta y solicitar acceso</button>
+        <button type="submit">Create account and request access</button>
         <p id="register-message" class="message hidden" role="alert"></p>
       </form>
     </section>
     <section class="card">
-      <h2>Ya tengo una cuenta</h2>
-      <p class="muted">Inicia sesión después de verificar tu correo.</p>
+      <h2>I already have an account</h2>
+      <p class="muted">Sign in after verifying your email address.</p>
       <form id="login-form">
-        <label for="login-email">Correo</label><input id="login-email" type="email" required autocomplete="username">
-        <label for="login-password">Contraseña</label><input id="login-password" type="password" required autocomplete="current-password">
-        <button type="submit">Entrar al portal</button>
+        <label for="login-email">Email</label><input id="login-email" type="email" required autocomplete="username">
+        <label for="login-password">Password</label><input id="login-password" type="password" required autocomplete="current-password">
+        <button type="submit">Open student portal</button>
         <p id="login-message" class="message hidden" role="alert"></p>
       </form>
     </section>
   </main>
-  <script type="module" src="student-access.js?v=20260829-2"></script>
+  <script type="module" src="student-access.js?v=20260829-3"></script>
 </body>
 </html>

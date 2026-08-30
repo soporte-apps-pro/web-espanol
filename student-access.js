@@ -27,7 +27,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
   const form = event.currentTarget;
   const button = form.querySelector("button");
   const output = document.querySelector("#register-message");
-  button.disabled=true; button.textContent="Creando cuenta…";
+  button.disabled=true; button.textContent="Creating account…";
   try {
     await getToken(appCheck, true);
     const email=document.querySelector("#register-email").value.trim().toLowerCase();
@@ -53,13 +53,13 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     message(
       output,
       verificationEmailSent
-        ? "Solicitud enviada correctamente. Enviamos la recepción del pago y la verificación de tu dirección al correo. Elkin te avisará cuando tu acceso esté activo."
-        : "Solicitud enviada correctamente. No pudimos enviar ahora el correo de verificación, pero puedes solicitar uno nuevo al intentar iniciar sesión.",
+        ? "Information submitted successfully. We emailed your payment receipt confirmation and an address verification link. Elkin will notify you when your access is active."
+        : "Information submitted successfully. We could not send the verification email now, but you can request another one when you try to sign in.",
       "success"
     );
   } catch(error) {
-    console.error(error); message(output,`No fue posible crear la cuenta (${error?.code || "error"}).`);
-  } finally { button.disabled=false; button.textContent="Crear cuenta y solicitar acceso"; }
+    console.error(error); message(output,`We could not create the account (${error?.code || "error"}).`);
+  } finally { button.disabled=false; button.textContent="Create account and request access"; }
 });
 
 document.querySelector("#login-form").addEventListener("submit", async (event) => {
@@ -67,14 +67,14 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
   const form=event.currentTarget;
   const button=form.querySelector("button");
   const output=document.querySelector("#login-message");
-  button.disabled=true; button.textContent="Ingresando…";
+  button.disabled=true; button.textContent="Signing in…";
   try {
     const credential=await signInWithEmailAndPassword(auth,document.querySelector("#login-email").value.trim(),document.querySelector("#login-password").value);
     if (!credential.user.emailVerified) {
       await sendEmailVerification(credential.user); await signOut(auth);
-      message(output,"Debes verificar tu correo. Enviamos un nuevo mensaje de verificación."); return;
+      message(output,"You must verify your email address. We sent you a new verification message."); return;
     }
     location.href="student-portal.html";
-  } catch(error) { console.error(error); message(output,"No fue posible iniciar sesión. Revisa el correo y la contraseña."); }
-  finally { button.disabled=false; button.textContent="Entrar al portal"; }
+  } catch(error) { console.error(error); message(output,"We could not sign you in. Check your email and password."); }
+  finally { button.disabled=false; button.textContent="Open student portal"; }
 });
