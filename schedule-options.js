@@ -66,10 +66,22 @@
 
   const candidateSlots = [
     { id: "monday-1000", label: "Monday", date: "2026-09-21", hour: 10 },
+    { id: "monday-1100", label: "Monday", date: "2026-09-21", hour: 11 },
+    { id: "monday-1300", label: "Monday", date: "2026-09-21", hour: 13 },
+    { id: "monday-1800", label: "Monday", date: "2026-09-21", hour: 18 },
+    { id: "monday-1900", label: "Monday", date: "2026-09-21", hour: 19 },
+    { id: "tuesday-1400", label: "Tuesday", date: "2026-09-22", hour: 14 },
     { id: "tuesday-1700", label: "Tuesday", date: "2026-09-22", hour: 17 },
+    { id: "tuesday-1900", label: "Tuesday", date: "2026-09-22", hour: 19 },
     { id: "wednesday-0800", label: "Wednesday", date: "2026-09-23", hour: 8 },
+    { id: "thursday-0800", label: "Thursday", date: "2026-09-24", hour: 8 },
+    { id: "thursday-1300", label: "Thursday", date: "2026-09-24", hour: 13 },
     { id: "thursday-1400", label: "Thursday", date: "2026-09-24", hour: 14 },
     { id: "friday-1100", label: "Friday", date: "2026-09-25", hour: 11 },
+    { id: "friday-1400", label: "Friday", date: "2026-09-25", hour: 14 },
+    { id: "friday-1500", label: "Friday", date: "2026-09-25", hour: 15 },
+    { id: "saturday-1130", label: "Saturday", date: "2026-09-26", hour: 11, minute: 30 },
+    { id: "saturday-1330", label: "Saturday", date: "2026-09-26", hour: 13, minute: 30 },
   ];
 
   function formatTime(date, timeZone) {
@@ -121,11 +133,33 @@
       Array.from(timeOptions.querySelectorAll("input:checked"), (input) => input.value)
     );
     const targetTimeZone = timeZoneSelect.value || detectedTimeZone;
+    const openDays = new Set(
+      Array.from(timeOptions.querySelectorAll("details[data-day][open]"), (details) => details.dataset.day)
+    );
     timeOptions.replaceChildren();
 
-    candidateSlots.forEach((slot) => {
+    const slotsByDay = candidateSlots.reduce((groups, slot) => {
+      if (!groups.has(slot.label)) groups.set(slot.label, []);
+      groups.get(slot.label).push(slot);
+      return groups;
+    }, new Map());
+
+    slotsByDay.forEach((daySlots, dayLabel) => {
+      const dayPanel = document.createElement("details");
+      dayPanel.dataset.day = dayLabel;
+      dayPanel.className = "group rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden";
+      dayPanel.open = openDays.has(dayLabel);
+
+      const daySummary = document.createElement("summary");
+      daySummary.className = "cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-4 font-extrabold text-blue-950";
+      daySummary.innerHTML = `<span>${dayLabel}</span><span class="text-xs font-bold text-blue-700">${daySlots.length} time${daySlots.length === 1 ? "" : "s"} <span class="ml-2 inline-flex transition-transform group-open:rotate-45">+</span></span>`;
+
+      const dayContent = document.createElement("div");
+      dayContent.className = "space-y-3 border-t border-gray-200 p-4";
+
+      daySlots.forEach((slot) => {
       const [year, month, day] = slot.date.split("-").map(Number);
-      const colombiaStart = new Date(Date.UTC(year, month - 1, day, slot.hour + 5));
+      const colombiaStart = new Date(Date.UTC(year, month - 1, day, slot.hour + 5, slot.minute || 0));
       const localLabel = formatTime(colombiaStart, targetTimeZone);
       const colombiaLabel = formatClock(colombiaStart, "America/Bogota");
       const sessions = Array.from(
@@ -179,7 +213,11 @@
 
       details.append(summary, sessionList, notice);
       card.append(label, details);
-      timeOptions.append(card);
+      dayContent.append(card);
+      });
+
+      dayPanel.append(daySummary, dayContent);
+      timeOptions.append(dayPanel);
     });
   }
 

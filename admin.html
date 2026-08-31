@@ -324,10 +324,22 @@
             <select id="group-slot" name="slot" required>
               <option value="">Selecciona un horario</option>
               <option value="monday-1000">Lunes · 10:00 Colombia</option>
+              <option value="monday-1100">Lunes · 11:00 Colombia</option>
+              <option value="monday-1300">Lunes · 13:00 Colombia</option>
+              <option value="monday-1800">Lunes · 18:00 Colombia</option>
+              <option value="monday-1900">Lunes · 19:00 Colombia</option>
+              <option value="tuesday-1400">Martes · 14:00 Colombia</option>
               <option value="tuesday-1700">Martes · 17:00 Colombia</option>
+              <option value="tuesday-1900">Martes · 19:00 Colombia</option>
               <option value="wednesday-0800">Miércoles · 08:00 Colombia</option>
+              <option value="thursday-0800">Jueves · 08:00 Colombia</option>
+              <option value="thursday-1300">Jueves · 13:00 Colombia</option>
               <option value="thursday-1400">Jueves · 14:00 Colombia</option>
               <option value="friday-1100">Viernes · 11:00 Colombia</option>
+              <option value="friday-1400">Viernes · 14:00 Colombia</option>
+              <option value="friday-1500">Viernes · 15:00 Colombia</option>
+              <option value="saturday-1130">Sábado · 11:30 Colombia</option>
+              <option value="saturday-1330">Sábado · 13:30 Colombia</option>
             </select>
             <label for="group-start-date">Primera sesión</label>
             <input id="group-start-date" name="startDate" type="date" required>
@@ -416,9 +428,9 @@
   </main>
   <button id="back-to-top" class="back-to-top" type="button" aria-label="Volver al inicio" title="Volver al inicio">↑</button>
 
-  <script type="module" src="admin.js?v=20260830-1"></script>
+  <script type="module" src="admin.js?v=20260831-1"></script>
   <script type="module" src="private-booking-admin.js?v=20260828-1"></script>
-  <script type="module" src="admin-calendar.js?v=20260824-4"></script>
+  <script type="module" src="admin-calendar.js?v=20260831-1"></script>
   <script>const backToTop=document.querySelector('#back-to-top');addEventListener('scroll',()=>backToTop.classList.toggle('visible',scrollY>500),{passive:true});backToTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));</script>
 </body>
 </html>

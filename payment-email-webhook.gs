@@ -129,12 +129,30 @@ function sweSendGroupInvitations_(groupId) {
 
   const slotConfig = {
     'monday-1000': { utc:'15:00', colombia:'Mondays at 10:00 a.m. Colombia time' },
+    'monday-1100': { utc:'16:00', colombia:'Mondays at 11:00 a.m. Colombia time' },
+    'monday-1300': { utc:'18:00', colombia:'Mondays at 1:00 p.m. Colombia time' },
+    'monday-1800': { utc:'23:00', colombia:'Mondays at 6:00 p.m. Colombia time' },
+    'monday-1900': { utc:'00:00', utcDayOffset:1, colombia:'Mondays at 7:00 p.m. Colombia time' },
+    'tuesday-1400': { utc:'19:00', colombia:'Tuesdays at 2:00 p.m. Colombia time' },
     'tuesday-1700': { utc:'22:00', colombia:'Tuesdays at 5:00 p.m. Colombia time' },
+    'tuesday-1900': { utc:'00:00', utcDayOffset:1, colombia:'Tuesdays at 7:00 p.m. Colombia time' },
     'wednesday-0800': { utc:'13:00', colombia:'Wednesdays at 8:00 a.m. Colombia time' },
+    'thursday-0800': { utc:'13:00', colombia:'Thursdays at 8:00 a.m. Colombia time' },
+    'thursday-1300': { utc:'18:00', colombia:'Thursdays at 1:00 p.m. Colombia time' },
     'thursday-1400': { utc:'19:00', colombia:'Thursdays at 2:00 p.m. Colombia time' },
-    'friday-1100': { utc:'16:00', colombia:'Fridays at 11:00 a.m. Colombia time' }
+    'friday-1100': { utc:'16:00', colombia:'Fridays at 11:00 a.m. Colombia time' },
+    'friday-1400': { utc:'19:00', colombia:'Fridays at 2:00 p.m. Colombia time' },
+    'friday-1500': { utc:'20:00', colombia:'Fridays at 3:00 p.m. Colombia time' },
+    'saturday-1130': { utc:'16:30', colombia:'Saturdays at 11:30 a.m. Colombia time' },
+    'saturday-1330': { utc:'18:30', colombia:'Saturdays at 1:30 p.m. Colombia time' }
   }[slot];
   if (!slotConfig) return swePaymentResponse_({ ok:false, error:'invalid-group-slot' });
+
+  function slotDate_(date) {
+    const result = new Date(date + 'T' + slotConfig.utc + ':00Z');
+    if (slotConfig.utcDayOffset) result.setUTCDate(result.getUTCDate() + slotConfig.utcDayOffset);
+    return result;
+  }
 
   const paymentUrl = 'https://wise.com/pay/r/fG7w5Ne0IQCt3hA';
   const accessUrl = 'https://spanishwithelkin.com/student-access.html';
@@ -159,13 +177,13 @@ function sweSendGroupInvitations_(groupId) {
     let localSchedule;
     try {
       localDates = sessionDates.map(function(date) {
-        return Utilities.formatDate(new Date(date + 'T' + slotConfig.utc + ':00Z'), timeZone, 'EEEE, MMMM d, yyyy \'at\' h:mm a z');
+        return Utilities.formatDate(slotDate_(date), timeZone, 'EEEE, MMMM d, yyyy \'at\' h:mm a z');
       });
-      localSchedule = Utilities.formatDate(new Date(sessionDates[0] + 'T' + slotConfig.utc + ':00Z'), timeZone, 'EEEE \'at\' h:mm a z');
+      localSchedule = Utilities.formatDate(slotDate_(sessionDates[0]), timeZone, 'EEEE \'at\' h:mm a z');
       deadlineLabel = Utilities.formatDate(deadline, timeZone, 'EEEE, MMMM d, yyyy \'at\' h:mm a z');
     } catch (error) {
       localDates = sessionDates.map(function(date) {
-        return Utilities.formatDate(new Date(date + 'T' + slotConfig.utc + ':00Z'), 'America/Bogota', 'EEEE, MMMM d, yyyy \'at\' h:mm a z');
+        return Utilities.formatDate(slotDate_(date), 'America/Bogota', 'EEEE, MMMM d, yyyy \'at\' h:mm a z');
       });
       localSchedule = slotConfig.colombia;
       deadlineLabel = Utilities.formatDate(deadline, 'America/Bogota', 'EEEE, MMMM d, yyyy \'at\' h:mm a z');
@@ -300,10 +318,22 @@ function sweSendActivationEmail_(documentId) {
 
   const slotLabels = {
     'monday-1000':'Mondays at 10:00 a.m. Colombia time',
+    'monday-1100':'Mondays at 11:00 a.m. Colombia time',
+    'monday-1300':'Mondays at 1:00 p.m. Colombia time',
+    'monday-1800':'Mondays at 6:00 p.m. Colombia time',
+    'monday-1900':'Mondays at 7:00 p.m. Colombia time',
+    'tuesday-1400':'Tuesdays at 2:00 p.m. Colombia time',
     'tuesday-1700':'Tuesdays at 5:00 p.m. Colombia time',
+    'tuesday-1900':'Tuesdays at 7:00 p.m. Colombia time',
     'wednesday-0800':'Wednesdays at 8:00 a.m. Colombia time',
+    'thursday-0800':'Thursdays at 8:00 a.m. Colombia time',
+    'thursday-1300':'Thursdays at 1:00 p.m. Colombia time',
     'thursday-1400':'Thursdays at 2:00 p.m. Colombia time',
-    'friday-1100':'Fridays at 11:00 a.m. Colombia time'
+    'friday-1100':'Fridays at 11:00 a.m. Colombia time',
+    'friday-1400':'Fridays at 2:00 p.m. Colombia time',
+    'friday-1500':'Fridays at 3:00 p.m. Colombia time',
+    'saturday-1130':'Saturdays at 11:30 a.m. Colombia time',
+    'saturday-1330':'Saturdays at 1:30 p.m. Colombia time'
   };
   const schedule = slotLabels[slot] || slot;
   const formattedDates = sessionDates.map(function(date) {

@@ -69,11 +69,30 @@ const statusLabels = {
 
 const slotLabels = {
   "monday-1000": "Lunes · 10:00 Colombia",
+  "monday-1100": "Lunes · 11:00 Colombia",
+  "monday-1300": "Lunes · 13:00 Colombia",
+  "monday-1800": "Lunes · 18:00 Colombia",
+  "monday-1900": "Lunes · 19:00 Colombia",
+  "tuesday-1400": "Martes · 14:00 Colombia",
   "tuesday-1700": "Martes · 17:00 Colombia",
+  "tuesday-1900": "Martes · 19:00 Colombia",
   "wednesday-0800": "Miércoles · 08:00 Colombia",
+  "thursday-0800": "Jueves · 08:00 Colombia",
+  "thursday-1300": "Jueves · 13:00 Colombia",
   "thursday-1400": "Jueves · 14:00 Colombia",
   "friday-1100": "Viernes · 11:00 Colombia",
+  "friday-1400": "Viernes · 14:00 Colombia",
+  "friday-1500": "Viernes · 15:00 Colombia",
+  "saturday-1130": "Sábado · 11:30 Colombia",
+  "saturday-1330": "Sábado · 13:30 Colombia",
 };
+
+const slotWeekdays = Object.fromEntries(
+  Object.keys(slotLabels).map((slot) => {
+    const day = slot.split("-")[0];
+    return [slot, { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 }[day]];
+  })
+);
 
 let applications = [];
 let groups = [];
@@ -942,7 +961,7 @@ groupForm.addEventListener("submit", async (event) => {
   }
   const slot = String(data.get("slot"));
   const startDate = String(data.get("startDate"));
-  const expectedWeekday = { "monday-1000": 1, "tuesday-1700": 2, "wednesday-0800": 3, "thursday-1400": 4, "friday-1100": 5 }[slot];
+  const expectedWeekday = slotWeekdays[slot];
   if (new Date(`${startDate}T12:00:00Z`).getUTCDay() !== expectedWeekday) {
     setMessage(groupsMessage, "La primera sesión debe coincidir con el día del horario elegido.");
     return;

@@ -40,8 +40,8 @@ service cloud.firestore {
         request.resource.data.timeZone.size() <= 80 &&
         request.resource.data.candidateSlots is list &&
         request.resource.data.candidateSlots.size() >= 1 &&
-        request.resource.data.candidateSlots.size() <= 5 &&
-        request.resource.data.candidateSlots.hasOnly(['monday-1000', 'tuesday-1700', 'wednesday-0800', 'thursday-1400', 'friday-1100']) &&
+        request.resource.data.candidateSlots.size() <= 17 &&
+        request.resource.data.candidateSlots.hasOnly(['monday-1000', 'monday-1100', 'monday-1300', 'monday-1800', 'monday-1900', 'tuesday-1400', 'tuesday-1700', 'tuesday-1900', 'wednesday-0800', 'thursday-0800', 'thursday-1300', 'thursday-1400', 'friday-1100', 'friday-1400', 'friday-1500', 'saturday-1130', 'saturday-1330']) &&
         request.resource.data.scheduleAcknowledged == true &&
         request.resource.data.scheduleTimeZone == 'America/Bogota' &&
         request.resource.data.cohort == 'founding-2026-09' &&
@@ -114,7 +114,7 @@ service cloud.firestore {
         request.resource.data.name is string &&
         request.resource.data.name.size() >= 2 &&
         request.resource.data.name.size() <= 80 &&
-        request.resource.data.slot in ['monday-1000', 'tuesday-1700', 'wednesday-0800', 'thursday-1400', 'friday-1100'] &&
+        request.resource.data.slot in ['monday-1000', 'monday-1100', 'monday-1300', 'monday-1800', 'monday-1900', 'tuesday-1400', 'tuesday-1700', 'tuesday-1900', 'wednesday-0800', 'thursday-0800', 'thursday-1300', 'thursday-1400', 'friday-1100', 'friday-1400', 'friday-1500', 'saturday-1130', 'saturday-1330'] &&
         request.resource.data.startDate is string &&
         request.resource.data.startDate.size() == 10 &&
         request.resource.data.sessionDates is list &&
@@ -205,7 +205,7 @@ service cloud.firestore {
         request.resource.data.groupName is string &&
         request.resource.data.groupName.size() >= 2 &&
         request.resource.data.groupName.size() <= 80 &&
-        request.resource.data.slot in ['monday-1000', 'tuesday-1700', 'wednesday-0800', 'thursday-1400', 'friday-1100'] &&
+        request.resource.data.slot in ['monday-1000', 'monday-1100', 'monday-1300', 'monday-1800', 'monday-1900', 'tuesday-1400', 'tuesday-1700', 'tuesday-1900', 'wednesday-0800', 'thursday-0800', 'thursday-1300', 'thursday-1400', 'friday-1100', 'friday-1400', 'friday-1500', 'saturday-1130', 'saturday-1330'] &&
         request.resource.data.sessionDates is list &&
         request.resource.data.sessionDates.size() == 6 &&
         request.resource.data.meetingUrl is string &&
