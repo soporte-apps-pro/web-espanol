@@ -47,7 +47,7 @@
     }
 
     if (currentStep === 2 && !form.querySelector('#schedule-acknowledgement:checked')) {
-      showLocalError("Please review the six dates and confirm the schedule notice.");
+      showLocalError("Please review the four dates and confirm the schedule notice.");
       return false;
     }
 

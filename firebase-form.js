@@ -93,7 +93,7 @@ form?.addEventListener("submit", async (event) => {
 
   if (!scheduleAcknowledged) {
     window.clubFormFlow?.showStep(2);
-    showMessage("Please review the six dates and confirm the schedule notice.", "error");
+    showMessage("Please review the four dates and confirm the schedule notice.", "error");
     return;
   }
 

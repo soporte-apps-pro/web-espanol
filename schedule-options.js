@@ -163,7 +163,7 @@
       const localLabel = formatTime(colombiaStart, targetTimeZone);
       const colombiaLabel = formatClock(colombiaStart, "America/Bogota");
       const sessions = Array.from(
-        { length: 6 },
+        { length: 4 },
         (_, index) => new Date(colombiaStart.getTime() + index * 7 * 24 * 60 * 60 * 1000)
       );
       const firstLocalTime = localTimeKey(sessions[0], targetTimeZone);
@@ -189,7 +189,7 @@
       details.className = "group mt-3 border-t border-gray-100 pt-3";
       const summary = document.createElement("summary");
       summary.className = "cursor-pointer list-none text-xs font-bold text-blue-700";
-      summary.textContent = "View all 6 dates";
+      summary.textContent = "View all 4 dates";
       const sessionList = document.createElement("ul");
       sessionList.className = "mt-3 space-y-2 text-xs text-gray-600";
 
@@ -209,7 +209,7 @@
         : "mt-3 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700";
       notice.textContent = hasLocalTimeChange
         ? "Your local time changes during this program because of daylight saving time. Colombia time remains fixed."
-        : "Your local time remains the same for all six sessions under current time-zone rules.";
+        : "Your local time remains the same for all four sessions under current time-zone rules.";
 
       details.append(summary, sessionList, notice);
       card.append(label, details);

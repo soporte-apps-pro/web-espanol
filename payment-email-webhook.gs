@@ -39,11 +39,11 @@ function doPost(e) {
 
     const description = type === 'private'
       ? (swePaymentString_(fields.packageLabel) || 'private Spanish classes')
-      : 'Speaking Club · 6 sessions';
+      : 'Speaking Club · 4 sessions';
     const amount = type === 'private'
       ? swePaymentNumber_(fields.amountUsd)
       : swePaymentNumber_(fields.amountSubmitted);
-    if (type === 'group' && amount !== 84) {
+    if (type === 'group' && amount !== 50) {
       return swePaymentResponse_({ ok: false, error: 'incorrect-amount' });
     }
 
@@ -123,7 +123,7 @@ function sweSendGroupInvitations_(groupId) {
   const slot = swePaymentString_(groupFields.slot).trim();
   const memberIds = swePaymentStrings_(groupFields.memberApplicationIds);
   const sessionDates = swePaymentStrings_(groupFields.sessionDates);
-  if (!groupName || !slot || !memberIds.length || sessionDates.length !== 6) {
+  if (!groupName || !slot || !memberIds.length || sessionDates.length !== 4) {
     return swePaymentResponse_({ ok:false, error:'incomplete-group' });
   }
 
@@ -154,7 +154,7 @@ function sweSendGroupInvitations_(groupId) {
     return result;
   }
 
-  const paymentUrl = 'https://wise.com/pay/r/fG7w5Ne0IQCt3hA';
+  const paymentUrl = 'https://wise.com/pay/r/Zu3sq0-uJiuUUkQ';
   const accessUrl = 'https://spanishwithelkin.com/student-access.html';
   const deadline = new Date(Date.now() + (48 * 60 * 60 * 1000));
   let sent = 0;
@@ -201,12 +201,12 @@ function sweSendGroupInvitations_(groupId) {
       'GROUP: ' + groupName,
       'WEEKLY SCHEDULE IN YOUR TIME ZONE: ' + localSchedule,
       'COLOMBIA SCHEDULE: ' + slotConfig.colombia, '',
-      'YOUR SIX SESSIONS IN YOUR TIME ZONE:',
+      'YOUR FOUR SESSIONS IN YOUR TIME ZONE:',
       localDates.map(function(date, index) { return 'Session ' + (index + 1) + ': ' + date; }).join('\n'), '',
-      'PRICE: US$84 for all six 55-minute sessions.',
+      'PRICE: US$50 for all four 55-minute sessions.',
       'PAYMENT DEADLINE: ' + deadlineLabel, '',
       'WHAT TO DO NOW:',
-      '1. Pay US$84 with Wise: ' + paymentUrl,
+      '1. Pay US$50 with Wise: ' + paymentUrl,
       '2. Return to ' + accessUrl,
       '3. Create your account and enter the Wise payment reference.',
       '4. Verify your email address.',
@@ -219,10 +219,10 @@ function sweSendGroupInvitations_(groupId) {
       '<h2 style="color:#1e3a8a">Your Speaking Club group is ready</h2><p>Hi ' + safeName + ',</p>' +
       '<p><strong>Good news! We found a compatible Speaking Club group for you.</strong></p>' +
       '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px"><strong>Group:</strong> ' + safeGroup + '<br><strong>Weekly schedule in your time zone:</strong> ' + swePaymentEscapeHtml_(localSchedule) + '<br><span style="font-size:14px">Colombia schedule: ' + swePaymentEscapeHtml_(slotConfig.colombia) + '</span></div>' +
-      '<h3 style="color:#1e3a8a">Your six sessions in your time zone</h3><ol style="padding-left:22px">' + dateItems + '</ol>' +
-      '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:12px;padding:16px"><strong>Price:</strong> US$84 for all six 55-minute sessions.<br><strong>Payment deadline:</strong> ' + swePaymentEscapeHtml_(deadlineLabel) + '</div>' +
-      '<h3 style="color:#1e3a8a">What to do now</h3><ol style="padding-left:22px"><li>Pay US$84 using Wise.</li><li>Return to the student access page.</li><li>Create your account and enter your Wise payment reference.</li><li>Verify your email address.</li><li>Wait while Elkin verifies the payment. You will receive another email when your access is active.</li></ol>' +
-      '<p><a href="' + paymentUrl + '" style="display:inline-block;background:#15803d;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px;margin-right:8px">Pay US$84 with Wise</a> <a href="' + accessUrl + '" style="display:inline-block;background:#f97316;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px">Register my payment</a></p>' +
+      '<h3 style="color:#1e3a8a">Your four sessions in your time zone</h3><ol style="padding-left:22px">' + dateItems + '</ol>' +
+      '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:12px;padding:16px"><strong>Price:</strong> US$50 for all four 55-minute sessions.<br><strong>Payment deadline:</strong> ' + swePaymentEscapeHtml_(deadlineLabel) + '</div>' +
+      '<h3 style="color:#1e3a8a">What to do now</h3><ol style="padding-left:22px"><li>Pay US$50 using Wise.</li><li>Return to the student access page.</li><li>Create your account and enter your Wise payment reference.</li><li>Verify your email address.</li><li>Wait while Elkin verifies the payment. You will receive another email when your access is active.</li></ol>' +
+      '<p><a href="' + paymentUrl + '" style="display:inline-block;background:#15803d;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px;margin-right:8px">Pay US$50 with Wise</a> <a href="' + accessUrl + '" style="display:inline-block;background:#f97316;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px">Register my payment</a></p>' +
       '<p><strong>Your place is confirmed only after your payment has been verified.</strong></p>' +
       '<p>If you need help, reply to this email or contact <a href="mailto:' + SWE_SUPPORT_EMAIL + '">' + SWE_SUPPORT_EMAIL + '</a>.</p><p>Spanish with Elkin</p></div>';
 
@@ -312,7 +312,7 @@ function sweSendActivationEmail_(documentId) {
   const meetingUrl = swePaymentString_(fields.meetingUrl).trim();
   const dates = ((fields.sessionDates || {}).arrayValue || {}).values || [];
   const sessionDates = dates.map(function(value) { return swePaymentString_(value); }).filter(Boolean);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !fullName || !groupName || !/^https:\/\/meet\.google\.com\/[A-Za-z]{3}-[A-Za-z]{4}-[A-Za-z]{3}\/?$/.test(meetingUrl) || sessionDates.length !== 6) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !fullName || !groupName || !/^https:\/\/meet\.google\.com\/[A-Za-z]{3}-[A-Za-z]{4}-[A-Za-z]{3}\/?$/.test(meetingUrl) || sessionDates.length !== 4) {
     return swePaymentResponse_({ ok: false, error: 'incomplete-activation' });
   }
 
@@ -353,17 +353,17 @@ function sweSendActivationEmail_(documentId) {
     'Your payment has been verified, your group has been confirmed, and your student portal is now active.', '',
     'GROUP: ' + groupName,
     'WEEKLY SCHEDULE: ' + schedule, '',
-    'YOUR SIX SESSIONS:',
+    'YOUR FOUR SESSIONS:',
     formattedDates.map(function(date, index) { return 'Session ' + (index + 1) + ': ' + date; }).join('\n'), '',
     'GOOGLE MEET: ' + meetingUrl,
-    'Use this same link for all six sessions. Join about 5 minutes before the scheduled start.', '',
+    'Use this same link for all four sessions. Join about 5 minutes before the scheduled start.', '',
     'WHAT TO DO NOW:',
     '1. Open ' + portalUrl,
     '2. Choose “I already have an account” and sign in with ' + email + '.',
     '3. Use the password you created when you submitted your payment information.',
-    '4. Review your group and save all six dates in your calendar.', '',
+    '4. Review your group and save all four dates in your calendar.', '',
     'WHAT TO EXPECT NEXT:',
-    'Elkin will send the online meeting link and any preparation details before your first session. Your group meets at the same weekly time for all six sessions.', '',
+    'Elkin will send the online meeting link and any preparation details before your first session. Your group meets at the same weekly time for all four sessions.', '',
     'If you need help, reply to this email or contact ' + SWE_SUPPORT_EMAIL + '.', '',
     'Spanish with Elkin'
   ].join('\n');
@@ -373,16 +373,16 @@ function sweSendActivationEmail_(documentId) {
     '<p><strong>Your payment has been verified, your group has been confirmed, and your student portal is now active.</strong></p>' +
     '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px">' +
     '<strong>Group:</strong> ' + safeGroup + '<br><strong>Weekly schedule:</strong> ' + safeSchedule + '</div>' +
-    '<h3 style="color:#1e3a8a">Your six sessions</h3><ol style="padding-left:22px">' + dateItems + '</ol>' +
+    '<h3 style="color:#1e3a8a">Your four sessions</h3><ol style="padding-left:22px">' + dateItems + '</ol>' +
     '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:12px;padding:16px"><strong>Your Google Meet link</strong><br>' +
     '<a href="' + meetingUrl + '" style="display:inline-block;background:#15803d;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:12px 18px;margin:10px 0">Join Google Meet</a><br>' +
-    '<span style="font-size:14px">Use this same link for all six sessions. Join about 5 minutes before the scheduled start.</span></div>' +
+    '<span style="font-size:14px">Use this same link for all four sessions. Join about 5 minutes before the scheduled start.</span></div>' +
     '<h3 style="color:#1e3a8a">What to do now</h3><ol style="padding-left:22px">' +
     '<li>Open your student access page.</li><li>Choose <strong>I already have an account</strong> and sign in with <strong>' + swePaymentEscapeHtml_(email) + '</strong>.</li>' +
-    '<li>Use the password you created when you submitted your payment information.</li><li>Review your group and save all six dates in your calendar.</li></ol>' +
+    '<li>Use the password you created when you submitted your payment information.</li><li>Review your group and save all four dates in your calendar.</li></ol>' +
     '<p><a href="' + portalUrl + '" style="display:inline-block;background:#f97316;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px">Open my student portal</a></p>' +
     '<h3 style="color:#1e3a8a">What to expect next</h3>' +
-    '<p>Elkin will send the online meeting link and any preparation details before your first session. Your group meets at the same weekly time for all six sessions.</p>' +
+    '<p>Elkin will send the online meeting link and any preparation details before your first session. Your group meets at the same weekly time for all four sessions.</p>' +
     '<p>If you need help, reply to this email or contact <a href="mailto:' + SWE_SUPPORT_EMAIL + '">' + SWE_SUPPORT_EMAIL + '</a>.</p><p>Spanish with Elkin</p></div>';
 
   if (MailApp.getRemainingDailyQuota() < 1) {

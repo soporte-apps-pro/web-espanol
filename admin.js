@@ -208,7 +208,7 @@ function applicationCard(application) {
           </div>
           <div>
             <label for="expected-amount-${escapeHtml(application.id)}">Valor esperado (USD)</label>
-            <input id="expected-amount-${escapeHtml(application.id)}" type="number" data-expected-amount min="0" max="10000" step="0.01" value="${escapeHtml(application.expectedAmount ?? 84)}">
+            <input id="expected-amount-${escapeHtml(application.id)}" type="number" data-expected-amount min="0" max="10000" step="0.01" value="${escapeHtml(application.expectedAmount ?? 50)}">
           </div>
           <div>
             <label for="paid-amount-${escapeHtml(application.id)}">Valor recibido (USD)</label>
@@ -346,7 +346,7 @@ function loadGroupSuggestion(event) {
 
 function createSessionDates(startDate) {
   const firstSession = new Date(`${startDate}T12:00:00Z`);
-  return Array.from({ length: 6 }, (_, index) => {
+  return Array.from({ length: 4 }, (_, index) => {
     const session = new Date(firstSession);
     session.setUTCDate(firstSession.getUTCDate() + (index * 7));
     return session.toISOString().slice(0, 10);
@@ -434,7 +434,7 @@ function renderGroups() {
       applications.find((application) => application.id === id)?.fullName || "Solicitud no disponible"
     );
     const paidCount = memberApplications.filter((application) => application.paymentStatus === "paid").length;
-    const expectedTotal = memberApplications.reduce((total, application) => total + Number(application.expectedAmount ?? 84), 0);
+    const expectedTotal = memberApplications.reduce((total, application) => total + Number(application.expectedAmount ?? 50), 0);
     const receivedTotal = memberApplications.reduce((total, application) =>
       total + (application.paymentStatus === "paid" ? Number(application.paidAmount || 0) : 0), 0
     );
@@ -482,7 +482,7 @@ function renderGroups() {
           <div><strong>US$${receivedTotal.toFixed(2)}</strong>recibido</div>
         </div>
         <div class="group-member-editor">
-          <strong>Google Meet para las seis sesiones</strong>
+          <strong>Google Meet para las cuatro sesiones</strong>
           <p class="muted">Crea el evento recurrente en Google Calendar y pega aquí su enlace antes de activar estudiantes.</p>
           <input type="url" data-group-meeting-url value="${escapeHtml(group.meetingUrl || "")}" placeholder="https://meet.google.com/abc-defg-hij" aria-label="Enlace de Google Meet para ${escapeHtml(group.name)}">
           <button class="button secondary" type="button" data-save-meeting-url>Guardar enlace de Meet</button>
@@ -491,7 +491,7 @@ function renderGroups() {
         ${group.status === "confirmed" ? `
           <div class="group-member-editor">
             <strong>Invitaci&oacute;n de horario y pago</strong>
-            <p class="muted">Env&iacute;a a cada integrante las seis fechas, su horario local y los pasos para pagar US$84 con Wise.</p>
+            <p class="muted">Env&iacute;a a cada integrante las cuatro fechas, su horario local y los pasos para pagar US$50 con Wise.</p>
             <button class="button secondary" type="button" data-send-group-invitations ${invitationsSent ? "disabled" : ""}>
               ${invitationsSent ? "Invitaciones enviadas" : invitedCount ? "Enviar invitaci&oacute;n al nuevo estudiante" : "Enviar invitaciones de pago"}
             </button>
@@ -982,12 +982,12 @@ groupForm.addEventListener("submit", async (event) => {
     });
     groupForm.reset();
     await loadGroups();
-    setMessage(groupsMessage, "Grupo creado con sus seis fechas.", "success");
+    setMessage(groupsMessage, "Grupo creado con sus cuatro fechas.", "success");
   } catch (error) {
     console.error("Could not create group", error);
     setMessage(groupsMessage, `No fue posible crear el grupo (${error?.code || "error"}).`);
   } finally {
     submit.disabled = false;
-    submit.textContent = "Crear grupo de seis sesiones";
+    submit.textContent = "Crear grupo de cuatro sesiones";
   }
 });

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Manual del Speaking Club | Spanish with Elkin</title>
+  <style>
+    @page { size:A4; margin:16mm 15mm 17mm; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:#172554; font:14px/1.5 Arial,Helvetica,sans-serif; }
+    h1,h2,h3 { margin:0 0 9px; color:#10275f; line-height:1.15; }
+    h1 { font-size:31px; }
+    h2 { margin-top:22px; padding-bottom:7px; border-bottom:2px solid #ff7417; font-size:22px; }
+    h3 { margin-top:14px; font-size:16px; }
+    p { margin:6px 0 10px; }
+    ol,ul { margin:7px 0 12px; padding-left:22px; }
+    li { margin:4px 0; }
+    a { color:#1746c7; }
+    .cover { min-height:250mm; display:flex; flex-direction:column; justify-content:center; text-align:center; page-break-after:always; }
+    .brand { color:#173b91; font-size:24px; font-weight:800; }
+    .brand span { color:#ff7417; }
+    .eyebrow { margin:25px 0 12px; color:#ff7417; font-size:12px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; }
+    .subtitle { max-width:570px; margin:18px auto; color:#52617c; font-size:17px; }
+    .version { margin-top:45px; color:#667085; font-size:12px; }
+    .flow { display:flex; flex-wrap:wrap; gap:6px; margin:15px 0 20px; }
+    .flow span { padding:8px 10px; border-radius:9px; background:#eff6ff; border:1px solid #bfdbfe; font-size:12px; font-weight:700; }
+    .flow b { align-self:center; color:#ff7417; }
+    .step { margin:12px 0; padding:13px 15px; border:1px solid #dbe4f0; border-left:5px solid #173b91; border-radius:11px; break-inside:avoid; }
+    .step h3 { margin-top:0; }
+    .number { display:inline-grid; width:24px; height:24px; margin-right:7px; place-items:center; border-radius:50%; color:white; background:#173b91; font-size:12px; }
+    .note,.success,.warning { margin:12px 0; padding:12px 14px; border-radius:10px; break-inside:avoid; }
+    .note { background:#eff6ff; border:1px solid #bfdbfe; }
+    .success { background:#ecfdf5; border:1px solid #86efac; color:#065f46; }
+    .warning { background:#fff7ed; border:1px solid #fdba74; color:#9a3412; }
+    .email { padding:2px 6px; border-radius:5px; background:#f1f5f9; font-family:Consolas,monospace; font-size:12px; }
+    table { width:100%; margin:12px 0 18px; border-collapse:collapse; font-size:12px; break-inside:avoid; }
+    th,td { padding:8px; border:1px solid #dbe4f0; text-align:left; vertical-align:top; }
+    th { color:#10275f; background:#eff6ff; }
+    .page-break { page-break-before:always; }
+    .checklist li { list-style:"☐  "; padding-left:3px; }
+    footer { margin-top:25px; padding-top:10px; border-top:1px solid #dbe4f0; color:#667085; font-size:11px; text-align:center; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="brand">Spanish with <span>Elkin</span></div>
+    <div class="eyebrow">Manual operativo</div>
+    <h1>Speaking Club B1</h1>
+    <p class="subtitle">Guía sencilla para administrar solicitudes, formar grupos, verificar pagos y activar estudiantes; incluye el recorrido completo que debe seguir cada estudiante.</p>
+    <p class="version">Versión del 29 de agosto de 2026 · Soporte: hello@spanishwithelkin.com</p>
+  </section>
+
+  <h2>Vista rápida del proceso</h2>
+  <div class="flow">
+    <span>Solicitud</span><b>→</b><span>Revisión</span><b>→</b><span>Grupo de 3–5</span><b>→</b><span>Invitación</span><b>→</b><span>Pago</span><b>→</b><span>Verificación</span><b>→</b><span>Activación</span>
+  </div>
+  <div class="warning"><strong>Regla principal:</strong> el estudiante no debe pagar al aplicar. Solo paga después de recibir el correo que confirma que su grupo está listo.</div>
+
+  <h2>Parte 1 · Pasos del administrador</h2>
+
+  <div class="step"><h3><span class="number">1</span>Recibir y revisar la solicitud</h3>
+    <ol><li>Entra en <strong>Panel administrativo → Solicitudes</strong>.</li><li>Revisa nombre, correo, nivel B1, país, zona horaria, disponibilidad y objetivo.</li><li>El estudiante ya debe haber recibido <span class="email">We received your Speaking Club application</span>.</li></ol>
+  </div>
+
+  <div class="step"><h3><span class="number">2</span>Actualizar el estado</h3>
+    <ul><li><strong>Nueva:</strong> todavía no revisada.</li><li><strong>Contactada:</strong> necesitas información adicional.</li><li><strong>Aceptada:</strong> puede ser incluida en un grupo.</li><li><strong>Rechazada:</strong> no cumple las condiciones.</li></ul>
+    <p>Para añadirla a un grupo, la solicitud debe estar como <strong>Aceptada</strong>.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">3</span>Crear el grupo</h3>
+    <ol><li>Abre <strong>Grupos</strong>.</li><li>Escribe un nombre claro.</li><li>Selecciona el horario fijo y la primera sesión.</li><li>Marca los estudiantes compatibles.</li><li>Pulsa <strong>Crear grupo de cuatro sesiones</strong>.</li></ol>
+    <p>El sistema calcula las cuatro fechas. Puedes organizarlo con menos personas, pero necesitas al menos <strong>3 estudiantes</strong> para confirmarlo. El máximo es 5.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">4</span>Confirmar el grupo</h3>
+    <p>Cuando tenga entre 3 y 5 estudiantes y el horario sea definitivo, cambia el estado de <strong>En formación</strong> a <strong>Confirmado</strong>. Los integrantes actuales quedarán protegidos contra eliminaciones accidentales.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">5</span>Guardar Google Meet</h3>
+    <ol><li>Crea en Google Calendar un evento semanal recurrente para las cuatro sesiones.</li><li>Configura cada reunión con <strong>55 minutos</strong>.</li><li>Copia el enlace de Google Meet.</li><li>Pégalo en el grupo y pulsa <strong>Guardar enlace de Meet</strong>.</li></ol>
+    <p>Se utiliza el mismo enlace para las cuatro sesiones. Debe estar guardado antes de activar estudiantes.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">6</span>Enviar la invitación de pago</h3>
+    <ol><li>En el grupo confirmado, pulsa <strong>Enviar invitaciones de pago</strong>.</li><li>Confirma el envío.</li></ol>
+    <p>Cada estudiante recibe <span class="email">Your Speaking Club group is ready</span> con horario local, cuatro fechas, precio de US$50, plazo de 48 horas, Wise y acceso para registrar el pago.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">7</span>Añadir después un cuarto o quinto estudiante</h3>
+    <ol><li>Marca la nueva solicitud como <strong>Aceptada</strong>.</li><li>En el grupo confirmado, utiliza <strong>Añadir otro estudiante</strong>.</li><li>Pulsa <strong>Enviar invitación al nuevo estudiante</strong>.</li></ol>
+    <p>Los integrantes anteriores no reciben otra invitación. El nuevo estudiante obtiene sus propias 48 horas para pagar.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">8</span>Consultar lo declarado por el estudiante</h3>
+    <p>En <strong>Accesos</strong> consulta correo, método, referencia de Wise, nombre del pagador e importe declarado. Esta información todavía no demuestra que el dinero haya llegado.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">9</span>Verificar y registrar el pago</h3>
+    <ol><li>Entra directamente en Wise y comprueba importe, pagador y referencia.</li><li>Abre <strong>Pagos</strong> y localiza al estudiante y su grupo.</li><li>Pulsa <strong>Ver / registrar pago</strong>.</li><li>Registra estado <strong>Pagado</strong>, US$50, fecha, método Transferencia y referencia.</li><li>Pulsa <strong>Guardar seguimiento y pago</strong>.</li></ol>
+    <div class="warning"><strong>No actives basándote únicamente en la referencia escrita por el estudiante.</strong> Confirma primero que el dinero aparece en Wise.</div>
+  </div>
+
+  <div class="step"><h3><span class="number">10</span>Verificar y activar</h3>
+    <ol><li>Regresa a <strong>Accesos</strong>.</li><li>Comprueba: pago registrado, grupo confirmado, Meet guardado y referencia no duplicada.</li><li>Pulsa <strong>Verificar y activar</strong>.</li></ol>
+    <p>Este es el paso que envía <span class="email">Your Speaking Club access is active</span>. Guardar el pago por sí solo no envía el correo final.</p>
+  </div>
+
+  <div class="success"><strong>Proceso administrativo terminado:</strong> el estudiante ya tiene pago verificado, plaza confirmada, portal activo, cuatro fechas y enlace de Meet.</div>
+
+  <h2 class="page-break">Parte 2 · Pasos del estudiante</h2>
+
+  <div class="step"><h3><span class="number">1</span>Enviar la aplicación gratuita</h3>
+    <p>Completa el formulario con nivel, país, zona horaria, disponibilidad y objetivo. No realiza ningún pago todavía.</p>
+    <p><strong>Debe esperar:</strong> el correo <span class="email">We received your Speaking Club application</span>.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">2</span>Esperar la formación del grupo</h3>
+    <p>Elkin compara disponibilidad y zonas horarias para formar un grupo compatible de 3 a 5 personas. La solicitud no reserva automáticamente una plaza.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">3</span>Recibir la invitación</h3>
+    <p>Si se forma un grupo, recibe <span class="email">Your Speaking Club group is ready</span>. Debe revisar cuidadosamente grupo, horario local, cuatro fechas, precio y plazo de pago.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">4</span>Pagar con Wise</h3>
+    <ol><li>Pulsa <strong>Pay US$50 with Wise</strong>.</li><li>Realiza el pago.</li><li>Guarda la referencia o ID de la transferencia y el nombre exacto del pagador.</li></ol>
+  </div>
+
+  <div class="step"><h3><span class="number">5</span>Crear la cuenta y registrar el pago</h3>
+    <ol><li>Vuelve al correo y pulsa <strong>Register my payment</strong>.</li><li>Introduce el mismo correo usado en la solicitud.</li><li>Crea una contraseña.</li><li>Escribe referencia, pagador e importe.</li><li>Pulsa <strong>Crear cuenta y solicitar acceso</strong>.</li></ol>
+  </div>
+
+  <div class="step"><h3><span class="number">6</span>Revisar dos correos</h3>
+    <table><tr><th>Correo</th><th>Significado</th><th>Acción</th></tr>
+      <tr><td>Firebase: verificar dirección</td><td>Confirma que el correo pertenece al estudiante.</td><td>Abrir el enlace de verificación. Revisar Spam si no aparece.</td></tr>
+      <tr><td><span class="email">Payment information received</span></td><td>Elkin recibió los datos declarados.</td><td>Esperar. El pago aún está en revisión.</td></tr>
+    </table>
+  </div>
+
+  <div class="step"><h3><span class="number">7</span>Esperar la verificación manual</h3>
+    <p>Elkin compara los datos con Wise. Durante este periodo la cuenta puede existir, pero el acceso todavía no está activo.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">8</span>Recibir la activación</h3>
+    <p>Cuando el pago esté comprobado, recibe <span class="email">Your Speaking Club access is active</span> con grupo, horario, fechas, Meet y botón del portal.</p>
+  </div>
+
+  <div class="step"><h3><span class="number">9</span>Entrar al portal</h3>
+    <ol><li>Abrir la página de acceso.</li><li>Elegir <strong>Ya tengo una cuenta</strong>.</li><li>Entrar con el mismo correo y la contraseña creada.</li><li>Consultar fechas y enlace de Meet.</li><li>Entrar a Meet unos 5 minutos antes de cada sesión.</li></ol>
+  </div>
+
+  <h2>Lista final de comprobación del administrador</h2>
+  <ul class="checklist"><li>Solicitud aceptada.</li><li>Grupo confirmado con 3–5 integrantes.</li><li>Seis fechas correctas.</li><li>Google Meet guardado.</li><li>Invitación de pago enviada.</li><li>Referencia comprobada directamente en Wise.</li><li>Pago registrado como Pagado.</li><li>Correo del estudiante verificado.</li><li>Acceso verificado y activado.</li><li>Correo final recibido por el estudiante.</li></ul>
+
+  <h2>Si algo no funciona</h2>
+  <table><tr><th>Situación</th><th>Qué revisar</th></tr>
+    <tr><td>No llega un correo</td><td>Spam/Promociones y ejecuciones <strong>doPost</strong> de Apps Script.</td></tr>
+    <tr><td>No se puede confirmar el grupo</td><td>Debe tener al menos 3 integrantes.</td></tr>
+    <tr><td>“Verificar y activar” está deshabilitado</td><td>Pago, grupo confirmado, Meet válido, coincidencia de solicitud y referencia no duplicada.</td></tr>
+    <tr><td>El estudiante no puede entrar</td><td>Debe verificar el correo de Firebase y usar exactamente el correo con el que creó la cuenta.</td></tr>
+  </table>
+
+  <footer>Spanish with Elkin · hello@spanishwithelkin.com · spanishwithelkin.com</footer>
+</body>
+</html>

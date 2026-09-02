@@ -118,7 +118,7 @@ service cloud.firestore {
         request.resource.data.startDate is string &&
         request.resource.data.startDate.size() == 10 &&
         request.resource.data.sessionDates is list &&
-        request.resource.data.sessionDates.size() == 6 &&
+        request.resource.data.sessionDates.size() == 4 &&
         request.resource.data.memberApplicationIds is list &&
         request.resource.data.memberApplicationIds.size() >= 1 &&
         request.resource.data.memberApplicationIds.size() <= 5 &&
@@ -207,7 +207,7 @@ service cloud.firestore {
         request.resource.data.groupName.size() <= 80 &&
         request.resource.data.slot in ['monday-1000', 'monday-1100', 'monday-1300', 'monday-1800', 'monday-1900', 'tuesday-1400', 'tuesday-1700', 'tuesday-1900', 'wednesday-0800', 'thursday-0800', 'thursday-1300', 'thursday-1400', 'friday-1100', 'friday-1400', 'friday-1500', 'saturday-1130', 'saturday-1330'] &&
         request.resource.data.sessionDates is list &&
-        request.resource.data.sessionDates.size() == 6 &&
+        request.resource.data.sessionDates.size() == 4 &&
         request.resource.data.meetingUrl is string &&
         request.resource.data.meetingUrl.size() <= 120 &&
         request.resource.data.meetingUrl.matches('https://meet\\.google\\.com/[A-Za-z]{3}-[A-Za-z]{4}-[A-Za-z]{3}/?') &&
