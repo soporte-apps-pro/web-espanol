@@ -1,3 +1,4 @@
+import { privateDuration } from "./private-lessons-store.mjs?v=20260916-duration-fix-1";
 export const TOPUP_PACKAGES = {
   single:{label:"1 private class",quantity:1,amountUsd:25,wiseUrl:"https://wise.com/pay/r/1By27Avdd7FtOHo"},
   pack4:{label:"4 private classes",quantity:4,amountUsd:84,wiseUrl:"https://wise.com/pay/r/_QkFPSyF9SuYEwg"},
@@ -48,7 +49,7 @@ export function createTopupStore(db,sdk,getActor,lessonStore) {
       const account=(await tx.get(doc(db,"privateAccounts",actor.uid))).data();need(account,"Ask Elkin to activate your private class account first.");
       const pack=packagesForAccount(account)[input.packageId];need(pack,"Your package has changed. Refresh the page to see your agreed conditions.");
       tx.set(ref,{studentUid:actor.uid,fullName:account.fullName,email:account.email,packageId:input.packageId,
-        packageLabel:pack.label,...(pack.durationMinutes?{durationMinutes:pack.durationMinutes}:{}),quantity:pack.quantity,amountUsd:pack.amountUsd,paymentMethod:input.paymentMethod,paymentReference,referenceKey,payerName,status:"pending",createdAt:serverTimestamp()});
+        packageLabel:pack.label,durationMinutes:privateDuration(account),quantity:pack.quantity,amountUsd:pack.amountUsd,paymentMethod:input.paymentMethod,paymentReference,referenceKey,payerName,status:"pending",createdAt:serverTimestamp()});
       for(const kind of ["admin_received","student_received"])tx.set(doc(db,"privateTopupMail",`${reportId}_${kind}`),job(reportId,actor.uid,kind,input.packageId==="custom"));
       return {data:{reportId}};
     });

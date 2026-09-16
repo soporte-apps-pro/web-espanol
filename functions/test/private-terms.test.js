@@ -39,5 +39,18 @@ test('personal conditions preserve prices, durations and prepaid balances',async
     }
     assert.equal((await read('privateAccounts','alice')).reserved,0);
   });
+
+  await t.test('teacher corrects legacy duration with two credits, keeping price, balance and an audit trail',async()=>{
+    await init(2);await env.withSecurityRulesDisabled(x=>sdk.updateDoc(sdk.doc(x.firestore(),'privateAccounts','alice'),{terms:sdk.deleteField()}));
+    const op=command('correct_duration',{durationMinutes:30});await admin(op);await admin(op);
+    const a=await read('privateAccounts','alice');assert.equal(a.durationMinutes,30);assert.equal(a.credited,2);assert.equal(a.reserved,0);assert.equal(a.terms,undefined);
+    const h=await read('privateAccounts/alice/history',a.lastOperation);assert.equal(h.previousDurationMinutes,50);assert.equal(h.durationMinutes,30);
+    const id=(await student(command('book',{slotId:await slot()}))).data.lessonId;assert.equal((await read('privateLessons',id)).durationMinutes,30);
+    await assert.rejects(admin(command('correct_duration',{durationMinutes:50})));
+  });
+  await t.test('correction keeps custom prices and cannot be performed by students',async()=>{
+    await init(2);await assert.rejects(student(command('correct_duration',{durationMinutes:50})));await admin(command('correct_duration',{durationMinutes:50}));
+    const a=await read('privateAccounts','alice');assert.equal(a.terms.durationMinutes,50);assert.equal(a.terms.packageAmountUsd,99.5);assert.equal(a.credited,2);
+  });
  } finally {await env.cleanup();}
 });

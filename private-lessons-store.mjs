@@ -1,3 +1,4 @@
+export const privateDuration = account => account?.durationMinutes ?? account?.terms?.durationMinutes ?? 50;
 export function normalizePrivateTerms(value) {
   if (!value) return null;
   const t={durationMinutes:Number(value.durationMinutes),packageQuantity:Number(value.packageQuantity),packageAmountUsd:Number(value.packageAmountUsd),paymentUrl:String(value.paymentUrl||'').trim(),paymentNote:String(value.paymentNote||'').trim()};
@@ -14,8 +15,8 @@ export function createLessonStore(db, sdk, getActor) {
     const actor = getActor();
     need(actor?.uid, "Sign in first.");
     const action = input.action;
-    need(["open","configure","credit","book","reschedule","cancel","complete","no_show","late_cancel"].includes(action), "Unknown action.");
-    if (["open","configure","credit","complete","no_show","late_cancel"].includes(action)) need(actor.admin, "Only Elkin can do this.");
+    need(["open","configure","correct_duration","credit","book","reschedule","cancel","complete","no_show","late_cancel"].includes(action), "Unknown action.");
+    if (["open","configure","correct_duration","credit","complete","no_show","late_cancel"].includes(action)) need(actor.admin, "Only Elkin can do this.");
     const reason = String(input.reason || "").trim();
     need(reason.length <= 500 && (!actor.admin || reason.length >= 3), "Add a reason or payment reference (3–500 characters).");
     need(validId(input.operationId) && input.operationId.length >= 16, "Invalid operation ID.");
@@ -35,8 +36,9 @@ export function createLessonStore(db, sdk, getActor) {
     const paymentReportId = input.paymentReportId || "";
     if (paymentReportId) need(action === "credit" && actor.admin && validId(paymentReportId), "Invalid payment approval.");
     need(Number.isSafeInteger(quantity) && Math.abs(quantity) <= 10000 && (action !== "open" || quantity >= 0) && (action !== "credit" || quantity !== 0), "Enter a valid whole number of classes.");
+    if(action==="correct_duration")need([30,50].includes(input.durationMinutes),"Elige 30 o 50 minutos.");
     const terms = ["open","configure"].includes(action) ? normalizePrivateTerms(input.terms) : null;
-    const hasLesson = !["open","configure","credit"].includes(action);
+    const hasLesson = !["open","configure","correct_duration","credit"].includes(action);
     const lessonId = action === "book" ? `${actor.uid}_${input.operationId}` : hasLesson ? input.lessonId : "";
     if (hasLesson) need(validId(lessonId), "Invalid lesson.");
     if (["book","reschedule"].includes(action)) need(validId(input.slotId), "Select an available time.");
@@ -44,7 +46,7 @@ export function createLessonStore(db, sdk, getActor) {
     const accountRef = doc(db,"privateAccounts",uid);
     const historyRef = doc(db,"privateAccounts",uid,"history",operationId);
     const lessonRef = hasLesson ? doc(db,"privateLessons",lessonId) : null;
-    const fingerprint = JSON.stringify({ action,uid,quantity,lessonId,slotId:input.slotId || "",reason,fullName,email,...(paymentReportId?{paymentReportId}:{}),...(["open","configure"].includes(action)&&input.terms!==undefined?{terms}:{}) });
+    const fingerprint = JSON.stringify({ action,uid,quantity,lessonId,slotId:input.slotId || "",reason,fullName,email,...(paymentReportId?{paymentReportId}:{}),...(action==="correct_duration"?{durationMinutes:input.durationMinutes}:{}),...(["open","configure"].includes(action)&&input.terms!==undefined?{terms}:{}) });
     return runTransaction(db,async tx => {
       const receipt = await tx.get(historyRef);
       if (receipt.exists()) {
@@ -62,15 +64,22 @@ export function createLessonStore(db, sdk, getActor) {
         account = snapshot.data();
       }
       if (action === "configure") {
-        need((account.terms?.durationMinutes||50)===(terms?.durationMinutes||50)||account.credited===account.used, "Para cambiar la duración, primero resuelve las clases pendientes y reservadas.");
+        need(privateDuration(account)===(terms?.durationMinutes??privateDuration(account))||account.credited===account.used, "Para cambiar la duración, primero resuelve las clases pendientes y reservadas.");
+        account.durationMinutes=terms?.durationMinutes??privateDuration(account);
         if(terms) account.terms=terms; else delete account.terms;
+      }
+      const previousDurationMinutes=privateDuration(account);
+      if(action==="correct_duration"){
+        need(account.reserved===0,"Primero cancela o completa las clases reservadas; después podrás corregir la duración.");
+        account.durationMinutes=input.durationMinutes;
+        if(account.terms)account.terms={...account.terms,durationMinutes:input.durationMinutes};
       }
       let reportRef, report, claimRef;
       if (paymentReportId) {
         reportRef = doc(db,"privateTopups",paymentReportId);
         report = (await tx.get(reportRef)).data();
         need(report?.studentUid === uid && report.status === "pending" && report.quantity === quantity, "This payment has changed or was already reviewed.");
-        need((report.durationMinutes||50)===(account.terms?.durationMinutes||50), "La duración del pago reportado difiere de la cuenta. Revisa las condiciones antes de aprobar.");
+        need((report.durationMinutes||50)===privateDuration(account), "La duración del pago reportado difiere de la cuenta. Revisa las condiciones antes de aprobar.");
         claimRef = doc(db,"privateTopupClaims",report.referenceKey);
         need(!(await tx.get(claimRef)).exists(), "This payment reference has already credited classes. Check it before adding more.");
       }
@@ -95,8 +104,8 @@ export function createLessonStore(db, sdk, getActor) {
       need([account.credited,account.used,account.reserved].every(n => Number.isSafeInteger(n) && n >= 0) && account.credited >= account.used + account.reserved, "Not enough available classes for this change.");
       tx.set(accountRef,{...account,updatedAt:stamp,lastOperation:operationId});
       if (targetRef) {
-        tx.update(targetRef,{status:"confirmed",durationMinutes:before?.durationMinutes||account.terms?.durationMinutes||50,lessonId,heldBy:"",bookingRequestId:lessonId,holdExpiresAt:stamp});
-        tx.set(lessonRef,{studentUid:uid,fullName:account.fullName,email:account.email,slotId:input.slotId,startAt:target.startAt,durationMinutes:before?.durationMinutes||account.terms?.durationMinutes||50,status:"reserved",createdAt:before?.createdAt || stamp,updatedAt:stamp,operationId});
+        tx.update(targetRef,{status:"confirmed",durationMinutes:before?.durationMinutes||privateDuration(account),lessonId,heldBy:"",bookingRequestId:lessonId,holdExpiresAt:stamp});
+        tx.set(lessonRef,{studentUid:uid,fullName:account.fullName,email:account.email,slotId:input.slotId,startAt:target.startAt,durationMinutes:before?.durationMinutes||privateDuration(account),status:"reserved",createdAt:before?.createdAt || stamp,updatedAt:stamp,operationId});
       }
       if (oldRef && ["cancel","reschedule","late_cancel"].includes(action)) {
         tx.update(oldRef,{status:"available",durationMinutes:50,lessonId:"",heldBy:"",bookingRequestId:"",holdExpiresAt:stamp,googleCalendarCheckedAt:Timestamp.fromMillis(0)});
@@ -119,7 +128,7 @@ export function createLessonStore(db, sdk, getActor) {
       if (action === "open") tx.set(doc(db,"privateTopupMail",`${uid}_student_activated`),{reportId:uid,studentUid:uid,kind:"student_activated",status:"activation_pending",createdAt:stamp});
       tx.set(historyRef,{action,quantity,reason,actorUid:actor.uid,actorRole:actor.admin?"admin":"student",createdAt:stamp,
         lessonId,fromSlotId:before?.slotId || "",toSlotId:target?input.slotId:"",fromStartAt:before?.startAt || null,toStartAt:target?.startAt || null,
-        credited:account.credited,used:account.used,reserved:account.reserved,fingerprint,...(["open","configure"].includes(action)?{terms:terms}:{}),...(paymentReportId?{paymentReportId}:{})});
+        credited:account.credited,used:account.used,reserved:account.reserved,fingerprint,...(action==="correct_duration"?{durationMinutes:input.durationMinutes,previousDurationMinutes}:{}),...(["open","configure"].includes(action)?{terms:terms}:{}),...(paymentReportId?{paymentReportId}:{})});
       return {data:{studentUid:uid,lessonId}};
     });
   };

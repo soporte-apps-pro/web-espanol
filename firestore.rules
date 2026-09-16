@@ -310,6 +310,7 @@ service cloud.firestore {
     function operationAfter(uid, id) {
       return getAfter(/databases/$(database)/documents/privateAccounts/$(uid)/history/$(id)).data;
     }
+    function privateDuration(a) { return a.get('durationMinutes',a.get('terms',{}).get('durationMinutes',50)); }
     function validPrivateTerms(t) {
       return t == null || (t is map && t.keys().hasOnly(['durationMinutes','packageQuantity','packageAmountUsd','paymentUrl','paymentNote']) &&
         t.durationMinutes in [30,50] && t.packageQuantity is int && t.packageQuantity >= 1 && t.packageQuantity <= 100 &&
@@ -318,7 +319,7 @@ service cloud.firestore {
         t.paymentNote is string && t.paymentNote.size() <= 500);
     }
     function accountShape(a) {
-      return a.keys().hasOnly(['fullName','email','credited','used','reserved','createdAt','updatedAt','lastOperation','terms']) &&
+      return a.keys().hasOnly(['fullName','email','credited','used','reserved','createdAt','updatedAt','lastOperation','terms','durationMinutes']) && privateDuration(a) in [30,50] &&
         a.fullName is string && a.fullName.size() >= 2 && a.fullName.size() <= 80 &&
         a.email is string && a.email.size() >= 5 && a.email.size() <= 120 &&
         a.credited is int && a.used is int && a.reserved is int &&
@@ -379,7 +380,7 @@ service cloud.firestore {
       let l = getAfter(/databases/$(database)/documents/privateLessons/$(h.lessonId)).data;
       return !exists(/databases/$(database)/documents/privateLessons/$(h.lessonId)) &&
         lessonShape(l, uid, opId) && l.fullName == a.fullName && l.email == a.email &&
-        l.durationMinutes == a.get('terms', {}).get('durationMinutes',50) && l.createdAt == request.time && l.status == 'reserved' && calendarMatches(l,h.lessonId) &&
+        l.durationMinutes == privateDuration(a) && l.createdAt == request.time && l.status == 'reserved' && calendarMatches(l,h.lessonId) &&
         h.fromSlotId == '' && h.fromStartAt == null && h.toSlotId == l.slotId && h.toStartAt == l.startAt &&
         validTarget(l.slotId, h.lessonId, l.startAt, l.durationMinutes);
     }
@@ -404,9 +405,12 @@ service cloud.firestore {
     function balanceChange(uid, h, a) {
       let b = get(/databases/$(database)/documents/privateAccounts/$(uid)).data;
       return a.fullName == b.fullName && a.email == b.email && a.createdAt == b.createdAt &&
-        (h.action == 'configure' || a.get('terms',null) == b.get('terms',null)) &&
-        ((h.action == 'configure' && isAdmin() && h.quantity == 0 && a.credited == b.credited && a.used == b.used && a.reserved == b.reserved &&
-            (a.get('terms',{}).get('durationMinutes',50) == b.get('terms',{}).get('durationMinutes',50) || b.credited == b.used)) ||
+        (h.action in ['configure','correct_duration'] || (a.get('terms',null) == b.get('terms',null) && privateDuration(a) == privateDuration(b))) &&
+        ((h.action == 'correct_duration' && isAdmin() && h.quantity == 0 && b.reserved == 0 && a.reserved == 0 && a.credited == b.credited && a.used == b.used &&
+            h.durationMinutes == privateDuration(a) && h.previousDurationMinutes == privateDuration(b) &&
+            (a.get('terms',{}) == b.get('terms',{}) || (a.get('terms',{}).diff(b.get('terms',{})).affectedKeys().hasOnly(['durationMinutes']) && a.terms.durationMinutes == privateDuration(a)))) ||
+         (h.action == 'configure' && isAdmin() && h.quantity == 0 && a.credited == b.credited && a.used == b.used && a.reserved == b.reserved &&
+            (privateDuration(a) == privateDuration(b) || b.credited == b.used)) ||
          (h.action == 'credit' && isAdmin() && h.quantity != 0 &&
             a.credited == b.credited + h.quantity && a.used == b.used && a.reserved == b.reserved) ||
          (h.quantity == 0 && a.credited == b.credited &&
@@ -419,7 +423,7 @@ service cloud.firestore {
       let h = request.resource.data;
       let a = accountAfter(uid);
       return (isAdmin() || ownsPrivateAccount(uid)) &&
-        h.keys().hasOnly(['action','quantity','reason','actorUid','actorRole','createdAt','lessonId','fromSlotId','toSlotId','fromStartAt','toStartAt','credited','used','reserved','fingerprint','paymentReportId','terms']) &&
+        h.keys().hasOnly(['action','quantity','reason','actorUid','actorRole','createdAt','lessonId','fromSlotId','toSlotId','fromStartAt','toStartAt','credited','used','reserved','fingerprint','paymentReportId','terms','durationMinutes','previousDurationMinutes']) &&
         h.actorUid == request.auth.uid && h.actorRole == (isAdmin() ? 'admin' : 'student') && h.createdAt == request.time &&
         h.reason is string && h.reason.size() <= 500 && (!isAdmin() || h.reason.size() >= 3) &&
         h.fingerprint is string && h.fingerprint.size() <= 3000 &&
@@ -431,7 +435,7 @@ service cloud.firestore {
         ((h.action == 'open' && isAdmin() && !exists(/databases/$(database)/documents/privateAccounts/$(uid)) &&
             a.createdAt == request.time && h.quantity >= 0 && a.credited == h.quantity && a.used == 0 && a.reserved == 0) ||
          (h.action != 'open' && balanceChange(uid, h, a))) &&
-        ((h.action in ['open','configure','credit'] && h.lessonId == '' && h.fromSlotId == '' && h.toSlotId == '' && h.fromStartAt == null && h.toStartAt == null) ||
+        ((h.action in ['open','configure','correct_duration','credit'] && h.lessonId == '' && h.fromSlotId == '' && h.toSlotId == '' && h.fromStartAt == null && h.toStartAt == null) ||
          (h.action == 'book' && validBooking(uid, opId, h, a)) ||
          (h.action in ['cancel','reschedule','complete','no_show','late_cancel'] && validLessonChange(uid, opId, h)));
     }
@@ -479,7 +483,7 @@ service cloud.firestore {
       let a = get(/databases/$(database)/documents/privateAccounts/$(r.studentUid)).data;
       let t = a.get('terms',null);
       return t != null ? (r.packageId == 'custom' && r.quantity == t.packageQuantity && r.amountUsd == t.packageAmountUsd &&
-        r.durationMinutes == t.durationMinutes && r.packageLabel is string && r.packageLabel.size() <= 80) : (r.get('durationMinutes',50) == 50 && ((r.packageId == 'single' && r.packageLabel == '1 private class' && r.quantity == 1 && r.amountUsd == 25) ||
+        r.durationMinutes == privateDuration(a) && r.packageLabel is string && r.packageLabel.size() <= 80) : (r.get('durationMinutes',50) == privateDuration(a) && ((r.packageId == 'single' && r.packageLabel == '1 private class' && r.quantity == 1 && r.amountUsd == 25) ||
         (r.packageId == 'pack4' && r.packageLabel == '4 private classes' && r.quantity == 4 && r.amountUsd == 84) ||
         (r.packageId == 'pack8' && r.packageLabel == '8 private classes' && r.quantity == 8 && r.amountUsd == 152)));
     }
@@ -487,7 +491,7 @@ service cloud.firestore {
       let r = topupAfter(h.paymentReportId);
       let before = get(/databases/$(database)/documents/privateTopups/$(h.paymentReportId)).data;
       return isAdmin() && h.action == 'credit' && before.status == 'pending' && r.status == 'confirmed' &&
-        r.get('durationMinutes',50) == accountAfter(uid).get('terms',{}).get('durationMinutes',50) && r.studentUid == uid && r.quantity == h.quantity && r.reviewOperationId == opId && r.reviewedAt == request.time;
+        r.get('durationMinutes',50) == privateDuration(accountAfter(uid)) && r.studentUid == uid && r.quantity == h.quantity && r.reviewOperationId == opId && r.reviewedAt == request.time;
     }
     function topupConfirmed(id, r) {
       let a = accountAfter(r.studentUid);
