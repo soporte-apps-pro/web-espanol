@@ -6,7 +6,7 @@ Esta versión utiliza Firestore, Firebase Authentication y la sincronización ex
 
 1. El estudiante entra en `student-access.html`, elige **Private classes**, crea su cuenta y verifica el correo. Si ya tiene una cuenta con un perfil registrado, puede conservarla.
 2. En **Administración → Privadas → Clases personales**, Elkin activa al estudiante por su correo e introduce solo las clases pendientes, con una nota de saldo inicial.
-3. Para añadir un paquete, Elkin verifica el pago y registra la cantidad de clases y su referencia. Los ajustes negativos solo pueden reducir el saldo disponible.
+3. El estudiante puede informar un nuevo pago desde su portal. En **Nuevos pagos**, Elkin verifica el ingreso y pulsa **Confirmar pago y añadir clases**. También conserva el registro manual de paquetes y ajustes; no debe usarlo para duplicar una recarga ya confirmada. Los ajustes negativos solo pueden reducir el saldo disponible.
 4. El estudiante ve clases acreditadas, consumidas, reservadas y disponibles; puede reservar horarios publicados y verificados por Calendar para los próximos 21 días.
 5. Puede cancelar o reprogramar con al menos 24 horas de anticipación. Con menos de 24 horas, solo Elkin puede hacer cambios. Cancelar a tiempo devuelve la clase; reprogramar mantiene la reserva.
 6. Elkin marca las clases realizadas o las ausencias después de terminar el horario. Ante una cancelación tardía puede consumir la clase o devolverla como excepción.
@@ -14,6 +14,8 @@ Esta versión utiliza Firestore, Firebase Authentication y la sincronización ex
 Las clases acreditadas incluyen saldo inicial, paquetes y ajustes; no incluyen las clases históricas anteriores a la carga inicial. Las clases consumidas distinguen realizadas, ausencias y cancelaciones tardías en el historial.
 
 Los pagos del flujo público anterior no se acreditan automáticamente en este saldo. Las reservas anteriores tampoco se migran automáticamente. Revisar con cada estudiante sus clases pendientes y no registrar dos veces el mismo pago.
+
+Los nuevos reportes del portal preparan correos para Elkin y el estudiante. El envío requiere activar el disparador de Google una vez siguiendo `private-topup-email-setup.html`. Ver `PRIVATE-TOPUP-EMAILS.md` para la instalación y la protección contra referencias repetidas.
 
 ## Seguridad y consistencia
 

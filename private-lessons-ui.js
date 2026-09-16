@@ -2,7 +2,8 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-aut
 import { collection, doc, getFirestore, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import * as firestore from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
-import { createLessonStore } from "./private-lessons-store.mjs";
+import { createLessonStore } from "./private-lessons-store.mjs?v=20260916-payments-1";
+import { mountPrivateTopups } from "./private-topups-ui.js";
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[char]);
 const DAY = 86400000;
@@ -23,6 +24,7 @@ export function mountPrivateLessons(root, app, admin = false) {
     <p class="lesson-note">${t("Horarios en","Times shown in")} <strong>${escape(zone)}</strong>. ${t("Disponibilidad para los próximos 21 días.","Availability for the next 21 days.")}</p>
     <p class="lesson-notice" data-message role="status" aria-live="polite"></p>
     ${admin ? `<div class="lesson-forms"><form data-open><h3>Activar estudiante</h3><p class="lesson-note">Primero debe crear su cuenta en Acceso a estudiantes. Introduce solo las clases que le quedan pendientes; no vuelvas a cargar un pago ya registrado.</p><label>Nombre<input name="fullName" required minlength="2" maxlength="80"></label><label>Correo de su cuenta<input name="email" type="email" required maxlength="120"></label><label>Clases pendientes al empezar<input name="quantity" type="number" min="0" max="10000" step="1" value="0" required></label><label>Nota de saldo inicial<input name="reason" required minlength="3" maxlength="500" placeholder="Saldo revisado con el estudiante"></label><button class="primary" type="submit">Activar y guardar saldo</button></form><div><h3>Estudiantes</h3><label for="lesson-student">Seleccionar estudiante</label><select id="lesson-student" data-student><option value="">Selecciona un estudiante</option></select><details><summary>Cuentas pendientes de activar</summary><div data-enrollments></div></details></div></div>` : ""}
+    <section data-topups aria-label="Payment reports"></section>
     <div data-account><p>${t("Selecciona o activa un estudiante.","Loading your class balance…")}</p></div>
     <div data-content hidden>
       ${admin ? `<form data-credit><h3>Registrar paquete pagado o ajuste</h3><p class="lesson-note">Verifica el pago antes de añadir clases. Usa un número negativo para corregir un saldo disponible.</p><label>Clases (+ / −)<input name="quantity" type="number" min="-10000" max="10000" step="1" required></label><label>Referencia de pago o motivo<input name="reason" required minlength="3" maxlength="500"></label><button type="submit">Guardar clases</button></form>` : ""}
@@ -36,6 +38,7 @@ export function mountPrivateLessons(root, app, admin = false) {
   function slotOptions() { return `<option value="">${t("Selecciona un horario","Select a time")}</option>` + usableSlots().map(s => `<option value="${escape(s.id)}">${escape(format(s.startAt))}</option>`).join(""); }
   function renderSlots() { root.querySelectorAll("[data-slot]").forEach(select => { const value = select.value; select.innerHTML = slotOptions(); select.value = value; }); root.querySelector("[data-availability]").textContent=usableSlots().length?"":t("No hay horarios verificados disponibles. Publica disponibilidad o espera a la próxima revisión del calendario.","No verified times are available right now. Contact Elkin or check again later."); }
   function renderAccount() {
+    root.querySelector('[data-topups]').hidden=!admin&&!account;
     root.querySelector("[data-content]").hidden = !account;
     root.querySelector("[data-account]").innerHTML = !account ? `<p>${t("Selecciona o activa un estudiante.","Your private class balance has not been activated yet. Contact Elkin to confirm your remaining classes.")}</p>` :
       `<h3 style="margin-top:24px">${escape(account.fullName)}</h3><div class="lesson-stats">${[[account.credited,t("Clases acreditadas","Classes credited")],[account.used,t("Consumidas","Used")],[account.reserved,t("Reservadas","Reserved")],[account.credited-account.used-account.reserved,t("Disponibles","Available")]].map(([n,label]) => `<div class="lesson-stat"><strong>${n}</strong><span>${label}</span></div>`).join("")}</div><p class="lesson-note">${t("Las clases acreditadas incluyen el saldo inicial, los paquetes y los ajustes. Las reservadas siguen pendientes de realizar.","Classes credited include your opening balance, packages and adjustments. Reserved classes are still waiting to take place.")}</p>`;
@@ -105,5 +108,6 @@ export function mountPrivateLessons(root, app, admin = false) {
     stops.push(onSnapshot(collection(db,"privateEnrollments"),snap=>{enrollments=snap.docs.map(d=>({id:d.id,...d.data()}));renderStudents();},failure));
   } else watchStudent(uid);
   const interval=setInterval(()=>{if(!busy && !root.contains(document.activeElement)){renderSlots();renderLessons();}},30000);
-  return ()=>{clearInterval(interval);root.removeEventListener("submit",handleSubmit);studentStops.forEach(stop=>stop());stops.forEach(stop=>stop());root.replaceChildren();};
+  const stopTopups=mountPrivateTopups(root.querySelector('[data-topups]'),app,admin);
+  return ()=>{clearInterval(interval);stopTopups();root.removeEventListener("submit",handleSubmit);studentStops.forEach(stop=>stop());stops.forEach(stop=>stop());root.replaceChildren();};
 }

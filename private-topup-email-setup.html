@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  <title>Activar avisos de pagos | Spanish with Elkin</title><link rel="icon" href="favicon.svg">
+  <style>*{box-sizing:border-box}body{margin:0;background:#f8fafc;color:#172554;font:16px/1.65 system-ui,sans-serif}main{max-width:820px;margin:40px auto;padding:28px;background:white;border:1px solid #e2e8f0;border-radius:22px}h1{line-height:1.2}h2{font-size:1.2rem;margin-top:28px}a{color:#1e40af}button{padding:13px 18px;border:0;border-radius:10px;background:#1e3a8a;color:white;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.5}code{background:#eff6ff;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}.notice{padding:16px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px}textarea{width:100%;min-height:240px;font:13px/1.5 monospace}#copy-status{min-height:24px}@media(max-width:600px){main{margin:16px;padding:20px}}</style>
+</head>
+<body><main>
+  <a href="admin.html">← Volver a Administración</a>
+  <h1>Activar los correos de nuevos pagos</h1>
+  <p>Esta configuración se hace una sola vez con la cuenta de Google que ya administra tus correos y calendario.</p>
+  <div class="notice">Los reportes y las recargas funcionan en la web. Los correos esperan a que completes estos pasos. No necesitas activar Blaze ni contratar otro servicio.</div>
+  <h2>1. Abre tu proyecto de Google</h2>
+  <p>Entra en <a href="https://script.google.com/home" target="_blank" rel="noopener noreferrer">Google Apps Script</a> y abre el proyecto que ya usas para Spanish with Elkin, donde está el código de los correos de pago o la sincronización del calendario.</p>
+  <h2>2. Añade el archivo de avisos</h2>
+  <p>En el editor, pulsa <strong>+ → Secuencia de comandos</strong>. Llámalo <code>privateTopupEmails</code>. Borra el ejemplo vacío de ese archivo nuevo y pega el contenido que copia este botón. Conserva los archivos existentes.</p>
+  <button id="copy" type="button">Copiar el código completo</button><p id="copy-status" role="status" aria-live="polite"></p>
+  <details><summary>Ver el código o copiarlo manualmente</summary><textarea id="source" readonly aria-label="Código de los avisos de pagos"></textarea><p><a href="private-topup-emails.gs" download>Descargar el archivo</a></p></details>
+  <h2>3. Activa el envío</h2>
+  <p>Guarda el proyecto. En el selector de funciones de la parte superior, elige <code>sweInstallPrivateTopupEmails</code> y pulsa <strong>Ejecutar</strong>. Completa la autorización de Google con la misma cuenta. No hace falta crear una nueva implementación web.</p>
+  <p>Si aparece un error de acceso a Firestore, verifica que elegiste el proyecto de Apps Script que ya utiliza tu integración y comparte el mensaje del error para revisarlo.</p>
+  <h2>4. Comprueba el estado</h2>
+  <p>Vuelve a <a href="admin.html">Administración → Privadas</a>. En <strong>Nuevos pagos de clases</strong> aparecerá la configuración de correo para <strong>hello@spanishwithelkin.com</strong> y la última comprobación.</p>
+  <p>Se revisarán los avisos aproximadamente cada cinco minutos. Tú recibirás los reportes; el estudiante recibirá su acuse y, tras tu revisión, la confirmación o el mensaje de corrección. Informar un pago nunca acredita clases por sí solo.</p>
+  <p>Si se agota el cupo de correo de Google, los avisos quedan en espera y se reintentan. Un envío cuyo resultado sea incierto requiere revisión para evitar enviar el mismo correo dos veces.</p>
+  <script type="module">
+    const button=document.querySelector('#copy'),output=document.querySelector('#copy-status'),source=document.querySelector('#source');
+    const code=fetch('private-topup-emails.gs').then(async response=>{if(!response.ok)throw new Error('No se pudo cargar el archivo.');const text=await response.text();source.value=text;return text;});
+    code.catch(error=>{output.textContent=error.message;button.disabled=true;});
+    button.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(await code);output.textContent='Código copiado. Pégalo en el archivo nuevo de Apps Script.';}catch{source.closest('details').open=true;source.focus();source.select();output.textContent='Selecciona y copia el código del cuadro con Ctrl+C.';}});
+  </script>
+</main></body></html>

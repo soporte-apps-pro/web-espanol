@@ -26,6 +26,8 @@ export function createLessonStore(db, sdk, getActor) {
     }
     need(validId(uid), "Select a student.");
     const quantity = ["open","credit"].includes(action) ? input.quantity : 0;
+    const paymentReportId = input.paymentReportId || "";
+    if (paymentReportId) need(action === "credit" && actor.admin && validId(paymentReportId), "Invalid payment approval.");
     need(Number.isSafeInteger(quantity) && Math.abs(quantity) <= 10000 && (action !== "open" || quantity >= 0) && (action !== "credit" || quantity !== 0), "Enter a valid whole number of classes.");
     const hasLesson = !["open","credit"].includes(action);
     const lessonId = action === "book" ? `${actor.uid}_${input.operationId}` : hasLesson ? input.lessonId : "";
@@ -35,7 +37,7 @@ export function createLessonStore(db, sdk, getActor) {
     const accountRef = doc(db,"privateAccounts",uid);
     const historyRef = doc(db,"privateAccounts",uid,"history",operationId);
     const lessonRef = hasLesson ? doc(db,"privateLessons",lessonId) : null;
-    const fingerprint = JSON.stringify({ action,uid,quantity,lessonId,slotId:input.slotId || "",reason,fullName,email });
+    const fingerprint = JSON.stringify({ action,uid,quantity,lessonId,slotId:input.slotId || "",reason,fullName,email,...(paymentReportId?{paymentReportId}:{}) });
     return runTransaction(db,async tx => {
       const receipt = await tx.get(historyRef);
       if (receipt.exists()) {
@@ -51,6 +53,14 @@ export function createLessonStore(db, sdk, getActor) {
       } else {
         need(snapshot.exists(), "Elkin has not activated this balance yet.");
         account = snapshot.data();
+      }
+      let reportRef, report, claimRef;
+      if (paymentReportId) {
+        reportRef = doc(db,"privateTopups",paymentReportId);
+        report = (await tx.get(reportRef)).data();
+        need(report?.studentUid === uid && report.status === "pending" && report.quantity === quantity, "This payment has changed or was already reviewed.");
+        claimRef = doc(db,"privateTopupClaims",report.referenceKey);
+        need(!(await tx.get(claimRef)).exists(), "This payment reference has already credited classes. Check it before adding more.");
       }
       let before, oldRef, targetRef, target;
       if (hasLesson && action !== "book") {
@@ -89,9 +99,14 @@ export function createLessonStore(db, sdk, getActor) {
           slotId:target?input.slotId:before.slotId,colombiaStart:scheduled.startAt,
           status:["cancel","late_cancel"].includes(action)?"cancelled":"confirmed",packageLabel:"Prepaid class balance",lessonId});
       }
+      if (reportRef) {
+        tx.update(reportRef,{status:"confirmed",reviewedAt:stamp,reviewedBy:actor.uid,reviewNote:reason,reviewOperationId:operationId});
+        tx.set(claimRef,{reportId:paymentReportId,studentUid:uid,createdAt:stamp});
+        tx.set(doc(db,"privateTopupMail",`${paymentReportId}_student_confirmed`),{reportId:paymentReportId,studentUid:uid,kind:"student_confirmed",status:"pending",createdAt:stamp});
+      }
       tx.set(historyRef,{action,quantity,reason,actorUid:actor.uid,actorRole:actor.admin?"admin":"student",createdAt:stamp,
         lessonId,fromSlotId:before?.slotId || "",toSlotId:target?input.slotId:"",fromStartAt:before?.startAt || null,toStartAt:target?.startAt || null,
-        credited:account.credited,used:account.used,reserved:account.reserved,fingerprint});
+        credited:account.credited,used:account.used,reserved:account.reserved,fingerprint,...(paymentReportId?{paymentReportId}:{})});
       return {data:{studentUid:uid,lessonId}};
     });
   };

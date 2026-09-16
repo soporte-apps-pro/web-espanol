@@ -409,13 +409,14 @@ service cloud.firestore {
       let h = request.resource.data;
       let a = accountAfter(uid);
       return (isAdmin() || ownsPrivateAccount(uid)) &&
-        h.keys().hasOnly(['action','quantity','reason','actorUid','actorRole','createdAt','lessonId','fromSlotId','toSlotId','fromStartAt','toStartAt','credited','used','reserved','fingerprint']) &&
+        h.keys().hasOnly(['action','quantity','reason','actorUid','actorRole','createdAt','lessonId','fromSlotId','toSlotId','fromStartAt','toStartAt','credited','used','reserved','fingerprint','paymentReportId']) &&
         h.actorUid == request.auth.uid && h.actorRole == (isAdmin() ? 'admin' : 'student') && h.createdAt == request.time &&
         h.reason is string && h.reason.size() <= 500 && (!isAdmin() || h.reason.size() >= 3) &&
         h.fingerprint is string && h.fingerprint.size() <= 1500 &&
         h.quantity is int && h.quantity >= -10000 && h.quantity <= 10000 &&
         h.lessonId is string && h.lessonId.size() <= 180 && h.fromSlotId is string && h.toSlotId is string &&
         accountShape(a) && a.lastOperation == opId && h.credited == a.credited && h.used == a.used && h.reserved == a.reserved &&
+        (h.get('paymentReportId','') == '' || validTopupCredit(uid,opId,h)) &&
         ((h.action == 'open' && isAdmin() && !exists(/databases/$(database)/documents/privateAccounts/$(uid)) &&
             a.createdAt == request.time && h.quantity >= 0 && a.credited == h.quantity && a.used == 0 && a.reserved == 0) ||
          (h.action != 'open' && balanceChange(uid, h, a))) &&
@@ -455,6 +456,89 @@ service cloud.firestore {
       allow read: if isAdmin() || ownsPrivateAccount(resource.data.studentUid);
       allow create, update: if linkedLessonWrite(lessonId);
       allow delete: if false;
+    }
+    function topupAfter(id) {
+      return getAfter(/databases/$(database)/documents/privateTopups/$(id)).data;
+    }
+    function topupJob(id, kind, uid) {
+      let j = getAfter(/databases/$(database)/documents/privateTopupMail/$(id + '_' + kind)).data;
+      return j.reportId == id && j.kind == kind && j.studentUid == uid && j.status == 'pending' && j.createdAt == request.time;
+    }
+    function topupPackage(r) {
+      return (r.packageId == 'single' && r.packageLabel == '1 private class' && r.quantity == 1 && r.amountUsd == 25) ||
+        (r.packageId == 'pack4' && r.packageLabel == '4 private classes' && r.quantity == 4 && r.amountUsd == 84) ||
+        (r.packageId == 'pack8' && r.packageLabel == '8 private classes' && r.quantity == 8 && r.amountUsd == 152);
+    }
+    function validTopupCredit(uid, opId, h) {
+      let r = topupAfter(h.paymentReportId);
+      let before = get(/databases/$(database)/documents/privateTopups/$(h.paymentReportId)).data;
+      return isAdmin() && h.action == 'credit' && before.status == 'pending' && r.status == 'confirmed' &&
+        r.studentUid == uid && r.quantity == h.quantity && r.reviewOperationId == opId && r.reviewedAt == request.time;
+    }
+    function topupConfirmed(id, r) {
+      let a = accountAfter(r.studentUid);
+      let h = operationAfter(r.studentUid,r.reviewOperationId);
+      let claim = getAfter(/databases/$(database)/documents/privateTopupClaims/$(r.referenceKey)).data;
+      return a.lastOperation == r.reviewOperationId && a.updatedAt == request.time &&
+        h.action == 'credit' && h.paymentReportId == id && h.quantity == r.quantity && h.createdAt == request.time &&
+        !exists(/databases/$(database)/documents/privateAccounts/$(r.studentUid)/history/$(r.reviewOperationId)) &&
+        !exists(/databases/$(database)/documents/privateTopupClaims/$(r.referenceKey)) && claim.reportId == id &&
+        topupJob(id,'student_confirmed',r.studentUid);
+    }
+    match /privateTopups/{reportId} {
+      allow read: if isAdmin() || ownsPrivateAccount(resource.data.studentUid);
+      // Also allow the owner to read a missing deterministic ID before reporting.
+      allow get: if request.auth != null && request.auth.token.email_verified == true &&
+        reportId.matches('^' + request.auth.uid + '_(wise|paypal|transfer|other)_[A-Z0-9_-]{4,100}$');
+      allow create: if ownsPrivateAccount(request.resource.data.studentUid) &&
+        request.resource.data.keys().hasOnly(['studentUid','fullName','email','packageId','packageLabel','quantity','amountUsd','paymentMethod','paymentReference','referenceKey','payerName','status','createdAt']) &&
+        reportId == request.auth.uid + '_' + request.resource.data.referenceKey && reportId.size() <= 180 &&
+        request.resource.data.fullName == get(/databases/$(database)/documents/privateAccounts/$(request.auth.uid)).data.fullName &&
+        request.resource.data.email == get(/databases/$(database)/documents/privateAccounts/$(request.auth.uid)).data.email &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.paymentMethod in ['wise','paypal','transfer','other'] &&
+        request.resource.data.paymentReference.matches('^[A-Z0-9_-]{4,100}$') &&
+        request.resource.data.referenceKey == request.resource.data.paymentMethod + '_' + request.resource.data.paymentReference &&
+        request.resource.data.payerName is string && request.resource.data.payerName.size() >= 2 && request.resource.data.payerName.size() <= 100 &&
+        topupPackage(request.resource.data) && request.resource.data.status == 'pending' && request.resource.data.createdAt == request.time &&
+        topupJob(reportId,'admin_received',request.auth.uid) && topupJob(reportId,'student_received',request.auth.uid);
+      allow update: if isAdmin() && resource.data.status == 'pending' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedAt','reviewedBy','reviewNote','reviewOperationId']) &&
+        request.resource.data.reviewedBy == request.auth.uid && request.resource.data.reviewedAt == request.time &&
+        request.resource.data.reviewOperationId is string && request.resource.data.reviewOperationId.size() >= 16 &&
+        request.resource.data.reviewNote is string && request.resource.data.reviewNote.size() >= 3 && request.resource.data.reviewNote.size() <= 500 &&
+        ((request.resource.data.status == 'confirmed' && topupConfirmed(reportId,request.resource.data)) ||
+         (request.resource.data.status == 'rejected' && topupJob(reportId,'student_rejected',resource.data.studentUid)));
+      allow delete: if false;
+    }
+    match /privateTopupClaims/{referenceKey} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.keys().hasOnly(['reportId','studentUid','createdAt']) &&
+        request.resource.data.createdAt == request.time &&
+        topupAfter(request.resource.data.reportId).referenceKey == referenceKey &&
+        topupAfter(request.resource.data.reportId).studentUid == request.resource.data.studentUid &&
+        topupAfter(request.resource.data.reportId).status == 'confirmed' &&
+        topupAfter(request.resource.data.reportId).reviewedAt == request.time;
+      allow update, delete: if false;
+    }
+    match /privateTopupMail/{jobId} {
+      allow read: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['reportId','studentUid','kind','status','createdAt']) &&
+        request.resource.data.status == 'pending' && request.resource.data.createdAt == request.time &&
+        jobId == request.resource.data.reportId + '_' + request.resource.data.kind &&
+        topupAfter(request.resource.data.reportId).studentUid == request.resource.data.studentUid &&
+        (((isAdmin() || ownsPrivateAccount(request.resource.data.studentUid)) &&
+          request.resource.data.kind in ['admin_received','student_received'] &&
+          topupAfter(request.resource.data.reportId).status == 'pending' && topupAfter(request.resource.data.reportId).createdAt == request.time) ||
+         (isAdmin() && topupAfter(request.resource.data.reportId).reviewedAt == request.time &&
+          ((request.resource.data.kind == 'student_confirmed' && topupAfter(request.resource.data.reportId).status == 'confirmed') ||
+           (request.resource.data.kind == 'student_rejected' && topupAfter(request.resource.data.reportId).status == 'rejected'))));
+      // Only the Apps Script service (IAM) may mark messages sent or retry them.
+      allow update, delete: if false;
+    }
+    match /privateTopupSettings/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
     match /privateEnrollments/{userId} {
       allow create: if request.auth != null && request.auth.uid == userId &&
