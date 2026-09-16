@@ -25,13 +25,15 @@ async function notifyPaymentReceipt(documentId) {
 
 const accessType = document.querySelector("#access-type");
 function updateAccessType() {
-  const privateAccess=accessType.value==="private";
-  document.querySelector("#group-access-info").hidden=privateAccess;
-  document.querySelector("#group-payment-fields").hidden=privateAccess;
+  const privateAccess=accessType.value==="private",groupAccess=accessType.value==="group";
+  document.querySelector("#group-access-info").hidden=!groupAccess;
+  document.querySelector("#register-form").hidden=!privateAccess&&!groupAccess;
+  document.querySelector('label[for="register-email"]').textContent=privateAccess?"Email":"Email used for your Speaking Club application";
+  document.querySelector("#group-payment-fields").hidden=!groupAccess;
   document.querySelector("#private-access-note").hidden=!privateAccess;
-  document.querySelector("#payment-reference").required=!privateAccess;
+  document.querySelector("#payment-reference").required=groupAccess;
   document.querySelector("#payer-name").required=!privateAccess;
-  document.querySelectorAll("#group-payment-fields input").forEach(input=>{input.disabled=privateAccess;});
+  document.querySelectorAll("#group-payment-fields input").forEach(input=>{input.disabled=!groupAccess;});
 }
 accessType.addEventListener("change",updateAccessType);
 updateAccessType();
@@ -41,6 +43,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
   const form = event.currentTarget;
   const button = form.querySelector("button");
   const output = document.querySelector("#register-message");
+  if(!["private","group"].includes(accessType.value)){message(output,"Choose Speaking Club or Private classes first.");return;}
   button.disabled=true; button.textContent="Creating account…";
   authBusy=true;
   try {

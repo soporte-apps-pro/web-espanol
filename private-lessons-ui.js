@@ -2,8 +2,8 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-aut
 import { collection, doc, getFirestore, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import * as firestore from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
-import { createLessonStore, privateDuration } from "./private-lessons-store.mjs?v=20260916-duration-fix-1";
-import { mountPrivateTopups } from "./private-topups-ui.js?v=20260916-duration-fix-1";
+import { createLessonStore, privateDuration, normalizeMeetingUrl } from "./private-lessons-store.mjs?v=20260916-access-link-1";
+import { mountPrivateTopups } from "./private-topups-ui.js?v=20260916-access-link-1";
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[char]);
 const DAY = 86400000;
@@ -16,7 +16,7 @@ export function mountPrivateLessons(root, app, admin = false) {
   const status = value => ({ reserved:t("Reservada","Reserved"), completed:t("Realizada","Completed"), cancelled:t("Cancelada · clase devuelta","Cancelled · credit returned"), late_cancelled:t("Cancelación tardía · clase consumida","Late cancellation · credit used"), no_show:t("Ausencia · clase consumida","Missed · credit used") })[value] || value;
   const actionLabel = value => ({correct_duration:t("Duración corregida","Class duration corrected"),configure:t("Condiciones actualizadas","Conditions updated"),open:t("Saldo inicial","Opening balance"),credit:t("Pago / ajuste","Payment / adjustment"),book:t("Reserva","Booking"),reschedule:t("Reprogramación","Reschedule"),cancel:t("Cancelación","Cancellation"),late_cancel:t("Cancelación tardía","Late cancellation"),complete:t("Clase realizada","Lesson completed"),no_show:t("Ausencia","Missed lesson")})[value] || value;
   let uid = admin ? "" : auth.currentUser.uid, account, lessons = [], slots = [], accounts = [], enrollments = [], busy = false;
-  let studentStops = [], stops = [];
+  let studentStops = [], stops = [], meetingUrl="";
   const pending = new Map();
   const termsFields=()=>`<label>Condiciones<select name="termsMode"><option value="general">Tarifas generales</option><option value="custom">Condiciones personales</option></select></label><fieldset data-terms-fields hidden disabled><label>Duración de cada clase<select name="durationMinutes"><option value="50">50 minutos</option><option value="30">30 minutos</option></select></label><label>Clases del paquete<input name="packageQuantity" type="number" min="1" max="100" step="1" value="1" required></label><label>Precio total del paquete (USD)<input name="packageAmountUsd" type="number" min="0.01" max="10000" step="0.01" required></label><label>Enlace de pago acordado (opcional)<input name="paymentUrl" type="url" pattern="https://.*" maxlength="500" placeholder="https://..."></label><label>Instrucciones de pago para el estudiante (opcional)<textarea name="paymentNote" maxlength="500" placeholder="Escribe las instrucciones en el idioma del estudiante"></textarea></label><p class="lesson-note">Para una tarifa por clase, indica 1 clase. El estudiante verá únicamente este paquete. Sin enlace, utilizará el método que hayan acordado.</p></fieldset>`;
   function readTerms(values){return values.termsMode==='custom'?{durationMinutes:Number(values.durationMinutes),packageQuantity:Number(values.packageQuantity),packageAmountUsd:Number(values.packageAmountUsd),paymentUrl:values.paymentUrl,paymentNote:values.paymentNote}:null;}
@@ -27,9 +27,10 @@ export function mountPrivateLessons(root, app, admin = false) {
     <p class="lesson-note">${t("El estudiante puede cancelar o reprogramar hasta 24 horas antes. Después, solo tú puedes hacerlo. Puedes devolver la clase como excepción o registrar una cancelación tardía que consume la clase.","You can cancel or reschedule at least 24 hours before the lesson. After that, only Elkin can make changes. Cancelling on time returns the credit. Late cancellations and missed lessons use one credit, unless Elkin makes an exception.")}</p>
     <p class="lesson-note">${t("Horarios en","Times shown in")} <strong>${escape(zone)}</strong>. ${t("Disponibilidad para los próximos 21 días.","Availability for the next 21 days.")}</p>
     <p class="lesson-notice" data-message role="status" aria-live="polite"></p>
-    ${admin ? `<div class="lesson-forms"><form data-open><h3>Activar estudiante</h3><p class="lesson-note">Primero debe crear su cuenta en Acceso a estudiantes. Introduce solo las clases que le quedan pendientes; no vuelvas a cargar un pago ya registrado.</p><label>Nombre<input name="fullName" required minlength="2" maxlength="80"></label><label>Correo de su cuenta<input name="email" type="email" required maxlength="120"></label>${termsFields()}<label>Clases pendientes al empezar<input name="quantity" type="number" min="0" max="10000" step="1" value="0" required></label><label>Nota de saldo inicial<input name="reason" required minlength="3" maxlength="500" placeholder="Saldo revisado con el estudiante"></label><button class="primary" type="submit">Activar y guardar saldo y condiciones</button></form><div><h3>Estudiantes</h3><label for="lesson-student">Seleccionar estudiante</label><select id="lesson-student" data-student><option value="">Selecciona un estudiante</option></select><details><summary>Cuentas pendientes de activar</summary><div data-enrollments></div></details></div></div>` : ""}
+    ${admin ? `<div class="lesson-forms"><form data-open><h3>Activar estudiante</h3><p class="lesson-note">Primero debe crear su cuenta en Acceso a estudiantes. Introduce solo las clases que le quedan pendientes; no vuelvas a cargar un pago ya registrado.</p><label>Nombre<input name="fullName" required minlength="2" maxlength="80"></label><label>Correo de su cuenta<input name="email" type="email" required maxlength="120"></label>${termsFields()}<label>Enlace de clase (opcional)<input name="meetingUrl" type="url" pattern="https://.*" maxlength="1000" placeholder="https://meet.google.com/..."></label><label>Clases pendientes al empezar<input name="quantity" type="number" min="0" max="10000" step="1" value="0" required></label><label>Nota de saldo inicial<input name="reason" required minlength="3" maxlength="500" placeholder="Saldo revisado con el estudiante"></label><button class="primary" type="submit">Activar y guardar saldo y condiciones</button></form><div><h3>Estudiantes</h3><label for="lesson-student">Seleccionar estudiante</label><select id="lesson-student" data-student><option value="">Selecciona un estudiante</option></select><details><summary>Cuentas pendientes de activar</summary><div data-enrollments></div></details></div></div>` : ""}
     <div data-account><p>${t("Selecciona o activa un estudiante.","Loading your class balance…")}</p></div>
-    <section data-settings hidden>${admin ? `<form data-duration><h3>Corregir duración de las clases</h3><label>Duración acordada<select name="durationMinutes"><option value="30">30 minutos</option><option value="50">50 minutos</option></select></label><p class="lesson-note">Conserva el número de clases disponibles y el precio. Si hay reservas, resuélvelas primero. Escribe el motivo para dejar constancia.</p><label>Motivo de la corrección<input name="reason" required minlength="3" maxlength="500" placeholder="Corrección de la duración acordada"></label><button class="primary" type="submit">Guardar duración sin cambiar el saldo</button></form><form data-configure><h3>Condiciones de este estudiante</h3>${termsFields()}<p class="lesson-note">Los cambios de precio se aplican a reportes nuevos. Para corregir una duración con saldo pendiente, utiliza el formulario de corrección de arriba.</p><label>Motivo del cambio<input name="reason" required minlength="3" maxlength="500"></label><button type="submit">Guardar condiciones</button></form>` : ""}</section>
+    <section data-class-link hidden></section>
+    <section data-settings hidden>${admin ? `<form data-meeting><h3>Enlace de clase del estudiante</h3><label>Enlace para entrar a sus clases<input name="meetingUrl" type="url" pattern="https://.*" maxlength="1000" placeholder="https://meet.google.com/..."></label><p class="lesson-note">Pega el enlace habitual de sus clases (Meet, Zoom u otra plataforma). Solo este estudiante y tú podrán verlo en el portal. Déjalo vacío para retirarlo.</p><button class="primary" type="submit">Guardar enlace de clase</button></form><form data-duration><h3>Corregir duración de las clases</h3><label>Duración acordada<select name="durationMinutes"><option value="30">30 minutos</option><option value="50">50 minutos</option></select></label><p class="lesson-note">Conserva el número de clases disponibles y el precio. Si hay reservas, resuélvelas primero. Escribe el motivo para dejar constancia.</p><label>Motivo de la corrección<input name="reason" required minlength="3" maxlength="500" placeholder="Corrección de la duración acordada"></label><button class="primary" type="submit">Guardar duración sin cambiar el saldo</button></form><form data-configure><h3>Condiciones de este estudiante</h3>${termsFields()}<p class="lesson-note">Los cambios de precio se aplican a reportes nuevos. Para corregir una duración con saldo pendiente, utiliza el formulario de corrección de arriba.</p><label>Motivo del cambio<input name="reason" required minlength="3" maxlength="500"></label><button type="submit">Guardar condiciones</button></form>` : ""}</section>
     <section data-topups aria-label="Payment reports"></section>
     <div data-content hidden>
       ${admin ? `<form data-credit><h3>Registrar paquete pagado o ajuste</h3><p class="lesson-note">Verifica el pago antes de añadir clases. Usa un número negativo para corregir un saldo disponible.</p><label>Clases (+ / −)<input name="quantity" type="number" min="-10000" max="10000" step="1" required></label><label>Referencia de pago o motivo<input name="reason" required minlength="3" maxlength="500"></label><button type="submit">Guardar clases</button></form>` : ""}
@@ -42,7 +43,14 @@ export function mountPrivateLessons(root, app, admin = false) {
   function usableSlots() { const now = Date.now(); return slots.filter(s => s.status === "available" && !s.lessonId && s.startAt?.toMillis() > now && s.startAt.toMillis() <= now + 21 * DAY && s.googleCalendarBlocked === false && s.googleCalendarCheckedAt?.toMillis() >= now - 35 * 60000).sort((a,b) => a.startAt.toMillis()-b.startAt.toMillis()); }
   function slotOptions() { return `<option value="">${t("Selecciona un horario","Select a time")}</option>` + usableSlots().map(s => `<option value="${escape(s.id)}">${escape(format(s.startAt))}</option>`).join(""); }
   function renderSlots() { root.querySelectorAll("[data-slot]").forEach(select => { const value = select.value; select.innerHTML = slotOptions(); select.value = value; }); root.querySelector("[data-availability]").textContent=usableSlots().length?"":t("No hay horarios verificados disponibles. Publica disponibilidad o espera a la próxima revisión del calendario.","No verified times are available right now. Contact Elkin or check again later."); }
+  function renderMeeting() {
+    const el=root.querySelector('[data-class-link]');el.hidden=!account;
+    let url='';try{url=normalizeMeetingUrl(meetingUrl);}catch{}
+    el.innerHTML=url?`<h3>${t('Enlace de clase','My class link')}</h3><a class="lesson-meeting-link" href="${escape(url)}" target="_blank" rel="noopener noreferrer">${t('Abrir enlace de clase','Join my class')}</a>${admin?'<button type="button" data-copy-meeting>Copiar enlace</button>':''}<p class="lesson-note">${t('Enlace para las clases de este estudiante.','Use this link at your scheduled class time.')}</p>`:`<p class="lesson-note">${t('Todavía no has asignado un enlace de clase. Puedes guardarlo abajo.','Elkin will add your class link here. Contact Elkin if your class is about to start.')}</p>`;
+    if(admin){const form=root.querySelector('[data-meeting]');if(!form.contains(document.activeElement))form.elements.meetingUrl.value=meetingUrl;}
+  }
   function renderAccount() {
+    renderMeeting();
     root.querySelector("[data-settings]").hidden=!admin||!account;
     if(admin&&account){const form=root.querySelector("[data-duration]");if(!form.contains(document.activeElement))form.elements.durationMinutes.value=privateDuration(account);}
     root.querySelector('[data-topups]').hidden=!admin&&!account;
@@ -66,9 +74,10 @@ export function mountPrivateLessons(root, app, admin = false) {
     root.querySelector("[data-enrollments]").innerHTML = enrollments.filter(e => !accounts.some(a => a.id === e.id)).map(e => `<p>${escape(e.fullName)}<br>${escape(e.email)}</p>`).join("") || '<p>No hay cuentas pendientes.</p>';
   }
   function watchStudent(value) {
-    studentStops.forEach(stop => stop()); studentStops = []; uid = value; account = undefined; lessons = []; renderAccount(); renderLessons();
+    studentStops.forEach(stop => stop()); studentStops = []; uid = value; account = undefined; lessons = [];meetingUrl=""; renderAccount(); renderLessons();
     root.querySelector("[data-history]").textContent = "";
     if (!uid) return;
+    studentStops.push(onSnapshot(doc(db,"privateClassLinks",uid),snap=>{meetingUrl=snap.data()?.url||"";renderMeeting();},failure));
     studentStops.push(onSnapshot(doc(db,"privateAccounts",uid), snap => { account = snap.data(); renderAccount(); }, failure));
     studentStops.push(onSnapshot(query(collection(db,"privateLessons"),where("studentUid","==",uid)), snap => { lessons=snap.docs.map(d=>({id:d.id,...d.data()})); renderLessons(); }, failure));
     studentStops.push(onSnapshot(collection(db,"privateAccounts",uid,"history"), snap => {
@@ -87,10 +96,11 @@ export function mountPrivateLessons(root, app, admin = false) {
     try {
       const result=await call({...data,operationId:pending.get(key)});
       pending.delete(key); form?.reset();
+      if(data.action==="meeting_link"){meetingUrl=data.meetingUrl;form.elements.meetingUrl.value=meetingUrl;renderMeeting();}
       if(data.action==="correct_duration")form.elements.durationMinutes.value=data.durationMinutes;
       if(form?.elements.termsMode){if(data.action==="configure"){form.elements.termsMode.value=data.terms?"custom":"general";for(const key of ["durationMinutes","packageQuantity","packageAmountUsd","paymentUrl","paymentNote"])form.elements[key].value=data.terms?.[key]??({durationMinutes:privateDuration(account),packageQuantity:1}[key]??"");}toggleTerms(form);}
       document.dispatchEvent(new CustomEvent("private-lessons-changed"));
-      message(t("Cambio guardado. El saldo y el historial se han actualizado.","Saved. Your balance and history have been updated."));
+      message(data.action==="meeting_link"?"Enlace de clase guardado. El estudiante ya puede verlo en su portal.":t("Cambio guardado. El saldo y el historial se han actualizado.","Saved. Your balance and history have been updated."));
       if(data.action==="open") { watchStudent(result.data.studentUid); renderStudents(); }
     } catch(error) { failure(error); }
     finally { busy=false;if(admin)root.querySelector("[data-student]").disabled=false;root.querySelectorAll("button").forEach(b=>b.disabled=false);renderAccount(); }
@@ -99,6 +109,7 @@ export function mountPrivateLessons(root, app, admin = false) {
     event.preventDefault(); const form=event.target;
     const values=Object.fromEntries(new FormData(form));
     if(form.matches("[data-open]")) return void execute({action:"open",...values,terms:readTerms(values),quantity:Number(values.quantity)},form);
+    if(form.matches("[data-meeting]")) return void execute({action:"meeting_link",studentUid:uid,meetingUrl:values.meetingUrl},form);
     if(form.matches("[data-duration]")) return void execute({action:"correct_duration",studentUid:uid,durationMinutes:Number(values.durationMinutes),reason:values.reason},form);
     if(form.matches("[data-configure]")) return void execute({action:"configure",studentUid:uid,terms:readTerms(values),reason:values.reason},form);
     if(form.matches("[data-credit]")) return void execute({action:"credit",studentUid:uid,...values,quantity:Number(values.quantity)},form);
@@ -112,6 +123,7 @@ export function mountPrivateLessons(root, app, admin = false) {
       void execute({action,studentUid:uid,lessonId:form.closest("[data-lesson]").dataset.lesson,reason:values.reason||"",...(action==="reschedule"?{slotId:values.slotId}:{})},form);
     }
   }
+  root.addEventListener('click',async event=>{if(!event.target.closest('[data-copy-meeting]'))return;try{await navigator.clipboard.writeText(normalizeMeetingUrl(meetingUrl));message('Enlace copiado. Puedes enviarlo por WhatsApp o correo.');}catch{message('Copia el enlace desde el botón Abrir enlace de clase.',true);}});
   root.addEventListener("change",event=>{if(event.target.name==="termsMode")toggleTerms(event.target.form);});
   root.addEventListener("submit",handleSubmit);
   stops.push(onSnapshot(query(collection(db,"privateAvailability"),where("status","==","available")),snap=>{slots=snap.docs.map(d=>({id:d.id,...d.data()}));renderSlots();},failure));

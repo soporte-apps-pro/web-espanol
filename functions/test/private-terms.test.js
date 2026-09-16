@@ -52,5 +52,20 @@ test('personal conditions preserve prices, durations and prepaid balances',async
     await init(2);await assert.rejects(student(command('correct_duration',{durationMinutes:50})));await admin(command('correct_duration',{durationMinutes:50}));
     const a=await read('privateAccounts','alice');assert.equal(a.terms.durationMinutes,50);assert.equal(a.terms.packageAmountUsd,99.5);assert.equal(a.credited,2);
   });
+
+  await t.test('teacher assigns and changes private class link; only its student can read it',async()=>{
+    await init(2);await admin(command('meeting_link',{meetingUrl:'https://meet.google.com/abc-defg-hij'}));
+    assert.equal((await sdk.getDoc(sdk.doc(db,'privateClassLinks','alice'))).data().url,'https://meet.google.com/abc-defg-hij');
+    const other=env.authenticatedContext('bob',{email_verified:true}).firestore();await assertFails(sdk.getDoc(sdk.doc(other,'privateClassLinks','alice')));
+    await assert.rejects(student(command('meeting_link',{meetingUrl:'https://example.com/'})));await assertFails(sdk.setDoc(sdk.doc(db,'privateClassLinks','alice'),{url:'https://example.com',updatedBy:'alice',updatedAt:sdk.serverTimestamp()}));
+    await admin(command('meeting_link',{meetingUrl:'https://zoom.us/j/123456'}));assert.equal((await read('privateClassLinks','alice')).url,'https://zoom.us/j/123456');assert.equal((await read('privateAccounts','alice')).credited,2);
+    await assert.rejects(admin(command('meeting_link',{meetingUrl:'javascript:alert(1)'})));await assert.rejects(admin(command('meeting_link',{meetingUrl:'https://user:password@example.com/'})));
+    await admin(command('meeting_link',{meetingUrl:''}));assert.equal((await read('privateClassLinks','alice')).url,'');
+  });
+  await t.test('activation can save the class link atomically with the initial account',async()=>{
+    await env.clearFirestore();await seed('privateEnrollments','alice',{fullName:'Alice Student',email:'alice@example.test',createdAt:sdk.Timestamp.now()});
+    await admin(command('open',{fullName:'Alice Student',email:'alice@example.test',quantity:2,terms,meetingUrl:'https://meet.google.com/abc-defg-hij'}));
+    assert.equal((await read('privateClassLinks','alice')).url,'https://meet.google.com/abc-defg-hij');assert.equal((await read('privateAccounts','alice')).credited,2);
+  });
  } finally {await env.cleanup();}
 });

@@ -33,3 +33,10 @@ test('admin and student use independent stable Firebase apps',()=>{
  for(const file of ['admin.js','admin-calendar.js','private-lessons-admin.js','private-booking-admin.js'])assert.match(readFileSync(resolve(__dirname,'../../'+file),'utf8'),/const app\s*=\s*getAdminApp\(\)/);
  for(const file of ['student-access.js','student-portal.js'])assert.match(readFileSync(resolve(__dirname,'../../'+file),'utf8'),/const app\s*=\s*getStudentApp\(\)/);
 });
+
+test('registration waits for class choice and shows only matching information',()=>{
+ const f=accessFixture(null),choice=f.get('#access-type');choice.value='';choice.events.change();
+ assert.equal(f.get('#register-form').hidden,true);assert.equal(f.get('#group-access-info').hidden,true);assert.equal(f.get('#private-access-note').hidden,true);
+ choice.value='private';choice.events.change();assert.equal(f.get('#register-form').hidden,false);assert.equal(f.get('#group-access-info').hidden,true);assert.equal(f.get('#private-access-note').hidden,false);assert.equal(f.get('#payment-reference').required,false);
+ choice.value='group';choice.events.change();assert.equal(f.get('#group-access-info').hidden,false);assert.equal(f.get('#private-access-note').hidden,true);assert.equal(f.get('#payment-reference').required,true);
+});

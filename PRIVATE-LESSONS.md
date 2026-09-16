@@ -65,3 +65,9 @@ El acceso por correo configura persistencia local de Firebase antes de autentica
 ### Corrección de duración
 
 En cuentas activadas, la sección Corregir duración permite al administrador corregir 30/50 minutos manteniendo el saldo y los precios, siempre que no existan reservas. Registra duración anterior, nueva y motivo en el historial. Las reservas futuras usan la duración corregida; las históricas permanecen intactas. El campo durationMinutes de la cuenta tiene prioridad sobre la duración anterior en terms. Las condiciones y la corrección aparecen inmediatamente debajo del saldo en administración.
+
+### Enlace privado de clase
+
+El administrador puede guardar un enlace https al activar o desde Enlace de clase del estudiante debajo del saldo. Se almacena en privateClassLinks/{uid}; solo el administrador lo escribe y solo él y ese estudiante verificado pueden leerlo. El botón Join my class abre el enlace vigente; cambiarlo actualiza el portal y vaciarlo retira el botón. Copiar enlace permite enviarlo manualmente. No se crea una reunión automáticamente ni se envía un correo al guardar. Speaking Club conserva el enlace asignado a su grupo.
+
+Request your access empieza sin tipo seleccionado, sin formulario ni datos de pago; solo muestra los correspondientes después de elegir Speaking Club o Private classes. El acceso de cuentas existentes continúa disponible.

@@ -1,3 +1,10 @@
+export function normalizeMeetingUrl(value) {
+  const text=String(value||'').trim();
+  if(!text)return '';
+  let url;try{url=new URL(text);}catch{throw new Error('Introduce un enlace https válido para la clase.');}
+  if(url.protocol!=='https:'||url.username||url.password||url.href.length>1000)throw new Error('El enlace de clase debe ser https y no incluir credenciales.');
+  return url.href;
+}
 export const privateDuration = account => account?.durationMinutes ?? account?.terms?.durationMinutes ?? 50;
 export function normalizePrivateTerms(value) {
   if (!value) return null;
@@ -15,6 +22,12 @@ export function createLessonStore(db, sdk, getActor) {
     const actor = getActor();
     need(actor?.uid, "Sign in first.");
     const action = input.action;
+    if(action==='meeting_link'){
+      need(actor.admin&&validId(input.studentUid),'Solo Elkin puede guardar el enlace de clase.');
+      const url=normalizeMeetingUrl(input.meetingUrl);
+      return runTransaction(db,async tx=>{need((await tx.get(doc(db,'privateAccounts',input.studentUid))).exists(),'Selecciona una cuenta activada.');tx.set(doc(db,'privateClassLinks',input.studentUid),{url,updatedBy:actor.uid,updatedAt:serverTimestamp()});return {data:{studentUid:input.studentUid}};});
+    }
+    const meetingUrl=action==='open'?normalizeMeetingUrl(input.meetingUrl):'';
     need(["open","configure","correct_duration","credit","book","reschedule","cancel","complete","no_show","late_cancel"].includes(action), "Unknown action.");
     if (["open","configure","correct_duration","credit","complete","no_show","late_cancel"].includes(action)) need(actor.admin, "Only Elkin can do this.");
     const reason = String(input.reason || "").trim();
@@ -46,7 +59,7 @@ export function createLessonStore(db, sdk, getActor) {
     const accountRef = doc(db,"privateAccounts",uid);
     const historyRef = doc(db,"privateAccounts",uid,"history",operationId);
     const lessonRef = hasLesson ? doc(db,"privateLessons",lessonId) : null;
-    const fingerprint = JSON.stringify({ action,uid,quantity,lessonId,slotId:input.slotId || "",reason,fullName,email,...(paymentReportId?{paymentReportId}:{}),...(action==="correct_duration"?{durationMinutes:input.durationMinutes}:{}),...(["open","configure"].includes(action)&&input.terms!==undefined?{terms}:{}) });
+    const fingerprint = JSON.stringify({ action,uid,quantity,lessonId,slotId:input.slotId || "",reason,fullName,email,...(paymentReportId?{paymentReportId}:{}),...(meetingUrl?{meetingUrl}:{}),...(action==="correct_duration"?{durationMinutes:input.durationMinutes}:{}),...(["open","configure"].includes(action)&&input.terms!==undefined?{terms}:{}) });
     return runTransaction(db,async tx => {
       const receipt = await tx.get(historyRef);
       if (receipt.exists()) {
@@ -125,6 +138,7 @@ export function createLessonStore(db, sdk, getActor) {
         tx.set(claimRef,{reportId:paymentReportId,studentUid:uid,createdAt:stamp});
         tx.set(doc(db,"privateTopupMail",`${paymentReportId}_student_confirmed`),{reportId:paymentReportId,studentUid:uid,kind:"student_confirmed",status:report.packageId==="custom"?"terms_pending":"pending",createdAt:stamp});
       }
+      if(action==="open"&&meetingUrl)tx.set(doc(db,"privateClassLinks",uid),{url:meetingUrl,updatedBy:actor.uid,updatedAt:stamp});
       if (action === "open") tx.set(doc(db,"privateTopupMail",`${uid}_student_activated`),{reportId:uid,studentUid:uid,kind:"student_activated",status:"activation_pending",createdAt:stamp});
       tx.set(historyRef,{action,quantity,reason,actorUid:actor.uid,actorRole:actor.admin?"admin":"student",createdAt:stamp,
         lessonId,fromSlotId:before?.slotId || "",toSlotId:target?input.slotId:"",fromStartAt:before?.startAt || null,toStartAt:target?.startAt || null,

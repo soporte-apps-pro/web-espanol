@@ -44,10 +44,10 @@
   <main id="access-forms" class="shell hidden">
     <section class="card">
       <h1>Request your access</h1>
-      <p class="muted">Create your account to view your classes. Elkin will verify your payment or existing balance before activating access.</p>
-      <label for="access-type">Your classes</label><select id="access-type"><option value="group">Speaking Club</option><option value="private">Private classes</option></select>
+      <p class="muted">Choose your class type to get started.</p>
+      <label for="access-type">Your classes</label><select id="access-type" required><option value="" selected disabled>Select your classes</option><option value="group">Speaking Club</option><option value="private">Private classes</option></select>
       <p id="private-access-note" class="notice" hidden>Already taking private classes with Elkin? Create your account here and verify your email. Elkin will add your remaining classes. You do not need to pay again to register.</p>
-      <div id="group-access-info">
+      <div id="group-access-info" hidden>
       <div class="notice"><strong>After submitting, expect two emails:</strong><ol><li><strong>Payment information received</strong> from Spanish with Elkin.</li><li>A separate verification email from <strong>noreply@spanish-with-elkin.firebaseapp.com</strong>. Open its verification link. This message may arrive in Spam.</li></ol>Verifying your email does not confirm your payment. Elkin will review it before activating your access.</div>
       <div class="wise-box">
         <strong>Speaking Club · 4 sessions · US$50</strong>
@@ -57,7 +57,7 @@
         <p class="muted">Closed this page or need help? Email <a class="help-link" href="mailto:hello@spanishwithelkin.com?subject=Speaking%20Club%20payment%20help">hello@spanishwithelkin.com</a>.</p>
       </div>
       </div>
-      <form id="register-form">
+      <form id="register-form" hidden>
         <label for="register-name">Full name</label><input id="register-name" required minlength="2" maxlength="80">
         <label for="register-email">The same email used in your application</label><input id="register-email" type="email" required autocomplete="email">
         <label for="register-password">Password (minimum 8 characters)</label><input id="register-password" type="password" required minlength="8" autocomplete="new-password">
@@ -83,6 +83,6 @@
       </form>
     </section>
   </main>
-  <script type="module" src="student-access.js?v=20260916-separated-1"></script>
+  <script type="module" src="student-access.js?v=20260916-access-link-1"></script>
 </body>
 </html>

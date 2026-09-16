@@ -457,6 +457,15 @@ service cloud.firestore {
         (h.fromSlotId == slotId || h.toSlotId == slotId) &&
         !exists(/databases/$(database)/documents/privateAccounts/$(l.studentUid)/history/$(l.operationId));
     }
+    match /privateClassLinks/{userId} {
+      allow read: if isAdmin() || ownsPrivateAccount(userId);
+      allow create, update: if isAdmin() && existsAfter(/databases/$(database)/documents/privateAccounts/$(userId)) &&
+        request.resource.data.keys().hasOnly(['url','updatedBy','updatedAt']) &&
+        request.resource.data.url is string && request.resource.data.url.size() <= 1000 &&
+        (request.resource.data.url == '' || request.resource.data.url.matches('https://[^ ]+')) &&
+        request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
     match /privateAccounts/{userId} {
       allow read: if isAdmin() || ownsPrivateAccount(userId);
       allow create, update: if linkedAccountWrite(userId);
