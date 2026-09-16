@@ -1,10 +1,10 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import { getStudentApp } from "./firebase-sessions.js?v=20260916-separated-1";
 import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
 import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, reload, setPersistence, browserLocalPersistence, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { doc, getFirestore, serverTimestamp, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid, firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
 
-const app = initializeApp(firebaseConfig);
+const app = getStudentApp();
 const appCheck = initializeAppCheck(app, { provider:new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey), isTokenAutoRefreshEnabled:true });
 const auth = getAuth(app);
 const database = getFirestore(app);
@@ -142,7 +142,14 @@ function renderSession(user) {
   const panel=document.querySelector('#session-panel'),forms=document.querySelector('#access-forms');
   if(!user||user.isAnonymous){panel.hidden=true;forms.classList.remove('hidden');return;}
   forms.classList.add('hidden');panel.hidden=false;
-  if(user.uid===adminUid){location.replace('admin.html');return;}
+  document.querySelector('#session-sign-out').hidden=false;
+  if(user.uid===adminUid){
+    forms.classList.remove('hidden');
+    document.querySelector('#session-heading').textContent='Choose a student account';
+    document.querySelector('#session-status').textContent='You entered your administrator account here. Sign in below with the student account you want to use. Your separate administration session will stay open.';
+    document.querySelector('#verification-actions').hidden=true;
+    return;
+  }
   if(user.emailVerified){location.replace('student-portal.html');return;}
   document.querySelector('#session-heading').textContent='Verify your email';
   document.querySelector('#session-status').textContent='You are signed in as '+user.email+'. Open the verification link in your inbox or Spam, then press Continue. You do not need to enter your password again.';

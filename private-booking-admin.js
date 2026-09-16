@@ -1,9 +1,9 @@
-import { getApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import { getAdminApp } from "./firebase-sessions.js?v=20260916-separated-1";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { collection, deleteDoc, doc, getDocsFromServer, getFirestore, orderBy, query, serverTimestamp, Timestamp, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
 
-const app = getApp();
+const app = getAdminApp();
 const auth = getAuth(app);
 const database = getFirestore(app);
 const form = document.querySelector("#private-slot-form");

@@ -1,9 +1,9 @@
-import { getApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import { getAdminApp } from "./firebase-sessions.js?v=20260916-separated-1";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { collection, getDocsFromServer, getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
 
-const app=getApp(),auth=getAuth(app),database=getFirestore(app);
+const app=getAdminApp(),auth=getAuth(app),database=getFirestore(app);
 const grid=document.querySelector("#calendar-grid"),mobileGrid=document.querySelector("#calendar-mobile"),weekTitle=document.querySelector("#calendar-month"),message=document.querySelector("#calendar-message");
 const START_HOUR=7,END_HOUR=19,ROWS=(END_HOUR-START_HOUR)*2;
 let events=[],visibleWeek=mondayOf(colombiaToday());

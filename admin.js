@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import { getAdminApp } from "./firebase-sessions.js?v=20260916-separated-1";
 import {
   getToken,
   initializeAppCheck,
@@ -31,7 +31,7 @@ import {
 
 const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbwW0dtawkiixLv6akVE2mdPIO8AZwKCRtrRut1D_Hn8QWN7yrPeG9_33JtvaK3Yy7xC/exec";
 
-const app = initializeApp(firebaseConfig);
+const app = getAdminApp();
 const appCheck = initializeAppCheck(app, {
   provider: new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey),
   isTokenAutoRefreshEnabled: true,
