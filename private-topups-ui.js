@@ -1,8 +1,8 @@
 import {getAuth} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import * as sdk from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import {adminUid} from "./firebase-config.js";
-import {createLessonStore} from "./private-lessons-store.mjs?v=20260916-access-link-1";
-import {createTopupStore,packagesForAccount} from "./private-topup-store.mjs?v=20260916-access-link-1";
+import {createLessonStore} from "./private-lessons-store.mjs?v=20260916-booking-mail-1";
+import {createTopupStore,packagesForAccount} from "./private-topup-store.mjs?v=20260916-booking-mail-1";
 
 const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function mountPrivateTopups(root,app,admin=false) {
@@ -66,7 +66,7 @@ export function mountPrivateTopups(root,app,admin=false) {
   stops.push(sdk.onSnapshot(q,snap=>{reports=snap.docs.map(d=>({id:d.id,...d.data()}));render();},error=>message(t('No se pudieron cargar los pagos. ','Could not load payment reports. ')+error.message,true)));
   if(admin){
     stops.push(sdk.onSnapshot(sdk.doc(db,'privateTopupSettings','emailDelivery'),snap=>{const s=snap.data();root.querySelector('[data-mail-health]').textContent=s?.enabled?`Avisos por correo configurados para ${s.adminEmail}. Última comprobación: ${date(s.lastRunAt)||'pendiente'}.`:'El correo automático está pendiente de activar en Google. Los reportes se guardan aquí y los avisos esperan su envío.';},()=>{root.querySelector('[data-mail-health]').textContent='No se pudo comprobar el estado de envío de correos.';}));
-    stops.push(sdk.onSnapshot(sdk.query(sdk.collection(db,'privateTopupMail'),sdk.where('status','in',['pending','retry','sending','activation_pending','terms_pending','uncertain','failed'])),snap=>{
+    stops.push(sdk.onSnapshot(sdk.query(sdk.collection(db,'privateTopupMail'),sdk.where('status','in',['pending','retry','sending','activation_pending','terms_pending','lesson_pending','uncertain','failed'])),snap=>{
       const uncertain=snap.docs.filter(d=>['uncertain','failed'].includes(d.data().status)).length;
       root.querySelector('[data-mail-queue]').textContent=snap.size?`${snap.size} avisos en espera.${uncertain?' Hay un envío cuyo resultado necesita revisión en Google.':''}`:'No hay avisos pendientes.';
     },()=>{}));

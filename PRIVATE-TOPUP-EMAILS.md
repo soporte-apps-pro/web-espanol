@@ -37,3 +37,11 @@ Los nuevos registros privados crean un aviso admin_activation en la misma transa
 Al activar el saldo se crea student_activated una vez, con instrucciones de reserva o recarga seg?n el saldo disponible. Requiere actualizar el mismo archivo de Apps Script; no se aplica retroactivamente.
 
 Paquetes personales: reemplazar privateTopupEmails.gs con la versión actualizada y guardar. Los avisos terms_pending esperan esta versión para no ser descartados por el emisor anterior. Se validan precios al registrar el reporte y se conservan sus datos originales en el correo; la activación incluye las condiciones asignadas.
+
+## Reservas y reprogramaciones
+
+Cada operación book/reschedule guarda dos avisos lesson_pending en la misma transacción. El identificador de la operación evita duplicados al reintentar. Las reglas exigen historial nuevo autorizado; los clientes no pueden modificar los avisos.
+
+Reemplazar el contenido de privateTopupEmails.gs con el archivo actualizado y guardar: el activador existente de 15 minutos continúa. La versión anterior deja estos avisos pendientes. Cada correo incluye la fecha del evento en America/Bogota, duración y enlace vigente; una reprogramación incluye el horario anterior y el nuevo. Si hubo otro cambio posterior, pide consultar el estado actual en el portal. No se añaden correos de cancelación.
+
+Validación: 63 pruebas pasan con Firestore local y MailApp simulado, incluyendo destinatarios, deduplicación, historial y enlaces pendientes. No se enviaron correos reales ni se actualizó el editor de Google desde esta sesión.

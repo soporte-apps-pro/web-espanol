@@ -140,6 +140,9 @@ export function createLessonStore(db, sdk, getActor) {
       }
       if(action==="open"&&meetingUrl)tx.set(doc(db,"privateClassLinks",uid),{url:meetingUrl,updatedBy:actor.uid,updatedAt:stamp});
       if (action === "open") tx.set(doc(db,"privateTopupMail",`${uid}_student_activated`),{reportId:uid,studentUid:uid,kind:"student_activated",status:"activation_pending",createdAt:stamp});
+      if(["book","reschedule"].includes(action)){
+        for(const recipient of ["admin","student"]){const kind=recipient+"_"+(action==="book"?"booking":"reschedule");tx.set(doc(db,"privateTopupMail",operationId+"_"+kind),{reportId:operationId,studentUid:uid,kind,status:"lesson_pending",createdAt:stamp});}
+      }
       tx.set(historyRef,{action,quantity,reason,actorUid:actor.uid,actorRole:actor.admin?"admin":"student",createdAt:stamp,
         lessonId,fromSlotId:before?.slotId || "",toSlotId:target?input.slotId:"",fromStartAt:before?.startAt || null,toStartAt:target?.startAt || null,
         credited:account.credited,used:account.used,reserved:account.reserved,fingerprint,...(action==="correct_duration"?{durationMinutes:input.durationMinutes,previousDurationMinutes}:{}),...(["open","configure"].includes(action)?{terms:terms}:{}),...(paymentReportId?{paymentReportId}:{})});

@@ -26,7 +26,7 @@ function sweProcessPrivateTopupEmails() {
   try {
     const jobs = sweTopupRequest_(':runQuery', 'post', { structuredQuery: {
       from:[{collectionId:'privateTopupMail'}],
-      where:{fieldFilter:{field:{fieldPath:'status'},op:'IN',value:{arrayValue:{values:['pending','retry','sending','activation_pending','terms_pending'].map(function(s){return {stringValue:s};})}}}},
+      where:{fieldFilter:{field:{fieldPath:'status'},op:'IN',value:{arrayValue:{values:['pending','retry','sending','activation_pending','terms_pending','lesson_pending'].map(function(s){return {stringValue:s};})}}}},
       limit:30
     }}).filter(function(row){return row.document;}).map(function(row){return row.document;});
     jobs.sort(function(a,b){return String(sweTopupValue_(a.fields.createdAt)).localeCompare(String(sweTopupValue_(b.fields.createdAt)));});
@@ -51,7 +51,10 @@ function sweTopupDeliver_(job) {
   if (f.nextAttemptAt && new Date(sweTopupValue_(f.nextAttemptAt)).getTime() > Date.now()) return;
   const reportId = sweTopupValue_(f.reportId), kind = sweTopupValue_(f.kind);
   if (!/^[A-Za-z0-9_-]{1,180}$/.test(reportId) || id !== reportId + '_' + kind) throw new Error('Invalid email job');
-  const report = sweTopupGet_(kind === 'admin_activation' ? 'privateEnrollments' : kind === 'student_activated' ? 'privateAccounts' : 'privateTopups',reportId);
+  const lessonNotice=['admin_booking','student_booking','admin_reschedule','student_reschedule'].indexOf(kind)!==-1;
+  const uid=sweTopupValue_(f.studentUid);
+  if(lessonNotice&&!/^[A-Za-z0-9_-]{1,180}$/.test(uid))throw new Error('Invalid student identifier');
+  const report = lessonNotice?sweTopupGet_('privateAccounts/'+uid+'/history',reportId):sweTopupGet_(kind === 'admin_activation' ? 'privateEnrollments' : kind === 'student_activated' ? 'privateAccounts' : 'privateTopups',reportId);
   if (!report) { sweTopupPatch_('privateTopupMail',id,{status:'failed',lastError:'Payment report not found'},job.updateTime); return; }
   // Deliver the student acknowledgement before its confirmation/review email.
   if (kind === 'student_confirmed' || kind === 'student_rejected') {
@@ -64,7 +67,7 @@ function sweTopupDeliver_(job) {
     }
   }
   let mail;
-  try { mail = kind === 'admin_activation' ? sweActivationCompose_(report.fields) : kind === 'student_activated' ? sweActivatedCompose_(report.fields) : sweTopupCompose_(report.fields,kind); }
+  try { mail = lessonNotice ? sweLessonCompose_(report.fields,kind,uid,reportId) : kind === 'admin_activation' ? sweActivationCompose_(report.fields) : kind === 'student_activated' ? sweActivatedCompose_(report.fields) : sweTopupCompose_(report.fields,kind); }
   catch(error) { sweTopupPatch_('privateTopupMail',id,{status:'failed',lastError:String(error.message)},job.updateTime); return; }
   if (MailApp.getRemainingDailyQuota() < 1) {
     sweTopupPatch_('privateTopupMail',id,{status:'retry',nextAttemptAt:new Date(Date.now()+60*60000),lastError:'Waiting for email quota'},job.updateTime);
@@ -169,4 +172,30 @@ function sweActivatedCompose_(fields) {
   const next=available>0?'You have '+available+' available classes. Sign in to your student portal and choose an available time to book your next class.':'Sign in to your student portal. If you have paid for a package, report your payment there so Elkin can verify it and add your classes. If you have not paid yet, choose your package and follow its payment instructions.';
   const body='Hi '+name+',\n\nElkin has activated your private class account.\n\n'+conditions+next+'\n\nYou can cancel or reschedule at least 24 hours before your class. After that, contact Elkin.\n\nOpen your student portal: '+SWE_TOPUP_MAIL.portalUrl;
   return {to:email,subject:'Your private class account is active',body:body,htmlBody:'<p>'+sweTopupEscape_(body).replace(/\n/g,'<br>')+'</p>',name:'Spanish with Elkin',replyTo:SWE_TOPUP_MAIL.replyTo};
+}
+
+function sweLessonCompose_(history,kind,uid,operationId) {
+  const h={};Object.keys(history).forEach(function(k){h[k]=sweTopupValue_(history[k]);});
+  const admin=kind.indexOf('admin_')===0,rescheduled=kind.indexOf('reschedule')!==-1;
+  if(h.action!==(rescheduled?'reschedule':'book')||!h.lessonId||!h.toStartAt)throw new Error('Invalid lesson notification');
+  const account=sweTopupGet_('privateAccounts',uid),lesson=sweTopupGet_('privateLessons',h.lessonId),meeting=sweTopupGet_('privateClassLinks',uid);
+  if(!account||!lesson||sweTopupValue_(lesson.fields.studentUid)!==uid)throw new Error('Lesson account missing');
+  const name=sweTopupValue_(account.fields.fullName),email=sweTopupValue_(account.fields.email),minutes=sweTopupValue_(lesson.fields.durationMinutes);
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email||'')||[30,50].indexOf(minutes)===-1)throw new Error('Invalid lesson details');
+  const format=function(value){const date=new Date(value);if(isNaN(date.getTime()))throw new Error('Invalid lesson date');return new Intl.DateTimeFormat(admin?'es-CO':'en-US',{dateStyle:'full',timeStyle:'short',timeZone:'America/Bogota'}).format(date);};
+  const title=admin?(rescheduled?'Clase reprogramada':'Nueva reserva de clase'):(rescheduled?'Your class has been rescheduled':'Your class is booked');
+  const lines=[admin?'Estudiante: '+name:'Hi '+name+','];
+  if(rescheduled){if(!h.fromStartAt)throw new Error('Missing previous time');lines.push((admin?'Horario anterior: ':'Previous time: ')+format(h.fromStartAt));}
+  lines.push((admin?'Horario reservado: ':'Booked time: ')+format(h.toStartAt));
+  lines.push(admin?'Zona horaria: America/Bogota (UTC−5).':'Time zone: America/Bogota (UTC−5). Open your portal to see the time in your local time zone.');
+  lines.push((admin?'Duración: ':'Duration: ')+minutes+(admin?' minutos.':' minutes.'));
+  if(sweTopupValue_(lesson.fields.operationId)!==operationId){lines.push(admin?'Esta clase tuvo otro cambio después de este aviso. Revisa el estado actual en el portal.':'This class changed again after this update. Please check its current status in your portal.');}
+  let url=meeting?sweTopupValue_(meeting.fields.url):'';
+  if(url&&!/^https:\/\/[^\s]+$/.test(url))url='';
+  lines.push(url?(admin?'Enlace de clase: ':'Class link: ')+url:(admin?'El enlace de clase está pendiente de asignar.':'Elkin will add your class link in your portal.'));
+  lines.push(admin?'Los cambios del estudiante requieren al menos 24 horas de anticipación.':'You can cancel or reschedule at least 24 hours before class. After that, contact Elkin.');
+  const portal=admin?SWE_TOPUP_MAIL.adminUrl+'#private':SWE_TOPUP_MAIL.portalUrl;
+  const body=lines.join('\n\n')+'\n\n'+portal;
+  const htmlBody='<h2>'+sweTopupEscape_(title)+'</h2>'+lines.map(function(line){return '<p>'+sweTopupEscape_(line)+'</p>';}).join('')+(url?'<p><a href="'+sweTopupEscape_(url)+'">'+(admin?'Abrir clase':'Join my class')+'</a></p>':'')+'<p><a href="'+portal+'">'+(admin?'Abrir administración':'Open my portal')+'</a></p>';
+  return {to:admin?SWE_TOPUP_MAIL.adminEmail:email,subject:title+(admin?' · '+name:''),body:body,htmlBody:htmlBody,name:'Spanish with Elkin',replyTo:SWE_TOPUP_MAIL.replyTo};
 }

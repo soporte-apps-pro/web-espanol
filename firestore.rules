@@ -548,7 +548,18 @@ service cloud.firestore {
         topupAfter(request.resource.data.reportId).reviewedAt == request.time;
       allow update, delete: if false;
     }
+    function validLessonMail(id,j) {
+      let h=operationAfter(j.studentUid,j.reportId);
+      return (isAdmin() || ownsPrivateAccount(j.studentUid)) &&
+        j.keys().hasOnly(['reportId','studentUid','kind','status','createdAt']) &&
+        j.status == 'lesson_pending' && j.createdAt == request.time && id == j.reportId + '_' + j.kind &&
+        j.kind in ['admin_booking','student_booking','admin_reschedule','student_reschedule'] &&
+        h.action == (j.kind in ['admin_booking','student_booking'] ? 'book' : 'reschedule') &&
+        h.actorUid == request.auth.uid && h.createdAt == request.time && accountAfter(j.studentUid).lastOperation == j.reportId &&
+        !exists(/databases/$(database)/documents/privateAccounts/$(j.studentUid)/history/$(j.reportId));
+    }
     match /privateTopupMail/{jobId} {
+      allow create: if validLessonMail(jobId,request.resource.data);
       allow read: if isAdmin();
       allow create: if request.resource.data.keys().hasOnly(['reportId','studentUid','kind','status','createdAt']) &&
         request.resource.data.status == (topupAfter(request.resource.data.reportId).packageId == 'custom' ? 'terms_pending' : 'pending') && request.resource.data.createdAt == request.time &&

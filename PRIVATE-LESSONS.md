@@ -27,7 +27,7 @@ Los nuevos reportes del portal preparan correos para Elkin y el estudiante. El e
 - El administrador publica horarios no superpuestos: la pantalla comprueba intervalos de 50 minutos. Las reglas protegen la exclusividad de cada documento de horario; quien publique disponibilidad fuera de esta pantalla también debe evitar intervalos superpuestos entre documentos distintos.
 - Una proyección protegida en `privateBookingRequests`, identificada con `lessonId`, permite que la sincronización de Calendar actual lea nombres y horarios sin actualizar Apps Script. No representa un nuevo pago. Los controles administrativos antiguos no modifican estas reservas con saldo.
 - Cancelar o reprogramar invalida la verificación del horario liberado hasta que la sincronización quite el evento anterior y vuelva a comprobar disponibilidad.
-- No se generan nuevos correos de reserva ni enlaces Meet. El enlace de clase se coordina con Elkin como antes.
+- Cada reserva o reprogramación prepara un correo para Elkin y otro para el estudiante. Requiere actualizar el archivo de Apps Script; el disparador existente los procesa cada 15 minutos. Incluyen el enlace asignado; no se generan enlaces Meet automáticamente.
 
 ## Pruebas y publicación
 

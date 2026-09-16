@@ -60,3 +60,17 @@ test('activation email explains the assigned package and duration',()=>{
  const f=fixture();const data=fields({fullName:'Alice',email:'alice@example.test',credited:0,used:0,reserved:0});data.terms={mapValue:{fields:fields({durationMinutes:30,packageQuantity:6,packageAmountUsd:99.5})}};
  const mail=f.ctx.sweActivatedCompose_(data);assert.match(mail.body,/6 classes of 30 minutes for USD 99.5/);assert.match(mail.body,/report your payment/);
 });
+
+function lessonFixture(action='book'){
+ const f=fixture();f.records.set('privateAccounts/alice/history/'+f.reportId,{fields:fields({action,lessonId:'lesson1',toStartAt:new Date('2026-10-10T15:00:00Z'),...(action==='reschedule'?{fromStartAt:new Date('2026-10-09T15:00:00Z')}:{})})});
+ f.records.set('privateAccounts/alice',{fields:fields({fullName:'Alice <Student>',email:'alice@example.test'})});f.records.set('privateLessons/lesson1',{fields:fields({studentUid:'alice',durationMinutes:30,operationId:f.reportId,status:'reserved'})});f.records.set('privateClassLinks/alice',{fields:fields({url:'https://meet.google.com/abc-defg-hij'})});return f;
+}
+test('booking sends both recipients the correct time zone, duration and class link once',()=>{
+ const f=lessonFixture();for(const kind of ['admin_booking','student_booking']){const j=f.job(kind);f.ctx.sweTopupDeliver_(j);f.ctx.sweTopupDeliver_(f.records.get(j.name));}assert.equal(f.sent.length,2);assert.equal(f.sent[0].to,'hello@spanishwithelkin.com');assert.equal(f.sent[1].to,'alice@example.test');assert.match(f.sent[1].body,/America\/Bogota/);assert.match(f.sent[1].body,/30 minutes/);assert.match(f.sent[1].body,/meet.google.com\/abc-defg-hij/);assert.match(f.sent[1].htmlBody,/&lt;Student&gt;/);
+});
+test('reschedule email uses previous and new times from that specific history event',()=>{
+ const f=lessonFixture('reschedule');f.ctx.sweTopupDeliver_(f.job('student_reschedule'));assert.match(f.sent[0].body,/Previous time:/);assert.match(f.sent[0].body,/October 9/);assert.match(f.sent[0].body,/October 10/);
+});
+test('later lesson changes and a missing meeting link are clearly disclosed',()=>{
+ const f=lessonFixture();f.records.get('privateLessons/lesson1').fields.operationId={stringValue:'later-operation'};f.records.delete('privateClassLinks/alice');f.ctx.sweTopupDeliver_(f.job('student_booking'));assert.match(f.sent[0].body,/changed again/);assert.match(f.sent[0].body,/add your class link/);
+});

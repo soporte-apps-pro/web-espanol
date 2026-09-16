@@ -2,8 +2,8 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-aut
 import { collection, doc, getFirestore, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import * as firestore from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
-import { createLessonStore, privateDuration, normalizeMeetingUrl } from "./private-lessons-store.mjs?v=20260916-access-link-1";
-import { mountPrivateTopups } from "./private-topups-ui.js?v=20260916-access-link-1";
+import { createLessonStore, privateDuration, normalizeMeetingUrl } from "./private-lessons-store.mjs?v=20260916-booking-mail-1";
+import { mountPrivateTopups } from "./private-topups-ui.js?v=20260916-booking-mail-1";
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[char]);
 const DAY = 86400000;

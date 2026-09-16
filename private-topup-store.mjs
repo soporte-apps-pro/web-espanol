@@ -1,4 +1,4 @@
-import { privateDuration } from "./private-lessons-store.mjs?v=20260916-access-link-1";
+import { privateDuration } from "./private-lessons-store.mjs?v=20260916-booking-mail-1";
 export const TOPUP_PACKAGES = {
   single:{label:"1 private class",quantity:1,amountUsd:25,wiseUrl:"https://wise.com/pay/r/1By27Avdd7FtOHo"},
   pack4:{label:"4 private classes",quantity:4,amountUsd:84,wiseUrl:"https://wise.com/pay/r/_QkFPSyF9SuYEwg"},

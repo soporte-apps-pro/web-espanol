@@ -37,6 +37,15 @@ test('Spark transactions enforce balances, roles, deadlines and atomicity withou
     });
   }
   try {
+    await t.test('booking and rescheduling each queue one notice per recipient, retries do not duplicate them',async()=>{
+      await init();const op=command('book',{slotId:await slot()});const id=(await alice(op)).data.lessonId;await alice(op);
+      let jobs=(await getDocs(collection(adminDB,'privateTopupMail'))).docs.map(x=>x.data()).filter(x=>x.status==='lesson_pending');assert.equal(jobs.length,2);assert.deepEqual(jobs.map(x=>x.kind).sort(),['admin_booking','student_booking']);
+      const change=command('reschedule',{lessonId:id,slotId:await slot(5*DAY)});await alice(change);await alice(change);
+      jobs=(await getDocs(collection(adminDB,'privateTopupMail'))).docs.map(x=>x.data()).filter(x=>x.status==='lesson_pending');assert.equal(jobs.length,4);
+      const fake={reportId:'made-up-operation',studentUid:'alice',kind:'admin_booking',status:'lesson_pending',createdAt:serverTimestamp()};await assertFails(setDoc(doc(aliceDB,'privateTopupMail','made-up-operation_admin_booking'),fake));
+      const existing=jobs.find(x=>x.kind==='admin_booking');await assertFails(setDoc(doc(aliceDB,'privateTopupMail',existing.reportId+'_admin_booking'),{...existing,status:'lesson_pending',createdAt:serverTimestamp()}));
+    });
+
     await t.test('opening balance and package replay each credit only once',async()=>{
       await init();const op=command('credit',{quantity:3});await admin(op);await admin(op);assert.equal((await balance()).credited,5);
       await assert.rejects(admin({...op,quantity:4}));
