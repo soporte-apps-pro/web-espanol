@@ -14,7 +14,7 @@ const SWE_TOPUP_MAIL = {
 function sweInstallPrivateTopupEmails() {
   // Only replace this module's own trigger; preserve calendar and existing mail triggers.
   const existing = ScriptApp.getProjectTriggers().filter(function(t) { return t.getHandlerFunction() === 'sweProcessPrivateTopupEmails'; });
-  if (!existing.length) ScriptApp.newTrigger('sweProcessPrivateTopupEmails').timeBased().everyMinutes(5).create();
+  if (!existing.length) ScriptApp.newTrigger('sweProcessPrivateTopupEmails').timeBased().everyMinutes(15).create();
   existing.slice(1).forEach(function(t) { ScriptApp.deleteTrigger(t); });
   sweTopupPatch_('privateTopupSettings', 'emailDelivery', { enabled:true, adminEmail:SWE_TOPUP_MAIL.adminEmail, installedAt:new Date() });
   sweProcessPrivateTopupEmails();

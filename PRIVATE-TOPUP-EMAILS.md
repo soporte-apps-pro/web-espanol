@@ -12,7 +12,7 @@
 
 Abrir `private-topup-email-setup.html` en la web y seguir sus pasos. Añadir `private-topup-emails.gs` al proyecto existente de Apps Script que ya accede a Firestore y envía correos. Ejecutar una vez `sweInstallPrivateTopupEmails` y autorizar los permisos de Google. No sustituir el webhook existente ni sus implementaciones.
 
-El instalador crea un único disparador propio cada cinco minutos y escribe el estado en `privateTopupSettings/emailDelivery`. La ejecución registra `lastRunAt`, destinatario administrativo y cuota restante. Las integraciones anteriores permanecen intactas. No requiere Cloud Functions ni Blaze.
+El instalador crea un único disparador propio cada quince minutos y escribe el estado en `privateTopupSettings/emailDelivery`. La ejecución registra `lastRunAt`, destinatario administrativo y cuota restante. Las integraciones anteriores permanecen intactas. No requiere Cloud Functions ni Blaze.
 
 No se ha instalado el archivo en la cuenta de Google desde esta sesión: el editor de Apps Script no estaba disponible. El estado administrativo muestra que el correo está pendiente de activar hasta que se complete la instalación; los avisos quedan guardados. No se han enviado correos reales de prueba.
 
