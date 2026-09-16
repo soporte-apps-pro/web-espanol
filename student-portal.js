@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/fireba
 import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { doc, getDoc, getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-import { firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
+import { adminUid, firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
 import { mountPrivateLessons } from "./private-lessons-ui.js?v=20260916-terms-1";
 
 const app=initializeApp(firebaseConfig);
@@ -12,15 +12,23 @@ const slotLabels={"monday-1000":"Mondays · 10:00 a.m. Colombia time","monday-11
 const hide=(id)=>document.querySelector(id).classList.add("hidden"), show=(id)=>document.querySelector(id).classList.remove("hidden");
 const formatDate=(value)=>new Intl.DateTimeFormat("en-US",{dateStyle:"full",timeZone:"UTC"}).format(new Date(`${value}T12:00:00Z`));
 
+let stopPrivateLessons,authRevision=0;
 onAuthStateChanged(auth,async(user)=>{
+  const revision=++authRevision;
+  stopPrivateLessons?.();stopPrivateLessons=undefined;
+  hide('#active');hide('#pending');hide('#error');show('#loading');
+  document.querySelector('#private-lessons').hidden=true;
   if(!user){location.href="student-access.html";return;}
-  if(!user.emailVerified){await signOut(auth);location.href="student-access.html";return;}
+  if(user.uid===adminUid){location.replace("admin.html");return;}
+  if(!user.emailVerified){location.replace("student-access.html");return;}
   try{
     await getToken(appCheck,true);
+    if(revision!==authRevision)return;
     const privateRoot=document.querySelector("#private-lessons");
     privateRoot.hidden=false;
-    mountPrivateLessons(privateRoot,app);
+    stopPrivateLessons=mountPrivateLessons(privateRoot,app);
     const snapshot=await getDoc(doc(database,"studentProfiles",user.uid));
+    if(revision!==authRevision)return;
     hide("#loading");
     if(!snapshot.exists())return;
     const profile=snapshot.data();
@@ -31,6 +39,6 @@ onAuthStateChanged(auth,async(user)=>{
     meetingLink.href=profile.meetingUrl;
     document.querySelector("#sessions").innerHTML=(profile.sessionDates||[]).map((date,index)=>`<div class="session"><small>Session ${index+1}</small><strong>${formatDate(date)}</strong></div>`).join("");
     show("#active");
-  }catch(error){console.error(error);hide("#loading");document.querySelector("#error").textContent="We could not load your access. Please contact Elkin.";show("#error");}
+  }catch(error){if(revision!==authRevision)return;console.error(error);hide("#loading");document.querySelector("#error").textContent="We could not load your access. Please contact Elkin.";show("#error");}
 });
 document.querySelector("#sign-out").addEventListener("click",async()=>{await signOut(auth);location.href="student-access.html";});

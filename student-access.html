@@ -32,7 +32,16 @@
       <a href="student-access.html" aria-current="page">Student Access</a>
     </nav>
   </header>
-  <main class="shell">
+  <section id="session-panel" class="card" style="max-width:650px;margin:40px auto" aria-live="polite">
+    <h1 id="session-heading">Checking your session…</h1>
+    <p id="session-status" class="muted">Please wait.</p>
+    <div id="verification-actions" hidden>
+      <button id="check-verification" type="button">I verified my email · Continue</button>
+      <button id="resend-verification" type="button">Resend verification email</button>
+      <button id="session-sign-out" type="button">Sign out</button>
+    </div>
+  </section>
+  <main id="access-forms" class="shell hidden">
     <section class="card">
       <h1>Request your access</h1>
       <p class="muted">Create your account to view your classes. Elkin will verify your payment or existing balance before activating access.</p>
@@ -74,6 +83,6 @@
       </form>
     </section>
   </main>
-  <script type="module" src="student-access.js?v=20260916-activation"></script>
+  <script type="module" src="student-access.js?v=20260916-session-1"></script>
 </body>
 </html>

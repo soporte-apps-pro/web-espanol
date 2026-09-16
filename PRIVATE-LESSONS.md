@@ -57,3 +57,7 @@ El administrador puede editar las condiciones con un motivo. El precio cambia pa
 La disponibilidad se sigue publicando en bloques de 50 minutos. Una reserva personal de 30 minutos marca su horario confirmado como 30 para la sincronización existente de Calendar. Al cancelar o reprogramar se restablece la capacidad de 50 minutos del horario liberado y se exige nueva verificación. No se ofrece automáticamente el tramo restante como otra reserva. Al publicar se conservan separaciones de al menos 50 minutos.
 
 Los avisos de paquetes personales esperan con estado terms_pending hasta actualizar privateTopupEmails.gs en Google; el disparador de 15 minutos no cambia.
+
+## Sesión del navegador
+
+El acceso por correo configura persistencia local de Firebase antes de autenticar. La página de acceso reconoce la cuenta guardada y dirige al portal o a administración. Una pestaña de administración rechaza cuentas sin permisos sin cerrar su sesión en otras pestañas. La verificación conserva la sesión y permite continuar con una comprobación, sin otra contraseña. Los cierres normales solo ocurren al pulsar Cerrar sesión. Firebase comparte la cuenta entre pestañas del mismo navegador y dominio; para probar administrador y estudiante simultáneamente usar perfiles de navegador diferentes. El navegador puede eliminar su almacenamiento, y las sesiones revocadas siguen requiriendo autenticación. Pruebas de control de sesión con SDK simulado; no se han usado contraseñas reales.

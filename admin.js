@@ -6,6 +6,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
 import {
   getAuth,
+  setPersistence,
+  browserLocalPersistence,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
@@ -911,9 +913,9 @@ loginForm.addEventListener("submit", async (event) => {
   const email = document.querySelector("#admin-email").value.trim();
   const password = document.querySelector("#admin-password").value;
   try {
+    await setPersistence(auth, browserLocalPersistence);
     const credential = await signInWithEmailAndPassword(auth, email, password);
     if (!adminUid || credential.user.uid !== adminUid) {
-      await signOut(auth);
       throw new Error("unauthorized-admin");
     }
   } catch (error) {
@@ -924,10 +926,11 @@ loginForm.addEventListener("submit", async (event) => {
 
 onAuthStateChanged(auth, async (user) => {
   const authorized = Boolean(user && adminUid && user.uid === adminUid);
-  if (user && !authorized) await signOut(auth);
+  if (user && !user.isAnonymous && !authorized) setMessage(loginMessage, "Esta cuenta no tiene acceso de administrador. Puedes volver a Acceso a estudiantes o cerrar sesión para cambiar de cuenta.");
+  else clearMessage(loginMessage);
   loginView.classList.toggle("hidden", authorized);
   dashboardView.classList.toggle("hidden", !authorized);
-  signOutButton.classList.toggle("hidden", !authorized);
+  signOutButton.classList.toggle("hidden", !user || user.isAnonymous);
   if (authorized) {
     showAdminPanel(location.hash.slice(1), false);
     await loadApplications();

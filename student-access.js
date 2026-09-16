@@ -1,13 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
-import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, reload, setPersistence, browserLocalPersistence, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { doc, getFirestore, serverTimestamp, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-import { firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
+import { adminUid, firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 const appCheck = initializeAppCheck(app, { provider:new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey), isTokenAutoRefreshEnabled:true });
 const auth = getAuth(app);
 const database = getFirestore(app);
+let authBusy=false;
 const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbwW0dtawkiixLv6akVE2mdPIO8AZwKCRtrRut1D_Hn8QWN7yrPeG9_33JtvaK3Yy7xC/exec";
 
 function message(element, text, type="error") { element.textContent=text; element.className=`message ${type}`; }
@@ -41,7 +42,9 @@ document.querySelector("#register-form").addEventListener("submit", async (event
   const button = form.querySelector("button");
   const output = document.querySelector("#register-message");
   button.disabled=true; button.textContent="Creating account…";
+  authBusy=true;
   try {
+    await setPersistence(auth,browserLocalPersistence);
     await getToken(appCheck, true);
     const email=document.querySelector("#register-email").value.trim().toLowerCase();
     const credential=await createUserWithEmailAndPassword(auth,email,document.querySelector("#register-password").value);
@@ -71,7 +74,6 @@ document.querySelector("#register-form").addEventListener("submit", async (event
       verificationEmailSent = false;
       console.error("Verification email could not be sent", verificationError);
     }
-    await signOut(auth);
     form.reset();
     message(
       output,
@@ -86,7 +88,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     );
   } catch(error) {
     console.error(error); message(output,`We could not create the account (${error?.code || "error"}).`);
-  } finally { button.disabled=false; button.textContent="Create account and request access"; }
+  } finally { authBusy=false;button.disabled=false; button.textContent="Create account and request access";renderSession(auth.currentUser); }
 });
 
 document.querySelector("#login-form").addEventListener("submit", async (event) => {
@@ -95,15 +97,17 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
   const button=form.querySelector("button");
   const output=document.querySelector("#login-message");
   button.disabled=true; button.textContent="Signing in…";
+  authBusy=true;
   try {
+    await setPersistence(auth,browserLocalPersistence);
     const credential=await signInWithEmailAndPassword(auth,document.querySelector("#login-email").value.trim(),document.querySelector("#login-password").value);
     if (!credential.user.emailVerified) {
-      await sendEmailVerification(credential.user); await signOut(auth);
+      await sendEmailVerification(credential.user);
       message(output,"You must verify your email address. We sent you a new verification message."); return;
     }
-    location.href="student-portal.html";
+    renderSession(credential.user);
   } catch(error) { console.error(error); message(output,"We could not sign you in. Check your email and password."); }
-  finally { button.disabled=false; button.textContent="Open student portal"; }
+  finally { authBusy=false;button.disabled=false; button.textContent="Open student portal";renderSession(auth.currentUser); }
 });
 
 document.querySelector("#forgot-password").addEventListener("click", async (event) => {
@@ -133,3 +137,29 @@ document.querySelector("#forgot-password").addEventListener("click", async (even
     button.textContent = "Forgot your password?";
   }
 });
+
+function renderSession(user) {
+  const panel=document.querySelector('#session-panel'),forms=document.querySelector('#access-forms');
+  if(!user||user.isAnonymous){panel.hidden=true;forms.classList.remove('hidden');return;}
+  forms.classList.add('hidden');panel.hidden=false;
+  if(user.uid===adminUid){location.replace('admin.html');return;}
+  if(user.emailVerified){location.replace('student-portal.html');return;}
+  document.querySelector('#session-heading').textContent='Verify your email';
+  document.querySelector('#session-status').textContent='You are signed in as '+user.email+'. Open the verification link in your inbox or Spam, then press Continue. You do not need to enter your password again.';
+  document.querySelector('#verification-actions').hidden=false;
+}
+onAuthStateChanged(auth,user=>{if(!authBusy)renderSession(user);});
+document.querySelector('#session-sign-out').addEventListener('click',()=>signOut(auth));
+document.querySelector('#check-verification').addEventListener('click',async event=>{
+  const button=event.currentTarget;button.disabled=true;
+  try{const user=auth.currentUser;if(!user){renderSession(null);return;}await reload(user);if(auth.currentUser?.uid!==user.uid)return;await user.getIdToken(true);renderSession(user);if(!user.emailVerified)document.querySelector('#session-status').textContent='Your email is not verified yet. Open the link from your verification email, then try Continue again.';}
+  catch(error){console.error(error);document.querySelector('#session-status').textContent='We could not check verification. Please try again.';}
+  finally{button.disabled=false;}
+});
+document.querySelector('#resend-verification').addEventListener('click',async event=>{
+  const button=event.currentTarget;button.disabled=true;
+  try{if(!auth.currentUser){renderSession(null);return;}await sendEmailVerification(auth.currentUser);document.querySelector('#session-status').textContent='Verification email sent. Check your inbox and Spam.';}
+  catch(error){console.error(error);document.querySelector('#session-status').textContent='Could not resend the email. Please wait a moment and try again.';}
+  finally{button.disabled=false;}
+});
+window.addEventListener('pageshow',()=>{if(!authBusy&&auth.currentUser)renderSession(auth.currentUser);});
