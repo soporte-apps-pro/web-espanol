@@ -41,3 +41,13 @@ test('confirmation is never sent for an unconfirmed report',()=>{
   const f=fixture();const receipt=f.job('student_received');f.ctx.sweTopupDeliver_(receipt);
   const j=f.job('student_confirmed');f.ctx.sweTopupDeliver_(j);assert.equal(f.sent.length,1);assert.equal(f.records.get(j.name).fields.status.stringValue,'failed');
 });
+
+test('activation notice is addressed to teacher, escaped and sent once',()=>{
+ const f=fixture();f.records.set('privateEnrollments/'+f.reportId,{fields:fields({fullName:'Test <Student>',email:'test@example.test'})});
+ const j=f.job('admin_activation');f.ctx.sweTopupDeliver_(j);f.ctx.sweTopupDeliver_(f.records.get(j.name));
+ assert.equal(f.sent.length,1);assert.equal(f.sent[0].to,'hello@spanishwithelkin.com');assert.match(f.sent[0].body,/admin.html#private/);assert.match(f.sent[0].htmlBody,/Test &lt;Student&gt;/);
+});
+
+test('activated student receives next steps for zero or positive balance, once',()=>{
+ for(const credited of [0,4]){const f=fixture();f.records.set('privateAccounts/'+f.reportId,{fields:fields({fullName:'Test Student',email:'test@example.test',credited,used:0,reserved:0})});const j=f.job('student_activated');f.ctx.sweTopupDeliver_(j);f.ctx.sweTopupDeliver_(f.records.get(j.name));assert.equal(f.sent.length,1);assert.equal(f.sent[0].to,'test@example.test');assert.match(f.sent[0].body,credited?/choose an available time/:/report your payment/);}
+});

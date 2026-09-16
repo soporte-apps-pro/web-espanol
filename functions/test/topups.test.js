@@ -21,6 +21,18 @@ test('reported payments, atomic approvals and protected email jobs',async t=>{
   async function init(){await env.clearFirestore();await env.withSecurityRulesDisabled(async c=>{for(const uid of ['alice','bob'])await setDoc(doc(c.firestore(),'privateAccounts',uid),{fullName:uid+' Student',email:uid+'@example.test',credited:0,used:0,reserved:0,createdAt:Timestamp.now(),updatedAt:Timestamp.now(),lastOperation:'initial-import-test'});});}
   const balance=async()=> (await getDoc(doc(contexts.alice,'privateAccounts','alice'))).data();
   try{
+    await t.test('activation request queues one immutable teacher notice and denies forged recipients',async()=>{
+      await env.clearFirestore();
+      const db=env.authenticatedContext('newstudent',{email:'new@example.test',email_verified:false}).firestore();
+      const job={reportId:'newstudent',studentUid:'newstudent',kind:'admin_activation',status:'activation_pending',createdAt:serverTimestamp()};
+      await assertFails(setDoc(doc(db,'privateTopupMail','newstudent_admin_activation'),job));
+      const batch=sdk.writeBatch(db);
+      batch.set(doc(db,'privateEnrollments','newstudent'),{fullName:'New Student',email:'new@example.test',createdAt:serverTimestamp()});
+      batch.set(doc(db,'privateTopupMail','newstudent_admin_activation'),job);await batch.commit();
+      await assertFails(setDoc(doc(db,'privateTopupMail','newstudent_admin_activation'),job));
+      await assertFails(updateDoc(doc(db,'privateTopupMail','newstudent_admin_activation'),{status:'pending',to:'attacker@example.test'}));
+      assert.equal((await getDocs(collection(contexts.admin,'privateTopupMail'))).size,1);
+    });
     await t.test('report queues two emails but adds no classes; duplicate submission is idempotent',async()=>{
       await init();const r=await alice(input());const again=await alice(input());assert.equal(r.data.reportId,again.data.reportId);assert.equal(again.data.alreadyReported,true);
       assert.equal((await balance()).credited,0);assert.equal((await getDocs(collection(contexts.admin,'privateTopupMail'))).size,2);

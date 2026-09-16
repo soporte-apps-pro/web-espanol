@@ -26,7 +26,7 @@ function sweProcessPrivateTopupEmails() {
   try {
     const jobs = sweTopupRequest_(':runQuery', 'post', { structuredQuery: {
       from:[{collectionId:'privateTopupMail'}],
-      where:{fieldFilter:{field:{fieldPath:'status'},op:'IN',value:{arrayValue:{values:['pending','retry','sending'].map(function(s){return {stringValue:s};})}}}},
+      where:{fieldFilter:{field:{fieldPath:'status'},op:'IN',value:{arrayValue:{values:['pending','retry','sending','activation_pending'].map(function(s){return {stringValue:s};})}}}},
       limit:30
     }}).filter(function(row){return row.document;}).map(function(row){return row.document;});
     jobs.sort(function(a,b){return String(sweTopupValue_(a.fields.createdAt)).localeCompare(String(sweTopupValue_(b.fields.createdAt)));});
@@ -51,7 +51,7 @@ function sweTopupDeliver_(job) {
   if (f.nextAttemptAt && new Date(sweTopupValue_(f.nextAttemptAt)).getTime() > Date.now()) return;
   const reportId = sweTopupValue_(f.reportId), kind = sweTopupValue_(f.kind);
   if (!/^[A-Za-z0-9_-]{1,180}$/.test(reportId) || id !== reportId + '_' + kind) throw new Error('Invalid email job');
-  const report = sweTopupGet_('privateTopups',reportId);
+  const report = sweTopupGet_(kind === 'admin_activation' ? 'privateEnrollments' : kind === 'student_activated' ? 'privateAccounts' : 'privateTopups',reportId);
   if (!report) { sweTopupPatch_('privateTopupMail',id,{status:'failed',lastError:'Payment report not found'},job.updateTime); return; }
   // Deliver the student acknowledgement before its confirmation/review email.
   if (kind === 'student_confirmed' || kind === 'student_rejected') {
@@ -64,7 +64,7 @@ function sweTopupDeliver_(job) {
     }
   }
   let mail;
-  try { mail = sweTopupCompose_(report.fields,kind); }
+  try { mail = kind === 'admin_activation' ? sweActivationCompose_(report.fields) : kind === 'student_activated' ? sweActivatedCompose_(report.fields) : sweTopupCompose_(report.fields,kind); }
   catch(error) { sweTopupPatch_('privateTopupMail',id,{status:'failed',lastError:String(error.message)},job.updateTime); return; }
   if (MailApp.getRemainingDailyQuota() < 1) {
     sweTopupPatch_('privateTopupMail',id,{status:'retry',nextAttemptAt:new Date(Date.now()+60*60000),lastError:'Waiting for email quota'},job.updateTime);
@@ -150,4 +150,20 @@ function sweTopupPatch_(collection,id,values,updateTime) {
   });
   if(updateTime)masks.push('currentDocument.updateTime='+encodeURIComponent(updateTime));
   return sweTopupRequest_('/'+collection+'/'+encodeURIComponent(id)+'?'+masks.join('&'),'patch',{fields:fields});
+}
+
+function sweActivationCompose_(fields) {
+  const name=sweTopupValue_(fields.fullName),email=sweTopupValue_(fields.email);
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '')) throw new Error('Invalid enrollment data');
+  const body='Un estudiante solicita activar sus clases personales.\n\nNombre: '+name+'\nCorreo: '+email+'\n\nRevisa su cuenta y activa el saldo que corresponda en el panel. Este aviso no confirma un pago ni la verificaci?n del correo.\n\n'+SWE_TOPUP_MAIL.adminUrl+'#private';
+  return {to:SWE_TOPUP_MAIL.adminEmail,subject:'Solicitud de activaci?n: '+name,body:body,htmlBody:'<p>'+sweTopupEscape_(body).replace(/\n/g,'<br>')+'</p>',name:'Spanish with Elkin',replyTo:SWE_TOPUP_MAIL.replyTo};
+}
+
+function sweActivatedCompose_(fields) {
+  const name=sweTopupValue_(fields.fullName),email=sweTopupValue_(fields.email);
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '')) throw new Error('Invalid account data');
+  const available=Number(sweTopupValue_(fields.credited))-Number(sweTopupValue_(fields.used))-Number(sweTopupValue_(fields.reserved));
+  const next=available>0?'You have '+available+' available classes. Sign in to your student portal and choose an available time to book your next class.':'Sign in to your student portal. If you have paid for a package, report your payment there so Elkin can verify it and add your classes. If you have not paid yet, choose a package and follow its payment instructions.';
+  const body='Hi '+name+',\n\nElkin has activated your private class account.\n\n'+next+'\n\nYou can cancel or reschedule at least 24 hours before your class. After that, contact Elkin.\n\nOpen your student portal: '+SWE_TOPUP_MAIL.portalUrl;
+  return {to:email,subject:'Your private class account is active',body:body,htmlBody:'<p>'+sweTopupEscape_(body).replace(/\n/g,'<br>')+'</p>',name:'Spanish with Elkin',replyTo:SWE_TOPUP_MAIL.replyTo};
 }

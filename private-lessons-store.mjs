@@ -104,6 +104,7 @@ export function createLessonStore(db, sdk, getActor) {
         tx.set(claimRef,{reportId:paymentReportId,studentUid:uid,createdAt:stamp});
         tx.set(doc(db,"privateTopupMail",`${paymentReportId}_student_confirmed`),{reportId:paymentReportId,studentUid:uid,kind:"student_confirmed",status:"pending",createdAt:stamp});
       }
+      if (action === "open") tx.set(doc(db,"privateTopupMail",`${uid}_student_activated`),{reportId:uid,studentUid:uid,kind:"student_activated",status:"activation_pending",createdAt:stamp});
       tx.set(historyRef,{action,quantity,reason,actorUid:actor.uid,actorRole:actor.admin?"admin":"student",createdAt:stamp,
         lessonId,fromSlotId:before?.slotId || "",toSlotId:target?input.slotId:"",fromStartAt:before?.startAt || null,toStartAt:target?.startAt || null,
         credited:account.credited,used:account.used,reserved:account.reserved,fingerprint,...(paymentReportId?{paymentReportId}:{})});

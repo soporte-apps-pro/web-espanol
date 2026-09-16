@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
 import { createUserWithEmailAndPassword, getAuth, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { doc, getFirestore, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { doc, getFirestore, serverTimestamp, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
@@ -47,9 +47,12 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     const credential=await createUserWithEmailAndPassword(auth,email,document.querySelector("#register-password").value);
     const privateAccess=accessType.value==="private";
     if (privateAccess) {
-      await setDoc(doc(database,"privateEnrollments",credential.user.uid),{
+      const batch = writeBatch(database);
+      batch.set(doc(database,"privateEnrollments",credential.user.uid),{
         fullName:document.querySelector("#register-name").value.trim(),email,createdAt:serverTimestamp()
       });
+      batch.set(doc(database,"privateTopupMail",credential.user.uid+"_admin_activation"),{reportId:credential.user.uid,studentUid:credential.user.uid,kind:"admin_activation",status:"activation_pending",createdAt:serverTimestamp()});
+      await batch.commit();
     } else {
     await setDoc(doc(database,"studentProfiles",credential.user.uid),{
       fullName:document.querySelector("#register-name").value.trim(), email,

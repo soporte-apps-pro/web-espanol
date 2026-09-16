@@ -10,6 +10,7 @@
   <h1>Activar los correos de nuevos pagos</h1>
   <p>Esta configuración se hace una sola vez con la cuenta de Google que ya administra tus correos y calendario.</p>
   <div class="notice">Los reportes y las recargas funcionan en la web. Los correos esperan a que completes estos pasos. No necesitas activar Blaze ni contratar otro servicio.</div>
+  <p><strong>Si ya instalaste los avisos:</strong> copia el c?digo actualizado y reemplaza todo el contenido de <code>privateTopupEmails.gs</code> en Google. Guarda. El activador existente cada 15 minutos seguir? funcionando; no necesitas crear otro. Esta versi?n avisa a Elkin de nuevos registros y al estudiante cuando se activa su cuenta, una vez por cuenta.</p>
   <h2>1. Abre tu proyecto de Google</h2>
   <p>Entra en <a href="https://script.google.com/home" target="_blank" rel="noopener noreferrer">Google Apps Script</a> y abre el proyecto que ya usas para Spanish with Elkin, donde está el código de los correos de pago o la sincronización del calendario.</p>
   <h2>2. Añade el archivo de avisos</h2>
@@ -25,7 +26,7 @@
   <p>Si se agota el cupo de correo de Google, los avisos quedan en espera y se reintentan. Un envío cuyo resultado sea incierto requiere revisión para evitar enviar el mismo correo dos veces.</p>
   <script type="module">
     const button=document.querySelector('#copy'),output=document.querySelector('#copy-status'),source=document.querySelector('#source');
-    const code=fetch('private-topup-emails.gs').then(async response=>{if(!response.ok)throw new Error('No se pudo cargar el archivo.');const text=await response.text();source.value=text;return text;});
+    const code=fetch('private-topup-emails.gs?v=activation-2').then(async response=>{if(!response.ok)throw new Error('No se pudo cargar el archivo.');const text=await response.text();source.value=text;return text;});
     code.catch(error=>{output.textContent=error.message;button.disabled=true;});
     button.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(await code);output.textContent='Código copiado. Pégalo en el archivo nuevo de Apps Script.';}catch{source.closest('details').open=true;source.focus();source.select();output.textContent='Selecciona y copia el código del cuadro con Ctrl+C.';}});
   </script>

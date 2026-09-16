@@ -533,6 +533,18 @@ service cloud.firestore {
          (isAdmin() && topupAfter(request.resource.data.reportId).reviewedAt == request.time &&
           ((request.resource.data.kind == 'student_confirmed' && topupAfter(request.resource.data.reportId).status == 'confirmed') ||
            (request.resource.data.kind == 'student_rejected' && topupAfter(request.resource.data.reportId).status == 'rejected'))));
+      allow create: if request.auth != null && request.resource.data.keys().hasOnly(['reportId','studentUid','kind','status','createdAt']) &&
+        request.resource.data.reportId == request.auth.uid && request.resource.data.studentUid == request.auth.uid &&
+        request.resource.data.kind == 'admin_activation' && jobId == request.auth.uid + '_admin_activation' &&
+        request.resource.data.status == 'activation_pending' && request.resource.data.createdAt == request.time &&
+        getAfter(/databases/$(database)/documents/privateEnrollments/$(request.auth.uid)).data.createdAt == request.time &&
+        getAfter(/databases/$(database)/documents/privateEnrollments/$(request.auth.uid)).data.email == request.auth.token.email;
+      allow create: if isAdmin() && request.resource.data.keys().hasOnly(['reportId','studentUid','kind','status','createdAt']) &&
+        request.resource.data.reportId == request.resource.data.studentUid &&
+        request.resource.data.kind == 'student_activated' && jobId == request.resource.data.studentUid + '_student_activated' &&
+        request.resource.data.status == 'activation_pending' && request.resource.data.createdAt == request.time &&
+        !exists(/databases/$(database)/documents/privateAccounts/$(request.resource.data.studentUid)) &&
+        getAfter(/databases/$(database)/documents/privateAccounts/$(request.resource.data.studentUid)).data.createdAt == request.time;
       // Only the Apps Script service (IAM) may mark messages sent or retry them.
       allow update, delete: if false;
     }
