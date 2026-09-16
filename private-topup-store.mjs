@@ -3,10 +3,14 @@ export const TOPUP_PACKAGES = {
   pack4:{label:"4 private classes",quantity:4,amountUsd:84,wiseUrl:"https://wise.com/pay/r/_QkFPSyF9SuYEwg"},
   pack8:{label:"8 private classes",quantity:8,amountUsd:152,wiseUrl:"https://wise.com/pay/r/-r1YnKwtgKPqFT8"}
 };
+export function packagesForAccount(account) {
+  const t=account?.terms;
+  return t ? {custom:{label:t.packageQuantity+' private classes · '+t.durationMinutes+' minutes',quantity:t.packageQuantity,amountUsd:t.packageAmountUsd,wiseUrl:t.paymentUrl,durationMinutes:t.durationMinutes,paymentNote:t.paymentNote}} : TOPUP_PACKAGES;
+}
 export function createTopupStore(db,sdk,getActor,lessonStore) {
   const {doc,runTransaction,serverTimestamp}=sdk;
   const need=(ok,message)=>{if(!ok)throw new Error(message);};
-  const job=(id,uid,kind)=>({reportId:id,studentUid:uid,kind,status:"pending",createdAt:serverTimestamp()});
+  const job=(id,uid,kind,custom=false)=>({reportId:id,studentUid:uid,kind,status:custom?"terms_pending":"pending",createdAt:serverTimestamp()});
   return async input=>{
     const actor=getActor();need(actor?.uid,"Sign in first.");
     if(input.action==="approve") {
@@ -22,12 +26,12 @@ export function createTopupStore(db,sdk,getActor,lessonStore) {
         if(report.status==="rejected"&&report.reviewOperationId===input.operationId)return {data:{reportId:ref.id}};
         need(report.status==="pending","This payment has already been reviewed. Refresh the page.");
         tx.update(ref,{status:"rejected",reviewedAt:serverTimestamp(),reviewedBy:actor.uid,reviewNote:reason,reviewOperationId:input.operationId});
-        tx.set(doc(db,"privateTopupMail",`${ref.id}_student_rejected`),job(ref.id,report.studentUid,"student_rejected"));
+        tx.set(doc(db,"privateTopupMail",`${ref.id}_student_rejected`),job(ref.id,report.studentUid,"student_rejected",report.packageId==="custom"));
         return {data:{reportId:ref.id}};
       });
     }
     need(input.action==="report","Unknown action.");
-    const pack=TOPUP_PACKAGES[input.packageId];need(pack,"Select a package.");
+
     need(["wise","paypal","transfer","other"].includes(input.paymentMethod),"Select a payment method.");
     const paymentReference=String(input.paymentReference||"").trim().replace(/\s/g,"").toUpperCase();
     need(/^[A-Z0-9_-]{4,100}$/.test(paymentReference),"Use the payment transaction reference: 4–100 letters, numbers, hyphens or underscores.");
@@ -42,9 +46,10 @@ export function createTopupStore(db,sdk,getActor,lessonStore) {
         return {data:{reportId,alreadyReported:true}};
       }
       const account=(await tx.get(doc(db,"privateAccounts",actor.uid))).data();need(account,"Ask Elkin to activate your private class account first.");
+      const pack=packagesForAccount(account)[input.packageId];need(pack,"Your package has changed. Refresh the page to see your agreed conditions.");
       tx.set(ref,{studentUid:actor.uid,fullName:account.fullName,email:account.email,packageId:input.packageId,
-        packageLabel:pack.label,quantity:pack.quantity,amountUsd:pack.amountUsd,paymentMethod:input.paymentMethod,paymentReference,referenceKey,payerName,status:"pending",createdAt:serverTimestamp()});
-      for(const kind of ["admin_received","student_received"])tx.set(doc(db,"privateTopupMail",`${reportId}_${kind}`),job(reportId,actor.uid,kind));
+        packageLabel:pack.label,...(pack.durationMinutes?{durationMinutes:pack.durationMinutes}:{}),quantity:pack.quantity,amountUsd:pack.amountUsd,paymentMethod:input.paymentMethod,paymentReference,referenceKey,payerName,status:"pending",createdAt:serverTimestamp()});
+      for(const kind of ["admin_received","student_received"])tx.set(doc(db,"privateTopupMail",`${reportId}_${kind}`),job(reportId,actor.uid,kind,input.packageId==="custom"));
       return {data:{reportId}};
     });
   };

@@ -1,21 +1,21 @@
 import {getAuth} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import * as sdk from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import {adminUid} from "./firebase-config.js";
-import {createLessonStore} from "./private-lessons-store.mjs?v=20260916-activation-2";
-import {createTopupStore,TOPUP_PACKAGES} from "./private-topup-store.mjs";
+import {createLessonStore} from "./private-lessons-store.mjs?v=20260916-terms-1";
+import {createTopupStore,packagesForAccount} from "./private-topup-store.mjs?v=20260916-terms-1";
 
 const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function mountPrivateTopups(root,app,admin=false) {
   const db=sdk.getFirestore(app),auth=getAuth(app),actor=()=>({uid:auth.currentUser?.uid,admin:auth.currentUser?.uid===adminUid});
   const store=createTopupStore(db,sdk,actor,createLessonStore(db,sdk,actor));
   const t=(es,en)=>admin?es:en;
-  const stops=[];const pending=new Map();let busy=false,reports=[];
+  const stops=[];const pending=new Map();let busy=false,reports=[],packages={};
   root.innerHTML=`<h3>${t('Nuevos pagos de clases','Add more classes')}</h3>
     <p class="lesson-note">${t('Revisa el ingreso en tu cuenta antes de aprobar. Confirmar añade las clases una sola vez y prepara el correo para el estudiante.','Already paid for another package? Report your payment below. Elkin will verify it before adding classes to your balance.')}</p>
     <p class="lesson-notice" data-topup-message role="status" aria-live="polite"></p>
     ${admin?'<p class="lesson-note" data-mail-health>Cargando estado del correo…</p><p class="lesson-note" data-mail-queue></p><p><a href="private-topup-email-setup.html" target="_blank" rel="noopener noreferrer">Activar los avisos por correo</a></p>':`<details><summary>Report a new payment</summary><form data-topup-form>
-      <label>Package<select name="packageId" required>${Object.entries(TOPUP_PACKAGES).map(([id,p])=>`<option value="${id}" ${id==='pack4'?'selected':''}>${p.label} · US$${p.amountUsd}</option>`).join('')}</select></label>
-      <p><a data-wise-link href="${TOPUP_PACKAGES.pack4.wiseUrl}" target="_blank" rel="noopener noreferrer">Pay US$84 with Wise</a></p>
+      <label>Package<select name="packageId" required disabled><option value="">Loading your conditions…</option></select></label>
+      <p><a data-wise-link hidden target="_blank" rel="noopener noreferrer"></a></p><p data-payment-note class="lesson-note"></p>
       <label>Payment method<select name="paymentMethod" required><option value="wise">Wise</option><option value="paypal">PayPal</option><option value="transfer">Bank transfer</option><option value="other">Other method agreed with Elkin</option></select></label>
       <label>Transaction reference<input name="paymentReference" required minlength="4" maxlength="100" autocomplete="off" placeholder="Reference from your payment receipt"></label>
       <p class="lesson-note">Use the transaction reference, not your account number. Letters, numbers, hyphens and underscores; spaces are removed.</p>
@@ -52,7 +52,7 @@ export function mountPrivateTopups(root,app,admin=false) {
     const key=JSON.stringify(input);if(!pending.has(key))pending.set(key,crypto.randomUUID());
     busy=true;root.querySelectorAll('button').forEach(b=>b.disabled=true);message(t('Guardando…','Saving…'));
     try{
-      const result=await store({...input,operationId:pending.get(key)});pending.delete(key);form.reset();
+      const result=await store({...input,operationId:pending.get(key)});pending.delete(key);form.reset();if(!admin)paymentInfo();
       message(input.action==='report'?(result.data.alreadyReported?'This reference was already reported. Check its status below.':'Payment report saved. Your new classes are pending verification.'):
         input.action==='approve'?'Pago confirmado. Las clases se añadieron y el aviso quedó preparado para enviar.':'Revisión registrada. El mensaje para el estudiante quedó preparado para enviar.');
       document.dispatchEvent(new CustomEvent('private-lessons-changed'));
@@ -60,12 +60,13 @@ export function mountPrivateTopups(root,app,admin=false) {
     finally{busy=false;root.querySelectorAll('button').forEach(b=>b.disabled=false);}
   }
   root.addEventListener('submit',submit);
-  if(!admin){const select=root.querySelector('[name="packageId"]');select.addEventListener('change',()=>{const p=TOPUP_PACKAGES[select.value],link=root.querySelector('[data-wise-link]');link.href=p.wiseUrl;link.textContent=`Pay US$${p.amountUsd} with Wise`;});}
+  function paymentInfo(){const select=root.querySelector('[name="packageId"]'),p=packages[select.value],link=root.querySelector('[data-wise-link]');link.hidden=!p?.wiseUrl;if(p?.wiseUrl){link.href=p.wiseUrl;link.textContent=`Pay US$${p.amountUsd}`;}root.querySelector('[data-payment-note]').textContent=p?(p.paymentNote||(!p.wiseUrl?'Use the payment method you agreed with Elkin. Contact Elkin if you need the payment details.':'')):'';}
+  if(!admin){const select=root.querySelector('[name="packageId"]');select.addEventListener('change',paymentInfo);stops.push(sdk.onSnapshot(sdk.doc(db,'privateAccounts',auth.currentUser.uid),snap=>{packages=snap.exists()?packagesForAccount(snap.data()):{};const old=select.value;select.innerHTML=Object.entries(packages).map(([id,p])=>`<option value="${id}">${esc(p.label)} · US$${p.amountUsd}</option>`).join('');if(packages[old])select.value=old;select.disabled=!snap.exists();paymentInfo();},error=>{packages={};select.replaceChildren();select.disabled=true;message('Could not load your agreed conditions. Refresh before reporting a payment.',true);}));}
   const q=admin?sdk.collection(db,'privateTopups'):sdk.query(sdk.collection(db,'privateTopups'),sdk.where('studentUid','==',auth.currentUser.uid));
   stops.push(sdk.onSnapshot(q,snap=>{reports=snap.docs.map(d=>({id:d.id,...d.data()}));render();},error=>message(t('No se pudieron cargar los pagos. ','Could not load payment reports. ')+error.message,true)));
   if(admin){
     stops.push(sdk.onSnapshot(sdk.doc(db,'privateTopupSettings','emailDelivery'),snap=>{const s=snap.data();root.querySelector('[data-mail-health]').textContent=s?.enabled?`Avisos por correo configurados para ${s.adminEmail}. Última comprobación: ${date(s.lastRunAt)||'pendiente'}.`:'El correo automático está pendiente de activar en Google. Los reportes se guardan aquí y los avisos esperan su envío.';},()=>{root.querySelector('[data-mail-health]').textContent='No se pudo comprobar el estado de envío de correos.';}));
-    stops.push(sdk.onSnapshot(sdk.query(sdk.collection(db,'privateTopupMail'),sdk.where('status','in',['pending','retry','sending','activation_pending','uncertain','failed'])),snap=>{
+    stops.push(sdk.onSnapshot(sdk.query(sdk.collection(db,'privateTopupMail'),sdk.where('status','in',['pending','retry','sending','activation_pending','terms_pending','uncertain','failed'])),snap=>{
       const uncertain=snap.docs.filter(d=>['uncertain','failed'].includes(d.data().status)).length;
       root.querySelector('[data-mail-queue]').textContent=snap.size?`${snap.size} avisos en espera.${uncertain?' Hay un envío cuyo resultado necesita revisión en Google.':''}`:'No hay avisos pendientes.';
     },()=>{}));

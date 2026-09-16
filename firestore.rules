@@ -310,8 +310,15 @@ service cloud.firestore {
     function operationAfter(uid, id) {
       return getAfter(/databases/$(database)/documents/privateAccounts/$(uid)/history/$(id)).data;
     }
+    function validPrivateTerms(t) {
+      return t == null || (t is map && t.keys().hasOnly(['durationMinutes','packageQuantity','packageAmountUsd','paymentUrl','paymentNote']) &&
+        t.durationMinutes in [30,50] && t.packageQuantity is int && t.packageQuantity >= 1 && t.packageQuantity <= 100 &&
+        t.packageAmountUsd is number && t.packageAmountUsd > 0 && t.packageAmountUsd <= 10000 &&
+        t.paymentUrl is string && t.paymentUrl.size() <= 500 && (t.paymentUrl == '' || t.paymentUrl.matches('https://[^ ]+')) &&
+        t.paymentNote is string && t.paymentNote.size() <= 500);
+    }
     function accountShape(a) {
-      return a.keys().hasOnly(['fullName','email','credited','used','reserved','createdAt','updatedAt','lastOperation']) &&
+      return a.keys().hasOnly(['fullName','email','credited','used','reserved','createdAt','updatedAt','lastOperation','terms']) &&
         a.fullName is string && a.fullName.size() >= 2 && a.fullName.size() <= 80 &&
         a.email is string && a.email.size() >= 5 && a.email.size() <= 120 &&
         a.credited is int && a.used is int && a.reserved is int &&
@@ -327,7 +334,7 @@ service cloud.firestore {
         h.actorUid == request.auth.uid && h.createdAt == request.time &&
         h.credited == a.credited && h.used == a.used && h.reserved == a.reserved;
     }
-    function validTarget(id, lessonId, start) {
+    function validTarget(id, lessonId, start, minutes) {
       let before = get(/databases/$(database)/documents/privateAvailability/$(id)).data;
       let after = getAfter(/databases/$(database)/documents/privateAvailability/$(id)).data;
       return before.status == 'available' && before.get('lessonId', '') == '' &&
@@ -335,23 +342,23 @@ service cloud.firestore {
         start > request.time && start <= request.time + duration.value(21, 'd') &&
         before.googleCalendarBlocked == false &&
         before.googleCalendarCheckedAt >= request.time - duration.value(35, 'm') &&
-        after.status == 'confirmed' && after.lessonId == lessonId &&
+        after.status == 'confirmed' && after.lessonId == lessonId && after.durationMinutes == minutes &&
         after.heldBy == '' && after.bookingRequestId == lessonId && after.holdExpiresAt == request.time &&
-        after.diff(before).affectedKeys().hasOnly(['status','lessonId','heldBy','bookingRequestId','holdExpiresAt']);
+        after.diff(before).affectedKeys().hasOnly(['status','durationMinutes','lessonId','heldBy','bookingRequestId','holdExpiresAt']);
     }
     function releasedSlot(id, lessonId) {
       let before = get(/databases/$(database)/documents/privateAvailability/$(id)).data;
       let after = getAfter(/databases/$(database)/documents/privateAvailability/$(id)).data;
       return before.status == 'confirmed' && before.lessonId == lessonId &&
-        after.status == 'available' && after.lessonId == '' && after.heldBy == '' &&
+        after.status == 'available' && after.durationMinutes == 50 && after.lessonId == '' && after.heldBy == '' &&
         after.bookingRequestId == '' && after.holdExpiresAt == request.time &&
         after.googleCalendarCheckedAt == timestamp.value(0) &&
-        after.diff(before).affectedKeys().hasOnly(['status','lessonId','heldBy','bookingRequestId','holdExpiresAt','googleCalendarCheckedAt']);
+        after.diff(before).affectedKeys().hasOnly(['status','durationMinutes','lessonId','heldBy','bookingRequestId','holdExpiresAt','googleCalendarCheckedAt']);
     }
     function lessonShape(l, uid, opId) {
       return l.keys().hasOnly(['studentUid','fullName','email','slotId','startAt','durationMinutes','status','createdAt','updatedAt','operationId']) &&
         l.studentUid == uid && l.operationId == opId && l.updatedAt == request.time &&
-        l.durationMinutes == 50 && l.slotId is string && l.startAt is timestamp;
+        l.durationMinutes in [30,50] && l.slotId is string && l.startAt is timestamp;
     }
     function calendarMatches(l, id) {
       let p = getAfter(/databases/$(database)/documents/privateBookingRequests/$(id)).data;
@@ -372,32 +379,35 @@ service cloud.firestore {
       let l = getAfter(/databases/$(database)/documents/privateLessons/$(h.lessonId)).data;
       return !exists(/databases/$(database)/documents/privateLessons/$(h.lessonId)) &&
         lessonShape(l, uid, opId) && l.fullName == a.fullName && l.email == a.email &&
-        l.createdAt == request.time && l.status == 'reserved' && calendarMatches(l,h.lessonId) &&
+        l.durationMinutes == a.get('terms', {}).get('durationMinutes',50) && l.createdAt == request.time && l.status == 'reserved' && calendarMatches(l,h.lessonId) &&
         h.fromSlotId == '' && h.fromStartAt == null && h.toSlotId == l.slotId && h.toStartAt == l.startAt &&
-        validTarget(l.slotId, h.lessonId, l.startAt);
+        validTarget(l.slotId, h.lessonId, l.startAt, l.durationMinutes);
     }
     function validLessonChange(uid, opId, h) {
       let before = get(/databases/$(database)/documents/privateLessons/$(h.lessonId)).data;
       let after = getAfter(/databases/$(database)/documents/privateLessons/$(h.lessonId)).data;
       return before.studentUid == uid && before.status == 'reserved' && lessonShape(after, uid, opId) && calendarMatches(after,h.lessonId) &&
-        after.fullName == before.fullName && after.email == before.email && after.createdAt == before.createdAt &&
+        after.durationMinutes == before.durationMinutes && after.fullName == before.fullName && after.email == before.email && after.createdAt == before.createdAt &&
         h.fromSlotId == before.slotId && h.fromStartAt == before.startAt &&
         (isAdmin() || before.startAt >= request.time + duration.value(24, 'h')) &&
         ((h.action == 'reschedule' && after.status == 'reserved' && before.slotId != after.slotId &&
             h.toSlotId == after.slotId && h.toStartAt == after.startAt &&
-            validTarget(after.slotId, h.lessonId, after.startAt) && releasedSlot(before.slotId, h.lessonId)) ||
+            validTarget(after.slotId, h.lessonId, after.startAt, after.durationMinutes) && releasedSlot(before.slotId, h.lessonId)) ||
           (h.action in ['cancel','late_cancel','complete','no_show'] &&
             after.slotId == before.slotId && after.startAt == before.startAt && h.toSlotId == '' && h.toStartAt == null &&
             ((h.action == 'cancel' && after.status == 'cancelled' && releasedSlot(before.slotId, h.lessonId)) ||
              (h.action == 'late_cancel' && isAdmin() && before.startAt < request.time + duration.value(24, 'h') &&
                 after.status == 'late_cancelled' && releasedSlot(before.slotId, h.lessonId)) ||
-             (h.action in ['complete','no_show'] && isAdmin() && before.startAt + duration.value(50, 'm') <= request.time &&
+             (h.action in ['complete','no_show'] && isAdmin() && before.startAt + duration.value(before.durationMinutes, 'm') <= request.time &&
                 after.status == (h.action == 'complete' ? 'completed' : 'no_show')))));
     }
     function balanceChange(uid, h, a) {
       let b = get(/databases/$(database)/documents/privateAccounts/$(uid)).data;
       return a.fullName == b.fullName && a.email == b.email && a.createdAt == b.createdAt &&
-        ((h.action == 'credit' && isAdmin() && h.quantity != 0 &&
+        (h.action == 'configure' || a.get('terms',null) == b.get('terms',null)) &&
+        ((h.action == 'configure' && isAdmin() && h.quantity == 0 && a.credited == b.credited && a.used == b.used && a.reserved == b.reserved &&
+            (a.get('terms',{}).get('durationMinutes',50) == b.get('terms',{}).get('durationMinutes',50) || b.credited == b.used)) ||
+         (h.action == 'credit' && isAdmin() && h.quantity != 0 &&
             a.credited == b.credited + h.quantity && a.used == b.used && a.reserved == b.reserved) ||
          (h.quantity == 0 && a.credited == b.credited &&
             ((h.action == 'book' && a.reserved == b.reserved + 1 && a.used == b.used) ||
@@ -409,18 +419,19 @@ service cloud.firestore {
       let h = request.resource.data;
       let a = accountAfter(uid);
       return (isAdmin() || ownsPrivateAccount(uid)) &&
-        h.keys().hasOnly(['action','quantity','reason','actorUid','actorRole','createdAt','lessonId','fromSlotId','toSlotId','fromStartAt','toStartAt','credited','used','reserved','fingerprint','paymentReportId']) &&
+        h.keys().hasOnly(['action','quantity','reason','actorUid','actorRole','createdAt','lessonId','fromSlotId','toSlotId','fromStartAt','toStartAt','credited','used','reserved','fingerprint','paymentReportId','terms']) &&
         h.actorUid == request.auth.uid && h.actorRole == (isAdmin() ? 'admin' : 'student') && h.createdAt == request.time &&
         h.reason is string && h.reason.size() <= 500 && (!isAdmin() || h.reason.size() >= 3) &&
-        h.fingerprint is string && h.fingerprint.size() <= 1500 &&
+        h.fingerprint is string && h.fingerprint.size() <= 3000 &&
         h.quantity is int && h.quantity >= -10000 && h.quantity <= 10000 &&
         h.lessonId is string && h.lessonId.size() <= 180 && h.fromSlotId is string && h.toSlotId is string &&
-        accountShape(a) && a.lastOperation == opId && h.credited == a.credited && h.used == a.used && h.reserved == a.reserved &&
+        a.updatedAt == request.time && a.lastOperation == opId && h.credited == a.credited && h.used == a.used && h.reserved == a.reserved &&
         (h.get('paymentReportId','') == '' || validTopupCredit(uid,opId,h)) &&
+        (!(h.action in ['open','configure']) || (validPrivateTerms(a.get('terms',null)) && h.get('terms',null) == a.get('terms',null))) &&
         ((h.action == 'open' && isAdmin() && !exists(/databases/$(database)/documents/privateAccounts/$(uid)) &&
             a.createdAt == request.time && h.quantity >= 0 && a.credited == h.quantity && a.used == 0 && a.reserved == 0) ||
          (h.action != 'open' && balanceChange(uid, h, a))) &&
-        ((h.action in ['open','credit'] && h.lessonId == '' && h.fromSlotId == '' && h.toSlotId == '' && h.fromStartAt == null && h.toStartAt == null) ||
+        ((h.action in ['open','configure','credit'] && h.lessonId == '' && h.fromSlotId == '' && h.toSlotId == '' && h.fromStartAt == null && h.toStartAt == null) ||
          (h.action == 'book' && validBooking(uid, opId, h, a)) ||
          (h.action in ['cancel','reschedule','complete','no_show','late_cancel'] && validLessonChange(uid, opId, h)));
     }
@@ -462,18 +473,21 @@ service cloud.firestore {
     }
     function topupJob(id, kind, uid) {
       let j = getAfter(/databases/$(database)/documents/privateTopupMail/$(id + '_' + kind)).data;
-      return j.reportId == id && j.kind == kind && j.studentUid == uid && j.status == 'pending' && j.createdAt == request.time;
+      return j.reportId == id && j.kind == kind && j.studentUid == uid && j.status == (topupAfter(id).packageId == 'custom' ? 'terms_pending' : 'pending') && j.createdAt == request.time;
     }
     function topupPackage(r) {
-      return (r.packageId == 'single' && r.packageLabel == '1 private class' && r.quantity == 1 && r.amountUsd == 25) ||
+      let a = get(/databases/$(database)/documents/privateAccounts/$(r.studentUid)).data;
+      let t = a.get('terms',null);
+      return t != null ? (r.packageId == 'custom' && r.quantity == t.packageQuantity && r.amountUsd == t.packageAmountUsd &&
+        r.durationMinutes == t.durationMinutes && r.packageLabel is string && r.packageLabel.size() <= 80) : (r.get('durationMinutes',50) == 50 && ((r.packageId == 'single' && r.packageLabel == '1 private class' && r.quantity == 1 && r.amountUsd == 25) ||
         (r.packageId == 'pack4' && r.packageLabel == '4 private classes' && r.quantity == 4 && r.amountUsd == 84) ||
-        (r.packageId == 'pack8' && r.packageLabel == '8 private classes' && r.quantity == 8 && r.amountUsd == 152);
+        (r.packageId == 'pack8' && r.packageLabel == '8 private classes' && r.quantity == 8 && r.amountUsd == 152)));
     }
     function validTopupCredit(uid, opId, h) {
       let r = topupAfter(h.paymentReportId);
       let before = get(/databases/$(database)/documents/privateTopups/$(h.paymentReportId)).data;
       return isAdmin() && h.action == 'credit' && before.status == 'pending' && r.status == 'confirmed' &&
-        r.studentUid == uid && r.quantity == h.quantity && r.reviewOperationId == opId && r.reviewedAt == request.time;
+        r.get('durationMinutes',50) == accountAfter(uid).get('terms',{}).get('durationMinutes',50) && r.studentUid == uid && r.quantity == h.quantity && r.reviewOperationId == opId && r.reviewedAt == request.time;
     }
     function topupConfirmed(id, r) {
       let a = accountAfter(r.studentUid);
@@ -491,7 +505,7 @@ service cloud.firestore {
       allow get: if request.auth != null && request.auth.token.email_verified == true &&
         reportId.matches('^' + request.auth.uid + '_(wise|paypal|transfer|other)_[A-Z0-9_-]{4,100}$');
       allow create: if ownsPrivateAccount(request.resource.data.studentUid) &&
-        request.resource.data.keys().hasOnly(['studentUid','fullName','email','packageId','packageLabel','quantity','amountUsd','paymentMethod','paymentReference','referenceKey','payerName','status','createdAt']) &&
+        request.resource.data.keys().hasOnly(['studentUid','fullName','email','packageId','packageLabel','quantity','amountUsd','paymentMethod','paymentReference','referenceKey','payerName','status','createdAt','durationMinutes']) &&
         reportId == request.auth.uid + '_' + request.resource.data.referenceKey && reportId.size() <= 180 &&
         request.resource.data.fullName == get(/databases/$(database)/documents/privateAccounts/$(request.auth.uid)).data.fullName &&
         request.resource.data.email == get(/databases/$(database)/documents/privateAccounts/$(request.auth.uid)).data.email &&
@@ -524,7 +538,7 @@ service cloud.firestore {
     match /privateTopupMail/{jobId} {
       allow read: if isAdmin();
       allow create: if request.resource.data.keys().hasOnly(['reportId','studentUid','kind','status','createdAt']) &&
-        request.resource.data.status == 'pending' && request.resource.data.createdAt == request.time &&
+        request.resource.data.status == (topupAfter(request.resource.data.reportId).packageId == 'custom' ? 'terms_pending' : 'pending') && request.resource.data.createdAt == request.time &&
         jobId == request.resource.data.reportId + '_' + request.resource.data.kind &&
         topupAfter(request.resource.data.reportId).studentUid == request.resource.data.studentUid &&
         (((isAdmin() || ownsPrivateAccount(request.resource.data.studentUid)) &&

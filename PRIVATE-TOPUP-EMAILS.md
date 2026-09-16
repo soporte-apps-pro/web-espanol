@@ -35,3 +35,5 @@ La prueba con una cuenta real y la confirmación de recepción deben realizarse 
 Los nuevos registros privados crean un aviso admin_activation en la misma transacci?n. Solo se env?a al administrador una vez; no confirma verificaci?n ni pago. No se notifican registros anteriores. Para activar esta ampliaci?n, reemplazar privateTopupEmails.gs en Google y guardar; el activador existente sirve.
 
 Al activar el saldo se crea student_activated una vez, con instrucciones de reserva o recarga seg?n el saldo disponible. Requiere actualizar el mismo archivo de Apps Script; no se aplica retroactivamente.
+
+Paquetes personales: reemplazar privateTopupEmails.gs con la versión actualizada y guardar. Los avisos terms_pending esperan esta versión para no ser descartados por el emisor anterior. Se validan precios al registrar el reporte y se conservan sus datos originales en el correo; la activación incluye las condiciones asignadas.

@@ -26,7 +26,7 @@ function sweProcessPrivateTopupEmails() {
   try {
     const jobs = sweTopupRequest_(':runQuery', 'post', { structuredQuery: {
       from:[{collectionId:'privateTopupMail'}],
-      where:{fieldFilter:{field:{fieldPath:'status'},op:'IN',value:{arrayValue:{values:['pending','retry','sending','activation_pending'].map(function(s){return {stringValue:s};})}}}},
+      where:{fieldFilter:{field:{fieldPath:'status'},op:'IN',value:{arrayValue:{values:['pending','retry','sending','activation_pending','terms_pending'].map(function(s){return {stringValue:s};})}}}},
       limit:30
     }}).filter(function(row){return row.document;}).map(function(row){return row.document;});
     jobs.sort(function(a,b){return String(sweTopupValue_(a.fields.createdAt)).localeCompare(String(sweTopupValue_(b.fields.createdAt)));});
@@ -87,7 +87,7 @@ function sweTopupCompose_(fields,kind) {
   const r = {};
   Object.keys(fields || {}).forEach(function(key){r[key]=sweTopupValue_(fields[key]);});
   const packs={single:{quantity:1,amount:25},pack4:{quantity:4,amount:84},pack8:{quantity:8,amount:152}};
-  const pack=packs[r.packageId];
+  const pack=r.packageId==='custom'&&Number.isInteger(r.quantity)&&r.quantity>=1&&r.quantity<=100&&r.amountUsd>0&&r.amountUsd<=10000&&[30,50].includes(r.durationMinutes)?{quantity:r.quantity,amount:r.amountUsd}:packs[r.packageId];
   if (!pack || pack.quantity !== r.quantity || pack.amount !== r.amountUsd || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email || '') || !r.fullName || !r.paymentReference) throw new Error('Invalid stored payment data');
   let to=r.email,subject,title,paragraphs,link=SWE_TOPUP_MAIL.portalUrl,button='Open my student portal';
   const reference = r.paymentMethod + ' · ' + r.paymentReference;
@@ -112,6 +112,7 @@ function sweTopupCompose_(fields,kind) {
     paragraphs=['Hi '+r.fullName+',','Elkin could not confirm this payment report. No classes were added.','Payment reference: '+reference,'Message from Elkin: '+r.reviewNote,
       'Please check the reference and contact Elkin by replying to this email.'];
   } else throw new Error('Unknown email type');
+  if(r.durationMinutes) paragraphs.push('Class duration: '+r.durationMinutes+' minutes.');
   const body=paragraphs.join('\n\n')+'\n\n'+button+': '+link+'\n\nSpanish with Elkin · '+SWE_TOPUP_MAIL.replyTo;
   const htmlBody='<div style="font-family:Arial,sans-serif;line-height:1.6;color:#172554;max-width:600px"><h2>'+sweTopupEscape_(title)+'</h2>'+paragraphs.map(function(p){return '<p>'+sweTopupEscape_(p)+'</p>';}).join('')+
     '<p><a href="'+link+'" style="display:inline-block;padding:12px 18px;background:#1e3a8a;color:#fff;border-radius:10px;text-decoration:none">'+sweTopupEscape_(button)+'</a></p><p>Spanish with Elkin<br>'+sweTopupEscape_(SWE_TOPUP_MAIL.replyTo)+'</p></div>';
@@ -155,15 +156,17 @@ function sweTopupPatch_(collection,id,values,updateTime) {
 function sweActivationCompose_(fields) {
   const name=sweTopupValue_(fields.fullName),email=sweTopupValue_(fields.email);
   if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '')) throw new Error('Invalid enrollment data');
-  const body='Un estudiante solicita activar sus clases personales.\n\nNombre: '+name+'\nCorreo: '+email+'\n\nRevisa su cuenta y activa el saldo que corresponda en el panel. Este aviso no confirma un pago ni la verificaci?n del correo.\n\n'+SWE_TOPUP_MAIL.adminUrl+'#private';
-  return {to:SWE_TOPUP_MAIL.adminEmail,subject:'Solicitud de activaci?n: '+name,body:body,htmlBody:'<p>'+sweTopupEscape_(body).replace(/\n/g,'<br>')+'</p>',name:'Spanish with Elkin',replyTo:SWE_TOPUP_MAIL.replyTo};
+  const body='Un estudiante solicita activar sus clases personales.\n\nNombre: '+name+'\nCorreo: '+email+'\n\nRevisa su cuenta y activa el saldo que corresponda en el panel. Este aviso no confirma un pago ni la verificación del correo.\n\n'+SWE_TOPUP_MAIL.adminUrl+'#private';
+  return {to:SWE_TOPUP_MAIL.adminEmail,subject:'Solicitud de activación: '+name,body:body,htmlBody:'<p>'+sweTopupEscape_(body).replace(/\n/g,'<br>')+'</p>',name:'Spanish with Elkin',replyTo:SWE_TOPUP_MAIL.replyTo};
 }
 
 function sweActivatedCompose_(fields) {
   const name=sweTopupValue_(fields.fullName),email=sweTopupValue_(fields.email);
   if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '')) throw new Error('Invalid account data');
   const available=Number(sweTopupValue_(fields.credited))-Number(sweTopupValue_(fields.used))-Number(sweTopupValue_(fields.reserved));
-  const next=available>0?'You have '+available+' available classes. Sign in to your student portal and choose an available time to book your next class.':'Sign in to your student portal. If you have paid for a package, report your payment there so Elkin can verify it and add your classes. If you have not paid yet, choose a package and follow its payment instructions.';
-  const body='Hi '+name+',\n\nElkin has activated your private class account.\n\n'+next+'\n\nYou can cancel or reschedule at least 24 hours before your class. After that, contact Elkin.\n\nOpen your student portal: '+SWE_TOPUP_MAIL.portalUrl;
+  const terms=fields.terms?.mapValue?.fields;
+  const conditions=terms?'Your agreed conditions: '+sweTopupValue_(terms.packageQuantity)+' classes of '+sweTopupValue_(terms.durationMinutes)+' minutes for USD '+sweTopupValue_(terms.packageAmountUsd)+'.\n\n':'';
+  const next=available>0?'You have '+available+' available classes. Sign in to your student portal and choose an available time to book your next class.':'Sign in to your student portal. If you have paid for a package, report your payment there so Elkin can verify it and add your classes. If you have not paid yet, choose your package and follow its payment instructions.';
+  const body='Hi '+name+',\n\nElkin has activated your private class account.\n\n'+conditions+next+'\n\nYou can cancel or reschedule at least 24 hours before your class. After that, contact Elkin.\n\nOpen your student portal: '+SWE_TOPUP_MAIL.portalUrl;
   return {to:email,subject:'Your private class account is active',body:body,htmlBody:'<p>'+sweTopupEscape_(body).replace(/\n/g,'<br>')+'</p>',name:'Spanish with Elkin',replyTo:SWE_TOPUP_MAIL.replyTo};
 }

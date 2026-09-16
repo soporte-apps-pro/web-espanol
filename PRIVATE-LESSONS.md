@@ -47,3 +47,13 @@ node functions/node_modules/firebase-tools/lib/bin/firebase.js deploy --project 
 ```
 
 Después se publican los archivos estáticos en el GitHub Pages existente, conservando el dominio autorizado para Firebase Auth/App Check. No se cambia el plan de Firebase.
+
+## Condiciones personales
+
+Antes de activar, elegir tarifas generales (50 minutos) o un paquete personal en USD: cantidad de clases, precio total, duración de 30 o 50 minutos, enlace https opcional e instrucciones. El portal privado muestra únicamente el paquete asignado. Una clase consume un crédito, independientemente de su duración. Las cuentas anteriores conservan las tarifas generales.
+
+El administrador puede editar las condiciones con un motivo. El precio cambia para reportes futuros; los reportes anteriores conservan el importe. Cambiar la duración requiere saldo pendiente y reservas en cero; no se convierten clases pagadas entre duraciones. Un reporte pendiente de otra duración no se acredita hasta resolver las condiciones.
+
+La disponibilidad se sigue publicando en bloques de 50 minutos. Una reserva personal de 30 minutos marca su horario confirmado como 30 para la sincronización existente de Calendar. Al cancelar o reprogramar se restablece la capacidad de 50 minutos del horario liberado y se exige nueva verificación. No se ofrece automáticamente el tramo restante como otra reserva. Al publicar se conservan separaciones de al menos 50 minutos.
+
+Los avisos de paquetes personales esperan con estado terms_pending hasta actualizar privateTopupEmails.gs en Google; el disparador de 15 minutos no cambia.

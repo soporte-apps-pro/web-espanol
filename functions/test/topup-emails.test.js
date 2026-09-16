@@ -51,3 +51,12 @@ test('activation notice is addressed to teacher, escaped and sent once',()=>{
 test('activated student receives next steps for zero or positive balance, once',()=>{
  for(const credited of [0,4]){const f=fixture();f.records.set('privateAccounts/'+f.reportId,{fields:fields({fullName:'Test Student',email:'test@example.test',credited,used:0,reserved:0})});const j=f.job('student_activated');f.ctx.sweTopupDeliver_(j);f.ctx.sweTopupDeliver_(f.records.get(j.name));assert.equal(f.sent.length,1);assert.equal(f.sent[0].to,'test@example.test');assert.match(f.sent[0].body,credited?/choose an available time/:/report your payment/);}
 });
+
+test('custom payment emails retain the agreed amount and lesson duration',()=>{
+ const f=fixture();const r=f.records.get('privateTopups/'+f.reportId);Object.assign(r.fields,fields({packageId:'custom',quantity:6,amountUsd:99.5,durationMinutes:30}));
+ f.ctx.sweTopupDeliver_(f.job('admin_received'));assert.equal(f.sent.length,1);assert.match(f.sent[0].body,/99.5/);assert.match(f.sent[0].body,/30 minutes/);
+});
+test('activation email explains the assigned package and duration',()=>{
+ const f=fixture();const data=fields({fullName:'Alice',email:'alice@example.test',credited:0,used:0,reserved:0});data.terms={mapValue:{fields:fields({durationMinutes:30,packageQuantity:6,packageAmountUsd:99.5})}};
+ const mail=f.ctx.sweActivatedCompose_(data);assert.match(mail.body,/6 classes of 30 minutes for USD 99.5/);assert.match(mail.body,/report your payment/);
+});

@@ -200,7 +200,7 @@ form.addEventListener("submit", async (event) => {
   const overlap = newStarts.some(start => slots.some(slot => {
     const existing = slot.startAt?.toMillis?.();
     return slot.status !== "closed" && Number.isFinite(existing) &&
-      start.getTime() < existing + (slot.durationMinutes || 50) * 60000 && start.getTime() + 50 * 60000 > existing;
+      start.getTime() < existing + Math.max(slot.durationMinutes || 50,50) * 60000 && start.getTime() + 50 * 60000 > existing;
   }));
   if (overlap) { setMessage("Un horario se cruza con otro ya publicado. Deja al menos 50 minutos entre clases."); return; }
   const duplicates = starts.length - newStarts.length;

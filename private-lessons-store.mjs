@@ -1,3 +1,9 @@
+export function normalizePrivateTerms(value) {
+  if (!value) return null;
+  const t={durationMinutes:Number(value.durationMinutes),packageQuantity:Number(value.packageQuantity),packageAmountUsd:Number(value.packageAmountUsd),paymentUrl:String(value.paymentUrl||'').trim(),paymentNote:String(value.paymentNote||'').trim()};
+  if (![30,50].includes(t.durationMinutes)||!Number.isInteger(t.packageQuantity)||t.packageQuantity<1||t.packageQuantity>100||!Number.isFinite(t.packageAmountUsd)||t.packageAmountUsd<=0||t.packageAmountUsd>10000||Math.abs(t.packageAmountUsd*100-Math.round(t.packageAmountUsd*100))>0.00001||t.paymentNote.length>500||t.paymentUrl.length>500||(t.paymentUrl&&!/^https:\/\/[^\s]+$/.test(t.paymentUrl))) throw new Error('Revisa duración, cantidad, precio en USD (hasta dos decimales) y enlace https.');
+  return t;
+}
 // The same transaction implementation runs in the browser and emulator tests.
 // Firestore rules, not this client, authorize every balance and schedule change.
 export function createLessonStore(db, sdk, getActor) {
@@ -8,8 +14,8 @@ export function createLessonStore(db, sdk, getActor) {
     const actor = getActor();
     need(actor?.uid, "Sign in first.");
     const action = input.action;
-    need(["open","credit","book","reschedule","cancel","complete","no_show","late_cancel"].includes(action), "Unknown action.");
-    if (["open","credit","complete","no_show","late_cancel"].includes(action)) need(actor.admin, "Only Elkin can do this.");
+    need(["open","configure","credit","book","reschedule","cancel","complete","no_show","late_cancel"].includes(action), "Unknown action.");
+    if (["open","configure","credit","complete","no_show","late_cancel"].includes(action)) need(actor.admin, "Only Elkin can do this.");
     const reason = String(input.reason || "").trim();
     need(reason.length <= 500 && (!actor.admin || reason.length >= 3), "Add a reason or payment reference (3–500 characters).");
     need(validId(input.operationId) && input.operationId.length >= 16, "Invalid operation ID.");
@@ -29,7 +35,8 @@ export function createLessonStore(db, sdk, getActor) {
     const paymentReportId = input.paymentReportId || "";
     if (paymentReportId) need(action === "credit" && actor.admin && validId(paymentReportId), "Invalid payment approval.");
     need(Number.isSafeInteger(quantity) && Math.abs(quantity) <= 10000 && (action !== "open" || quantity >= 0) && (action !== "credit" || quantity !== 0), "Enter a valid whole number of classes.");
-    const hasLesson = !["open","credit"].includes(action);
+    const terms = ["open","configure"].includes(action) ? normalizePrivateTerms(input.terms) : null;
+    const hasLesson = !["open","configure","credit"].includes(action);
     const lessonId = action === "book" ? `${actor.uid}_${input.operationId}` : hasLesson ? input.lessonId : "";
     if (hasLesson) need(validId(lessonId), "Invalid lesson.");
     if (["book","reschedule"].includes(action)) need(validId(input.slotId), "Select an available time.");
@@ -37,7 +44,7 @@ export function createLessonStore(db, sdk, getActor) {
     const accountRef = doc(db,"privateAccounts",uid);
     const historyRef = doc(db,"privateAccounts",uid,"history",operationId);
     const lessonRef = hasLesson ? doc(db,"privateLessons",lessonId) : null;
-    const fingerprint = JSON.stringify({ action,uid,quantity,lessonId,slotId:input.slotId || "",reason,fullName,email,...(paymentReportId?{paymentReportId}:{}) });
+    const fingerprint = JSON.stringify({ action,uid,quantity,lessonId,slotId:input.slotId || "",reason,fullName,email,...(paymentReportId?{paymentReportId}:{}),...(["open","configure"].includes(action)&&input.terms!==undefined?{terms}:{}) });
     return runTransaction(db,async tx => {
       const receipt = await tx.get(historyRef);
       if (receipt.exists()) {
@@ -49,16 +56,21 @@ export function createLessonStore(db, sdk, getActor) {
       let account;
       if (action === "open") {
         need(!snapshot.exists(), "This student already has a balance. Use Add classes / adjustment.");
-        account = {fullName,email,credited:quantity,used:0,reserved:0,createdAt:stamp};
+        account = {fullName,email,credited:quantity,used:0,reserved:0,createdAt:stamp,...(terms?{terms}:{})};
       } else {
         need(snapshot.exists(), "Elkin has not activated this balance yet.");
         account = snapshot.data();
+      }
+      if (action === "configure") {
+        need((account.terms?.durationMinutes||50)===(terms?.durationMinutes||50)||account.credited===account.used, "Para cambiar la duración, primero resuelve las clases pendientes y reservadas.");
+        if(terms) account.terms=terms; else delete account.terms;
       }
       let reportRef, report, claimRef;
       if (paymentReportId) {
         reportRef = doc(db,"privateTopups",paymentReportId);
         report = (await tx.get(reportRef)).data();
         need(report?.studentUid === uid && report.status === "pending" && report.quantity === quantity, "This payment has changed or was already reviewed.");
+        need((report.durationMinutes||50)===(account.terms?.durationMinutes||50), "La duración del pago reportado difiere de la cuenta. Revisa las condiciones antes de aprobar.");
         claimRef = doc(db,"privateTopupClaims",report.referenceKey);
         need(!(await tx.get(claimRef)).exists(), "This payment reference has already credited classes. Check it before adding more.");
       }
@@ -83,11 +95,11 @@ export function createLessonStore(db, sdk, getActor) {
       need([account.credited,account.used,account.reserved].every(n => Number.isSafeInteger(n) && n >= 0) && account.credited >= account.used + account.reserved, "Not enough available classes for this change.");
       tx.set(accountRef,{...account,updatedAt:stamp,lastOperation:operationId});
       if (targetRef) {
-        tx.update(targetRef,{status:"confirmed",lessonId,heldBy:"",bookingRequestId:lessonId,holdExpiresAt:stamp});
-        tx.set(lessonRef,{studentUid:uid,fullName:account.fullName,email:account.email,slotId:input.slotId,startAt:target.startAt,durationMinutes:50,status:"reserved",createdAt:before?.createdAt || stamp,updatedAt:stamp,operationId});
+        tx.update(targetRef,{status:"confirmed",durationMinutes:before?.durationMinutes||account.terms?.durationMinutes||50,lessonId,heldBy:"",bookingRequestId:lessonId,holdExpiresAt:stamp});
+        tx.set(lessonRef,{studentUid:uid,fullName:account.fullName,email:account.email,slotId:input.slotId,startAt:target.startAt,durationMinutes:before?.durationMinutes||account.terms?.durationMinutes||50,status:"reserved",createdAt:before?.createdAt || stamp,updatedAt:stamp,operationId});
       }
       if (oldRef && ["cancel","reschedule","late_cancel"].includes(action)) {
-        tx.update(oldRef,{status:"available",lessonId:"",heldBy:"",bookingRequestId:"",holdExpiresAt:stamp,googleCalendarCheckedAt:Timestamp.fromMillis(0)});
+        tx.update(oldRef,{status:"available",durationMinutes:50,lessonId:"",heldBy:"",bookingRequestId:"",holdExpiresAt:stamp,googleCalendarCheckedAt:Timestamp.fromMillis(0)});
       }
       if (["cancel","complete","no_show","late_cancel"].includes(action)) {
         tx.update(lessonRef,{status:({cancel:"cancelled",complete:"completed",no_show:"no_show",late_cancel:"late_cancelled"})[action],updatedAt:stamp,operationId});
@@ -102,12 +114,12 @@ export function createLessonStore(db, sdk, getActor) {
       if (reportRef) {
         tx.update(reportRef,{status:"confirmed",reviewedAt:stamp,reviewedBy:actor.uid,reviewNote:reason,reviewOperationId:operationId});
         tx.set(claimRef,{reportId:paymentReportId,studentUid:uid,createdAt:stamp});
-        tx.set(doc(db,"privateTopupMail",`${paymentReportId}_student_confirmed`),{reportId:paymentReportId,studentUid:uid,kind:"student_confirmed",status:"pending",createdAt:stamp});
+        tx.set(doc(db,"privateTopupMail",`${paymentReportId}_student_confirmed`),{reportId:paymentReportId,studentUid:uid,kind:"student_confirmed",status:report.packageId==="custom"?"terms_pending":"pending",createdAt:stamp});
       }
       if (action === "open") tx.set(doc(db,"privateTopupMail",`${uid}_student_activated`),{reportId:uid,studentUid:uid,kind:"student_activated",status:"activation_pending",createdAt:stamp});
       tx.set(historyRef,{action,quantity,reason,actorUid:actor.uid,actorRole:actor.admin?"admin":"student",createdAt:stamp,
         lessonId,fromSlotId:before?.slotId || "",toSlotId:target?input.slotId:"",fromStartAt:before?.startAt || null,toStartAt:target?.startAt || null,
-        credited:account.credited,used:account.used,reserved:account.reserved,fingerprint,...(paymentReportId?{paymentReportId}:{})});
+        credited:account.credited,used:account.used,reserved:account.reserved,fingerprint,...(["open","configure"].includes(action)?{terms:terms}:{}),...(paymentReportId?{paymentReportId}:{})});
       return {data:{studentUid:uid,lessonId}};
     });
   };
