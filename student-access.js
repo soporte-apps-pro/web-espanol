@@ -22,6 +22,19 @@ async function notifyPaymentReceipt(documentId) {
   } catch (error) { console.error("Payment acknowledgement email could not be requested", error); }
 }
 
+const accessType = document.querySelector("#access-type");
+function updateAccessType() {
+  const privateAccess=accessType.value==="private";
+  document.querySelector("#group-access-info").hidden=privateAccess;
+  document.querySelector("#group-payment-fields").hidden=privateAccess;
+  document.querySelector("#private-access-note").hidden=!privateAccess;
+  document.querySelector("#payment-reference").required=!privateAccess;
+  document.querySelector("#payer-name").required=!privateAccess;
+  document.querySelectorAll("#group-payment-fields input").forEach(input=>{input.disabled=privateAccess;});
+}
+accessType.addEventListener("change",updateAccessType);
+updateAccessType();
+
 document.querySelector("#register-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -32,6 +45,12 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     await getToken(appCheck, true);
     const email=document.querySelector("#register-email").value.trim().toLowerCase();
     const credential=await createUserWithEmailAndPassword(auth,email,document.querySelector("#register-password").value);
+    const privateAccess=accessType.value==="private";
+    if (privateAccess) {
+      await setDoc(doc(database,"privateEnrollments",credential.user.uid),{
+        fullName:document.querySelector("#register-name").value.trim(),email,createdAt:serverTimestamp()
+      });
+    } else {
     await setDoc(doc(database,"studentProfiles",credential.user.uid),{
       fullName:document.querySelector("#register-name").value.trim(), email,
       paymentMethod:document.querySelector("#payment-method").value,
@@ -41,6 +60,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
       status:"pending", createdAt:serverTimestamp()
     });
     await notifyPaymentReceipt(credential.user.uid);
+    }
     let verificationEmailSent = true;
     try {
       await sendEmailVerification(credential.user);
@@ -52,7 +72,11 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     form.reset();
     message(
       output,
-      verificationEmailSent
+      privateAccess
+        ? verificationEmailSent
+          ? "Account created. Check your inbox and Spam for your verification email, then sign in. Elkin will activate your remaining private classes."
+          : "Account created, but we could not send your verification email. Try signing in to request another one. Elkin will activate your class balance."
+        : verificationEmailSent
         ? "Information submitted successfully. Check for two emails: Payment information received from Spanish with Elkin, and a separate Firebase verification email from noreply@spanish-with-elkin.firebaseapp.com. Open the verification link and check Spam if necessary. Elkin will notify you after reviewing your payment."
         : "Information submitted successfully. We could not send the verification email now, but you can request another one when you try to sign in.",
       "success"

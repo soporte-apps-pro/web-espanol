@@ -2,7 +2,8 @@
   "name": "web-espanol",
   "private": true,
   "scripts": {
-    "build:css": "tailwindcss -i ./tailwind.input.css -o ./styles.css --minify"
+    "build:css": "tailwindcss -i ./tailwind.input.css -o ./styles.css --minify",
+    "test:lessons": "node functions/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore --project demo-private-lessons --config firebase.test.json \"node --test functions/test/spark.test.js functions/test/rules.test.js\""
   },
   "devDependencies": {
     "tailwindcss": "3.4.17"

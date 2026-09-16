@@ -32,6 +32,7 @@ function escapeHtml(value) { return String(value ?? "").replaceAll("&","&amp;").
 function setMessage(text, type="error") { message.textContent=text; message.className=`message ${type}`; }
 function formatColombia(timestamp) { return timestamp?.toDate ? new Intl.DateTimeFormat("es-CO", { dateStyle:"medium", timeStyle:"short", timeZone:"America/Bogota" }).format(timestamp.toDate()) : "Sin fecha"; }
 function requestFor(slot) {
+  if (slot.lessonId) return undefined;
   if (slot.status === "available") return undefined;
   return requests.find((item) => item.slotId === slot.id && item.status !== "rejected");
 }
@@ -66,7 +67,7 @@ function slotCard(slot) {
     <summary class="group-card-head"><div><h3>${escapeHtml(formatColombia(slot.startAt))}</h3><span class="muted">50 minutos · hora Colombia<br>${escapeHtml(googleStatus(slot))}</span></div><span class="pill">${escapeHtml(statusLabel(slot.status))}</span></summary>
     <div class="private-card-body">
     ${request ? `<div class="private-meta"><div><small>Estudiante</small><strong>${escapeHtml(request.fullName)}</strong><br><a href="mailto:${escapeHtml(request.email)}">${escapeHtml(request.email)}</a></div><div><small>Paquete</small><strong>${escapeHtml(request.packageLabel)}</strong><br>US$${Number(request.amountUsd).toFixed(2)}</div><div><small>Zona del estudiante</small><strong>${escapeHtml(request.studentTimeZone)}</strong></div><div><small>Método</small><strong>${escapeHtml(request.paymentMethod)}</strong></div><div><small>Referencia</small><strong>${escapeHtml(request.paymentReference)}</strong></div><div><small>Pagador</small><strong>${escapeHtml(request.payerName)}</strong></div></div>
-    ${request.status === "payment_review" ? '<div class="card-actions"><button class="button secondary" type="button" data-reject>Rechazar / liberar</button><button class="button" type="button" data-confirm>Pago verificado · confirmar</button></div>' : ""}` : '<p class="muted">Nadie ha iniciado el pago para este horario.</p>'}
+    ${request.status === "payment_review" ? '<div class="card-actions"><button class="button secondary" type="button" data-reject>Rechazar / liberar</button><button class="button" type="button" data-confirm>Pago verificado · confirmar</button></div>' : ""}` : slot.lessonId ? '<p class="muted">Clase reservada con saldo. Gestiona los cambios en Clases personales, arriba.</p>' : '<p class="muted">Nadie ha iniciado el pago para este horario.</p>'}
     ${request?.status === "confirmed" && slot.status === "confirmed" ? `<div class="group-member-editor"><strong>Acciones excepcionales</strong><p class="muted">Úsalas únicamente por fuerza mayor. Requieren confirmación escrita.</p><label for="reschedule-${escapeHtml(slot.id)}">Nuevo horario disponible</label><select id="reschedule-${escapeHtml(slot.id)}" data-reschedule-target><option value="">Selecciona un horario</option>${slots.filter((item) => item.status === "available" && googleCleared(item) && item.startAt?.toDate() > new Date()).map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(formatColombia(item.startAt))}</option>`).join("")}</select><div class="card-actions"><button class="button secondary" type="button" data-cancel-booking>Cancelar por fuerza mayor</button><button class="button" type="button" data-reschedule-booking>Reagendar reserva</button></div></div>` : ""}
     ${slot.status === "available" && !request ? '<div class="card-actions"><button class="button secondary" type="button" data-close-slot>Cerrar horario disponible</button></div>' : ""}
     </div>
@@ -196,6 +197,12 @@ form.addEventListener("submit", async (event) => {
   const starts = Array.from({length:weeks}, (_, index) => new Date(start.getTime() + index * 7 * 24 * 60 * 60 * 1000));
   const activeTimes = new Set(slots.filter((slot) => slot.status !== "closed").map((slot) => slot.startAt?.toMillis?.()));
   const newStarts = starts.filter((item) => !activeTimes.has(item.getTime()));
+  const overlap = newStarts.some(start => slots.some(slot => {
+    const existing = slot.startAt?.toMillis?.();
+    return slot.status !== "closed" && Number.isFinite(existing) &&
+      start.getTime() < existing + (slot.durationMinutes || 50) * 60000 && start.getTime() + 50 * 60000 > existing;
+  }));
+  if (overlap) { setMessage("Un horario se cruza con otro ya publicado. Deja al menos 50 minutos entre clases."); return; }
   const duplicates = starts.length - newStarts.length;
   if (!newStarts.length) { setMessage("Todos esos horarios ya están publicados."); return; }
   const description = type === "weekly" ? `${newStarts.length} horarios semanales` : "el horario individual";
@@ -219,3 +226,5 @@ onAuthStateChanged(auth, (user) => { if (user?.uid === adminUid) load().catch((e
 document.querySelector("#private-week-prev").addEventListener("click",()=>{ visibleWeek=addDays(visibleWeek,-7); renderPrivateWeek(); });
 document.querySelector("#private-week-next").addEventListener("click",()=>{ visibleWeek=addDays(visibleWeek,7); renderPrivateWeek(); });
 document.querySelector("#private-week-today").addEventListener("click",()=>{ visibleWeek=mondayOf(colombiaToday()); renderPrivateWeek(); });
+
+document.addEventListener("private-lessons-changed",()=>load().catch(error=>{console.error(error);setMessage("Actualiza para ver los cambios de saldo en la agenda.");}));

@@ -219,7 +219,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAdmin();
       allow delete: if isAdmin() && resource.data.status == 'available';
-      allow update: if isAdmin() || (
+      allow update: if isAdmin() || privateSlotChange(slotId) || (
         request.auth != null &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status', 'heldBy', 'holdExpiresAt', 'bookingRequestId'
@@ -262,7 +262,7 @@ service cloud.firestore {
     }
 
     match /privateBookingRequests/{requestId} {
-      allow create: if request.auth != null &&
+      allow create: if privateCalendarProjection(requestId) || (request.auth != null &&
         request.resource.data.keys().hasOnly([
           'slotId', 'studentUid', 'fullName', 'email', 'studentTimeZone',
           'colombiaStart', 'packageId', 'packageLabel', 'amountUsd',
@@ -293,11 +293,177 @@ service cloud.firestore {
         request.resource.data.status == 'payment_review' &&
         request.resource.data.createdAt == request.time &&
         getAfter(/databases/$(database)/documents/privateAvailability/$(request.resource.data.slotId)).data.status == 'payment_review' &&
-        getAfter(/databases/$(database)/documents/privateAvailability/$(request.resource.data.slotId)).data.heldBy == request.auth.uid;
+        getAfter(/databases/$(database)/documents/privateAvailability/$(request.resource.data.slotId)).data.heldBy == request.auth.uid);
       allow read: if isAdmin() ||
         (request.auth != null && request.auth.uid == resource.data.studentUid);
-      allow update: if isAdmin();
+      allow update: if isAdmin() || (resource.data.get('lessonId', '') == requestId && privateCalendarProjection(requestId));
       allow delete: if false;
+    }
+
+    // Spark: every balance change must commit with one immutable history entry.
+    function ownsPrivateAccount(userId) {
+      return request.auth != null && request.auth.uid == userId && request.auth.token.email_verified == true;
+    }
+    function accountAfter(uid) {
+      return getAfter(/databases/$(database)/documents/privateAccounts/$(uid)).data;
+    }
+    function operationAfter(uid, id) {
+      return getAfter(/databases/$(database)/documents/privateAccounts/$(uid)/history/$(id)).data;
+    }
+    function accountShape(a) {
+      return a.keys().hasOnly(['fullName','email','credited','used','reserved','createdAt','updatedAt','lastOperation']) &&
+        a.fullName is string && a.fullName.size() >= 2 && a.fullName.size() <= 80 &&
+        a.email is string && a.email.size() >= 5 && a.email.size() <= 120 &&
+        a.credited is int && a.used is int && a.reserved is int &&
+        a.credited >= 0 && a.used >= 0 && a.reserved >= 0 && a.credited >= a.used + a.reserved &&
+        a.lastOperation is string && a.lastOperation.size() >= 16 && a.lastOperation.size() <= 180 &&
+        a.updatedAt == request.time;
+    }
+    function linkedAccountWrite(uid) {
+      let a = request.resource.data;
+      let h = operationAfter(uid, a.lastOperation);
+      return accountShape(a) && (isAdmin() || ownsPrivateAccount(uid)) &&
+        !exists(/databases/$(database)/documents/privateAccounts/$(uid)/history/$(a.lastOperation)) &&
+        h.actorUid == request.auth.uid && h.createdAt == request.time &&
+        h.credited == a.credited && h.used == a.used && h.reserved == a.reserved;
+    }
+    function validTarget(id, lessonId, start) {
+      let before = get(/databases/$(database)/documents/privateAvailability/$(id)).data;
+      let after = getAfter(/databases/$(database)/documents/privateAvailability/$(id)).data;
+      return before.status == 'available' && before.get('lessonId', '') == '' &&
+        before.startAt == start && before.durationMinutes == 50 &&
+        start > request.time && start <= request.time + duration.value(21, 'd') &&
+        before.googleCalendarBlocked == false &&
+        before.googleCalendarCheckedAt >= request.time - duration.value(35, 'm') &&
+        after.status == 'confirmed' && after.lessonId == lessonId &&
+        after.heldBy == '' && after.bookingRequestId == lessonId && after.holdExpiresAt == request.time &&
+        after.diff(before).affectedKeys().hasOnly(['status','lessonId','heldBy','bookingRequestId','holdExpiresAt']);
+    }
+    function releasedSlot(id, lessonId) {
+      let before = get(/databases/$(database)/documents/privateAvailability/$(id)).data;
+      let after = getAfter(/databases/$(database)/documents/privateAvailability/$(id)).data;
+      return before.status == 'confirmed' && before.lessonId == lessonId &&
+        after.status == 'available' && after.lessonId == '' && after.heldBy == '' &&
+        after.bookingRequestId == '' && after.holdExpiresAt == request.time &&
+        after.googleCalendarCheckedAt == timestamp.value(0) &&
+        after.diff(before).affectedKeys().hasOnly(['status','lessonId','heldBy','bookingRequestId','holdExpiresAt','googleCalendarCheckedAt']);
+    }
+    function lessonShape(l, uid, opId) {
+      return l.keys().hasOnly(['studentUid','fullName','email','slotId','startAt','durationMinutes','status','createdAt','updatedAt','operationId']) &&
+        l.studentUid == uid && l.operationId == opId && l.updatedAt == request.time &&
+        l.durationMinutes == 50 && l.slotId is string && l.startAt is timestamp;
+    }
+    function calendarMatches(l, id) {
+      let p = getAfter(/databases/$(database)/documents/privateBookingRequests/$(id)).data;
+      return p.keys().hasOnly(['studentUid','fullName','email','slotId','colombiaStart','status','packageLabel','lessonId']) &&
+        p.lessonId == id && p.studentUid == l.studentUid && p.fullName == l.fullName && p.email == l.email &&
+        p.slotId == l.slotId && p.colombiaStart == l.startAt && p.packageLabel == 'Prepaid class balance' &&
+        p.status == (l.status in ['reserved','completed','no_show'] ? 'confirmed' : 'cancelled');
+    }
+    function privateCalendarProjection(id) {
+      let l = getAfter(/databases/$(database)/documents/privateLessons/$(id)).data;
+      let h = operationAfter(l.studentUid, l.operationId);
+      return (isAdmin() || ownsPrivateAccount(l.studentUid)) && calendarMatches(l,id) &&
+        h.actorUid == request.auth.uid && h.createdAt == request.time && h.lessonId == id &&
+        accountAfter(l.studentUid).lastOperation == l.operationId &&
+        !exists(/databases/$(database)/documents/privateAccounts/$(l.studentUid)/history/$(l.operationId));
+    }
+    function validBooking(uid, opId, h, a) {
+      let l = getAfter(/databases/$(database)/documents/privateLessons/$(h.lessonId)).data;
+      return !exists(/databases/$(database)/documents/privateLessons/$(h.lessonId)) &&
+        lessonShape(l, uid, opId) && l.fullName == a.fullName && l.email == a.email &&
+        l.createdAt == request.time && l.status == 'reserved' && calendarMatches(l,h.lessonId) &&
+        h.fromSlotId == '' && h.fromStartAt == null && h.toSlotId == l.slotId && h.toStartAt == l.startAt &&
+        validTarget(l.slotId, h.lessonId, l.startAt);
+    }
+    function validLessonChange(uid, opId, h) {
+      let before = get(/databases/$(database)/documents/privateLessons/$(h.lessonId)).data;
+      let after = getAfter(/databases/$(database)/documents/privateLessons/$(h.lessonId)).data;
+      return before.studentUid == uid && before.status == 'reserved' && lessonShape(after, uid, opId) && calendarMatches(after,h.lessonId) &&
+        after.fullName == before.fullName && after.email == before.email && after.createdAt == before.createdAt &&
+        h.fromSlotId == before.slotId && h.fromStartAt == before.startAt &&
+        (isAdmin() || before.startAt >= request.time + duration.value(24, 'h')) &&
+        ((h.action == 'reschedule' && after.status == 'reserved' && before.slotId != after.slotId &&
+            h.toSlotId == after.slotId && h.toStartAt == after.startAt &&
+            validTarget(after.slotId, h.lessonId, after.startAt) && releasedSlot(before.slotId, h.lessonId)) ||
+          (h.action in ['cancel','late_cancel','complete','no_show'] &&
+            after.slotId == before.slotId && after.startAt == before.startAt && h.toSlotId == '' && h.toStartAt == null &&
+            ((h.action == 'cancel' && after.status == 'cancelled' && releasedSlot(before.slotId, h.lessonId)) ||
+             (h.action == 'late_cancel' && isAdmin() && before.startAt < request.time + duration.value(24, 'h') &&
+                after.status == 'late_cancelled' && releasedSlot(before.slotId, h.lessonId)) ||
+             (h.action in ['complete','no_show'] && isAdmin() && before.startAt + duration.value(50, 'm') <= request.time &&
+                after.status == (h.action == 'complete' ? 'completed' : 'no_show')))));
+    }
+    function balanceChange(uid, h, a) {
+      let b = get(/databases/$(database)/documents/privateAccounts/$(uid)).data;
+      return a.fullName == b.fullName && a.email == b.email && a.createdAt == b.createdAt &&
+        ((h.action == 'credit' && isAdmin() && h.quantity != 0 &&
+            a.credited == b.credited + h.quantity && a.used == b.used && a.reserved == b.reserved) ||
+         (h.quantity == 0 && a.credited == b.credited &&
+            ((h.action == 'book' && a.reserved == b.reserved + 1 && a.used == b.used) ||
+             (h.action == 'reschedule' && a.reserved == b.reserved && a.used == b.used) ||
+             (h.action == 'cancel' && a.reserved == b.reserved - 1 && a.used == b.used) ||
+             (h.action in ['complete','no_show','late_cancel'] && isAdmin() && a.reserved == b.reserved - 1 && a.used == b.used + 1))));
+    }
+    function validHistory(uid, opId) {
+      let h = request.resource.data;
+      let a = accountAfter(uid);
+      return (isAdmin() || ownsPrivateAccount(uid)) &&
+        h.keys().hasOnly(['action','quantity','reason','actorUid','actorRole','createdAt','lessonId','fromSlotId','toSlotId','fromStartAt','toStartAt','credited','used','reserved','fingerprint']) &&
+        h.actorUid == request.auth.uid && h.actorRole == (isAdmin() ? 'admin' : 'student') && h.createdAt == request.time &&
+        h.reason is string && h.reason.size() <= 500 && (!isAdmin() || h.reason.size() >= 3) &&
+        h.fingerprint is string && h.fingerprint.size() <= 1500 &&
+        h.quantity is int && h.quantity >= -10000 && h.quantity <= 10000 &&
+        h.lessonId is string && h.lessonId.size() <= 180 && h.fromSlotId is string && h.toSlotId is string &&
+        accountShape(a) && a.lastOperation == opId && h.credited == a.credited && h.used == a.used && h.reserved == a.reserved &&
+        ((h.action == 'open' && isAdmin() && !exists(/databases/$(database)/documents/privateAccounts/$(uid)) &&
+            a.createdAt == request.time && h.quantity >= 0 && a.credited == h.quantity && a.used == 0 && a.reserved == 0) ||
+         (h.action != 'open' && balanceChange(uid, h, a))) &&
+        ((h.action in ['open','credit'] && h.lessonId == '' && h.fromSlotId == '' && h.toSlotId == '' && h.fromStartAt == null && h.toStartAt == null) ||
+         (h.action == 'book' && validBooking(uid, opId, h, a)) ||
+         (h.action in ['cancel','reschedule','complete','no_show','late_cancel'] && validLessonChange(uid, opId, h)));
+    }
+    function linkedLessonWrite(lessonId) {
+      let l = request.resource.data;
+      let h = operationAfter(l.studentUid, l.operationId);
+      return (isAdmin() || ownsPrivateAccount(l.studentUid)) &&
+        h.createdAt == request.time && h.actorUid == request.auth.uid && h.lessonId == lessonId &&
+        accountAfter(l.studentUid).lastOperation == l.operationId &&
+        !exists(/databases/$(database)/documents/privateAccounts/$(l.studentUid)/history/$(l.operationId));
+    }
+    function privateSlotChange(slotId) {
+      let id = request.resource.data.get('lessonId', '') != '' ? request.resource.data.lessonId : resource.data.get('lessonId', '');
+      let l = getAfter(/databases/$(database)/documents/privateLessons/$(id)).data;
+      let h = operationAfter(l.studentUid, l.operationId);
+      return ownsPrivateAccount(l.studentUid) && h.actorUid == request.auth.uid && h.createdAt == request.time &&
+        h.lessonId == id && h.action in ['book','cancel','reschedule'] &&
+        accountAfter(l.studentUid).lastOperation == l.operationId &&
+        (h.fromSlotId == slotId || h.toSlotId == slotId) &&
+        !exists(/databases/$(database)/documents/privateAccounts/$(l.studentUid)/history/$(l.operationId));
+    }
+    match /privateAccounts/{userId} {
+      allow read: if isAdmin() || ownsPrivateAccount(userId);
+      allow create, update: if linkedAccountWrite(userId);
+      allow delete: if false;
+      match /history/{entryId} {
+        allow read: if isAdmin() || ownsPrivateAccount(userId);
+        allow create: if validHistory(userId, entryId);
+        allow update, delete: if false;
+      }
+    }
+    match /privateLessons/{lessonId} {
+      allow read: if isAdmin() || ownsPrivateAccount(resource.data.studentUid);
+      allow create, update: if linkedLessonWrite(lessonId);
+      allow delete: if false;
+    }
+    match /privateEnrollments/{userId} {
+      allow create: if request.auth != null && request.auth.uid == userId &&
+        request.resource.data.keys().hasOnly(['fullName', 'email', 'createdAt']) &&
+        request.resource.data.fullName is string && request.resource.data.fullName.size() >= 2 &&
+        request.resource.data.fullName.size() <= 80 &&
+        request.resource.data.email == request.auth.token.email && request.resource.data.createdAt == request.time;
+      allow read: if isAdmin() || ownsPrivateAccount(userId);
+      allow update, delete: if false;
     }
 
     match /{document=**} {

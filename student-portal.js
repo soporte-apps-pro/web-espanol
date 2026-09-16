@@ -3,6 +3,7 @@ import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "https
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { doc, getDoc, getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
+import { mountPrivateLessons } from "./private-lessons-ui.js";
 
 const app=initializeApp(firebaseConfig);
 const appCheck=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey),isTokenAutoRefreshEnabled:true});
@@ -16,9 +17,12 @@ onAuthStateChanged(auth,async(user)=>{
   if(!user.emailVerified){await signOut(auth);location.href="student-access.html";return;}
   try{
     await getToken(appCheck,true);
+    const privateRoot=document.querySelector("#private-lessons");
+    privateRoot.hidden=false;
+    mountPrivateLessons(privateRoot,app);
     const snapshot=await getDoc(doc(database,"studentProfiles",user.uid));
     hide("#loading");
-    if(!snapshot.exists())throw new Error("profile-not-found");
+    if(!snapshot.exists())return;
     const profile=snapshot.data();
     if(profile.status!=="active"){show("#pending");return;}
     document.querySelector("#group-name").textContent=profile.groupName;

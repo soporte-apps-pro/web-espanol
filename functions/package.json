@@ -1,0 +1,12 @@
+{
+  "name": "spanish-with-elkin-spark-tests",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0",
+    "firebase-tools": "^15.30.1"
+  }
+}

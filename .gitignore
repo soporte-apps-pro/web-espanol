@@ -1,1 +1,8 @@
 node_modules/
+.npm-cache/
+*-debug.log
+.emulators/
+ui-debug.log
+lessons-test-output.log
+firebase-login-result.log
+firebase-deploy-result.log
