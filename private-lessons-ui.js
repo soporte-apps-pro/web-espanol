@@ -1,3 +1,4 @@
+import { mountPrivateAdminNavigation } from "./private-admin-navigation.mjs?v=20260916-task-nav-1";
 import { groupReservedLessons } from "./private-agenda.mjs?v=20260916-agenda-1";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { collection, doc, getFirestore, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
@@ -40,6 +41,7 @@ export function mountPrivateLessons(root, app, admin = false) {
       <h3 style="margin-top:28px">${t("Clases reservadas e historial","Upcoming classes and history")}</h3><div data-lessons></div>
       <details><summary>${t("Movimientos del saldo","Balance activity")}</summary><div class="lesson-history" data-history></div></details>
     </div>`;
+  const taskNavigation = admin ? mountPrivateAdminNavigation(root,()=>!busy) : null;
   const message = (text, error = false) => { const el = root.querySelector("[data-message]"); el.textContent = text; el.classList.toggle("error", error); };
   const failure = error => { console.error(error); message(t("No se pudo confirmar el cambio. ","The change could not be confirmed. ") + (error.message || "") + t(" Actualiza antes de repetirlo si tienes dudas."," Refresh before repeating it if you are unsure."), true); };
   function usableSlots() { const now = Date.now(); return slots.filter(s => s.status === "available" && !s.lessonId && s.startAt?.toMillis() > now && s.startAt.toMillis() <= now + 21 * DAY && s.googleCalendarBlocked === false && s.googleCalendarCheckedAt?.toMillis() >= now - 35 * 60000).sort((a,b) => a.startAt.toMillis()-b.startAt.toMillis()); }
@@ -122,7 +124,7 @@ export function mountPrivateLessons(root, app, admin = false) {
       message(data.action==="meeting_link"?"Enlace de clase guardado. El estudiante ya puede verlo en su portal.":t("Cambio guardado. El saldo y el historial se han actualizado.","Saved. Your balance and history have been updated."));
       if(data.action==="open") { watchStudent(result.data.studentUid); renderStudents(); }
     } catch(error) { failure(error); }
-    finally { busy=false;if(admin)root.querySelector("[data-student]").disabled=false;root.querySelectorAll("button").forEach(b=>b.disabled=false);renderAccount(); }
+    finally { busy=false;if(data.action==="open"&&account)taskNavigation?.show("students");if(admin)root.querySelector("[data-student]").disabled=false;root.querySelectorAll("button").forEach(b=>b.disabled=false);renderAccount(); }
   }
   function handleSubmit(event) {
     event.preventDefault(); const form=event.target;
@@ -146,6 +148,7 @@ export function mountPrivateLessons(root, app, admin = false) {
   function openAgendaLesson(event) {
     const button=event.target.closest('[data-agenda-student]');
     if(!button||busy)return;
+    taskNavigation?.show("students");
     selectedLessonId=button.dataset.agendaLesson;
     watchStudent(button.dataset.agendaStudent);
     renderStudents();
@@ -162,5 +165,5 @@ export function mountPrivateLessons(root, app, admin = false) {
   } else watchStudent(uid);
   const interval=setInterval(()=>{if(!busy && !root.contains(document.activeElement)){renderSlots();renderLessons();renderAgenda();}},30000);
   const stopTopups=mountPrivateTopups(root.querySelector('[data-topups]'),app,admin);
-  return ()=>{clearInterval(interval);root.removeEventListener("click",openAgendaLesson);stopTopups();root.removeEventListener("submit",handleSubmit);studentStops.forEach(stop=>stop());stops.forEach(stop=>stop());root.replaceChildren();};
+  return ()=>{clearInterval(interval);taskNavigation?.cleanup();root.removeEventListener("click",openAgendaLesson);stopTopups();root.removeEventListener("submit",handleSubmit);studentStops.forEach(stop=>stop());stops.forEach(stop=>stop());root.replaceChildren();};
 }

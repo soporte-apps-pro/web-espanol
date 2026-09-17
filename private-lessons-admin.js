@@ -1,7 +1,7 @@
-import { getAdminApp } from "./firebase-sessions.js?v=20260916-agenda-1";
+import { getAdminApp } from "./firebase-sessions.js?v=20260916-task-nav-1";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { adminUid } from "./firebase-config.js";
-import { mountPrivateLessons } from "./private-lessons-ui.js?v=20260916-agenda-1";
+import { mountPrivateLessons } from "./private-lessons-ui.js?v=20260916-task-nav-1";
 const app=getAdminApp();
 let cleanup;
 onAuthStateChanged(getAuth(app),user=>{

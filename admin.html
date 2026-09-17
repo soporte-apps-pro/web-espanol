@@ -383,6 +383,7 @@
 
       <section id="private-panel" class="hidden" data-admin-panel="private" aria-labelledby="private-title">
         <div id="private-lessons-manager"></div>
+        <div id="private-availability-tools" hidden>
         <div class="dashboard-head"><div><p class="eyebrow">Clases privadas</p><h1 id="private-title">Calendario y pagos</h1><p class="muted">Publica horarios siempre en hora Colombia y verifica cada referencia antes de confirmar.</p></div></div>
         <p id="private-message" class="message hidden" role="status"></p>
         <div class="private-card" style="margin-bottom:20px">
@@ -411,6 +412,7 @@
           </form>
           <div><h2>Horarios y solicitudes</h2><div id="private-bookings" class="private-list"></div></div>
         </div>
+        </div>
       </section>
 
       <section id="calendar-panel" class="hidden" data-admin-panel="calendar" aria-labelledby="calendar-title">
@@ -430,11 +432,11 @@
   </main>
   <button id="back-to-top" class="back-to-top" type="button" aria-label="Volver al inicio" title="Volver al inicio">↑</button>
 
-  <link rel="stylesheet" href="private-lessons.css?v=20260916-agenda-1">
-  <script type="module" src="admin.js?v=20260916-agenda-1"></script>
-  <script type="module" src="private-lessons-admin.js?v=20260916-agenda-1"></script>
-  <script type="module" src="private-booking-admin.js?v=20260916-agenda-1"></script>
-  <script type="module" src="admin-calendar.js?v=20260916-agenda-1"></script>
+  <link rel="stylesheet" href="private-lessons.css?v=20260916-task-nav-1">
+  <script type="module" src="admin.js?v=20260916-task-nav-1"></script>
+  <script type="module" src="private-lessons-admin.js?v=20260916-task-nav-1"></script>
+  <script type="module" src="private-booking-admin.js?v=20260916-task-nav-1"></script>
+  <script type="module" src="admin-calendar.js?v=20260916-task-nav-1"></script>
   <script>const backToTop=document.querySelector('#back-to-top');addEventListener('scroll',()=>backToTop.classList.toggle('visible',scrollY>500),{passive:true});backToTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));</script>
 </body>
 </html>
