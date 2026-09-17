@@ -220,7 +220,7 @@ service cloud.firestore {
       allow create: if isAdmin();
       allow delete: if isAdmin() && resource.data.status == 'available';
       allow update: if isAdmin() || privateSlotChange(slotId) || (
-        request.auth != null &&
+        resource.data.durationMinutes == 50 && request.auth != null &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status', 'heldBy', 'holdExpiresAt', 'bookingRequestId'
         ]) &&
@@ -339,7 +339,7 @@ service cloud.firestore {
       let before = get(/databases/$(database)/documents/privateAvailability/$(id)).data;
       let after = getAfter(/databases/$(database)/documents/privateAvailability/$(id)).data;
       return before.status == 'available' && before.get('lessonId', '') == '' &&
-        before.startAt == start && before.durationMinutes == 50 &&
+        before.startAt == start && before.durationMinutes in [30,50] && before.durationMinutes >= minutes &&
         start > request.time && start <= request.time + duration.value(21, 'd') &&
         before.googleCalendarBlocked == false &&
         before.googleCalendarCheckedAt >= request.time - duration.value(35, 'm') &&
@@ -351,7 +351,7 @@ service cloud.firestore {
       let before = get(/databases/$(database)/documents/privateAvailability/$(id)).data;
       let after = getAfter(/databases/$(database)/documents/privateAvailability/$(id)).data;
       return before.status == 'confirmed' && before.lessonId == lessonId &&
-        after.status == 'available' && after.durationMinutes == 50 && after.lessonId == '' && after.heldBy == '' &&
+        after.status == 'available' && after.durationMinutes == before.get('availabilityDurationMinutes',50) && after.lessonId == '' && after.heldBy == '' &&
         after.bookingRequestId == '' && after.holdExpiresAt == request.time &&
         after.googleCalendarCheckedAt == timestamp.value(0) &&
         after.diff(before).affectedKeys().hasOnly(['status','durationMinutes','lessonId','heldBy','bookingRequestId','holdExpiresAt','googleCalendarCheckedAt']);

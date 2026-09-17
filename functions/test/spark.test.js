@@ -37,6 +37,18 @@ test('Spark transactions enforce balances, roles, deadlines and atomicity withou
     });
   }
   try {
+    await t.test('30 minute slots reject longer lessons and preserve capacity after reschedule and cancellation',async()=>{
+      await init();const short=await slot(3*DAY,{durationMinutes:30,availabilityDurationMinutes:30});
+      await assert.rejects(alice(command('book',{slotId:short})));
+      await admin(command('correct_duration',{durationMinutes:30}));
+      const lesson=(await alice(command('book',{slotId:short}))).data.lessonId;
+      const next=await slot(4*DAY,{durationMinutes:30,availabilityDurationMinutes:30});
+      await alice(command('reschedule',{lessonId:lesson,slotId:next}));
+      assert.equal((await getDoc(doc(adminDB,'privateAvailability',short))).data().durationMinutes,30);
+      await alice(command('cancel',{lessonId:lesson}));
+      assert.equal((await getDoc(doc(adminDB,'privateAvailability',next))).data().durationMinutes,30);
+      assert.equal((await balance()).reserved,0);
+    });
     await t.test('booking and rescheduling each queue one notice per recipient, retries do not duplicate them',async()=>{
       await init();const op=command('book',{slotId:await slot()});const id=(await alice(op)).data.lessonId;await alice(op);
       let jobs=(await getDocs(collection(adminDB,'privateTopupMail'))).docs.map(x=>x.data()).filter(x=>x.status==='lesson_pending');assert.equal(jobs.length,2);assert.deepEqual(jobs.map(x=>x.kind).sort(),['admin_booking','student_booking']);

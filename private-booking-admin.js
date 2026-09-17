@@ -1,3 +1,4 @@
+import { validPrivateStart, overlapsPrivateSlot } from "./private-availability.mjs?v=20260916-short-slots-1";
 import { getAdminApp } from "./firebase-sessions.js?v=20260916-separated-1";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { collection, deleteDoc, doc, getDocsFromServer, getFirestore, orderBy, query, serverTimestamp, Timestamp, writeBatch } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
@@ -17,7 +18,7 @@ const weekTitle = document.querySelector("#private-week-title");
 const mobileWeek = document.querySelector("#private-week-mobile");
 const GOOGLE_CHECK_MAX_AGE_MINUTES = 35;
 const START_HOUR = 7;
-const END_HOUR = 19;
+const END_HOUR = 24;
 let slots = [];
 let requests = [];
 let visibleWeek = mondayOf(colombiaToday());
@@ -50,13 +51,13 @@ function googleStatus(slot) { if (slot.googleCalendarBlocked === true) return "G
 function renderPrivateWeek() {
   weekTitle.textContent=privateWeekHeading(); const today=dateKey(colombiaToday()); const rows=(END_HOUR-START_HOUR)*2; let html='<div class="week-corner"></div>';
   for(let day=0;day<7;day++){const date=addDays(visibleWeek,day),key=dateKey(date);html+=`<div class="week-day-head ${key===today?"today":""}" style="grid-column:${day+2};grid-row:1">${new Intl.DateTimeFormat("es-CO",{weekday:"short",timeZone:"UTC"}).format(date)}<small>${new Intl.DateTimeFormat("es-CO",{day:"numeric",month:"short",timeZone:"UTC"}).format(date)}</small></div>`;}
-  for(let row=0;row<rows;row++){const total=START_HOUR*60+row*30,time=`${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;html+=`<div class="week-time" style="grid-column:1;grid-row:${row+2}">${row%2===0?time:""}</div>`;for(let day=0;day<7;day++){const date=dateKey(addDays(visibleWeek,day));html+=`<button class="week-cell" type="button" data-week-date="${date}" data-week-time="${time}" style="grid-column:${day+2};grid-row:${row+2}" aria-label="Preparar ${date} ${time}"></button>`;}}
-  slots.forEach(slot=>{if(!slot.startAt?.toDate)return;const parts=colombiaParts(slot.startAt),offset=Math.round((new Date(`${parts.date}T12:00:00Z`)-visibleWeek)/86400000);if(offset<0||offset>6||parts.hour<START_HOUR||parts.hour>=END_HOUR)return;const row=2+(parts.hour-START_HOUR)*2+(parts.minute>=30?1:0),request=requestFor(slot);html+=`<button class="week-event private-week-event ${weekStatusClass(slot)}" type="button" data-week-slot="${escapeHtml(slot.id)}" style="grid-column:${offset+2};grid-row:${row}/span 2"><strong>${String(parts.hour).padStart(2,"0")}:${String(parts.minute).padStart(2,"0")}</strong><br>${escapeHtml(request?.fullName||statusLabel(slot.status))}</button>`;});
+  for(let row=0;row<rows;row++){const total=START_HOUR*60+row*30,time=`${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;html+=`<div class="week-time" style="grid-column:1;grid-row:${row+2}">${row%2===0?time:""}</div>`;for(let day=0;day<7;day++){const date=dateKey(addDays(visibleWeek,day));html+=`<button class="week-cell" type="button" data-week-date="${date}" data-week-time="${time}" ${time>"23:00"?"disabled":""} style="grid-column:${day+2};grid-row:${row+2}" aria-label="Preparar ${date} ${time}"></button>`;}}
+  slots.forEach(slot=>{if(!slot.startAt?.toDate)return;const parts=colombiaParts(slot.startAt),offset=Math.round((new Date(`${parts.date}T12:00:00Z`)-visibleWeek)/86400000);if(offset<0||offset>6||parts.hour<START_HOUR||parts.hour>=END_HOUR)return;const row=2+(parts.hour-START_HOUR)*2+(parts.minute>=30?1:0),request=requestFor(slot);html+=`<button class="week-event private-week-event ${weekStatusClass(slot)}" type="button" data-week-slot="${escapeHtml(slot.id)}" style="grid-column:${offset+2};grid-row:${row}/span ${Math.ceil((slot.durationMinutes||50)/30)}"><strong>${String(parts.hour).padStart(2,"0")}:${String(parts.minute).padStart(2,"0")}</strong><br>${escapeHtml(request?.fullName||statusLabel(slot.status))}</button>`;});
   weekGrid.innerHTML=html;
   weekGrid.querySelectorAll("[data-week-date]").forEach(button=>button.addEventListener("click",()=>{form.elements.date.value=button.dataset.weekDate;form.elements.time.value=button.dataset.weekTime;form.scrollIntoView({behavior:"smooth",block:"center"});form.elements.slotType.focus();setMessage("Horario preparado. Elige si será individual o recurrente y publícalo.","success");}));
   weekGrid.querySelectorAll("[data-week-slot]").forEach(button=>button.addEventListener("click",()=>{const card=list.querySelector(`[data-slot-id="${CSS.escape(button.dataset.weekSlot)}"]`);if(!card)return;card.closest(".private-series-card")?.setAttribute("open","");card.setAttribute("open","");card.scrollIntoView({behavior:"smooth",block:"center"});}));
   const slotsByDate=new Map();slots.forEach(slot=>{if(!slot.startAt?.toDate)return;const parts=colombiaParts(slot.startAt);if(!slotsByDate.has(parts.date))slotsByDate.set(parts.date,[]);slotsByDate.get(parts.date).push({slot,parts});});
-  mobileWeek.innerHTML=Array.from({length:7},(_,day)=>{const date=addDays(visibleWeek,day),key=dateKey(date),daySlots=slotsByDate.get(key)||[];const rows=Array.from({length:(END_HOUR-START_HOUR)*2},(_,row)=>{const total=START_HOUR*60+row*30,time=`${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`,match=daySlots.find(item=>item.parts.hour===Math.floor(total/60)&&item.parts.minute===total%60);if(match){const request=requestFor(match.slot);return `<button class="mobile-time-row ${weekStatusClass(match.slot)}" type="button" data-mobile-slot="${escapeHtml(match.slot.id)}"><strong>${time}</strong><span>${escapeHtml(request?.fullName||statusLabel(match.slot.status))}</span></button>`;}return `<button class="mobile-time-row available" type="button" data-mobile-date="${key}" data-mobile-time="${time}"><strong>${time}</strong><span>Preparar disponibilidad</span></button>`;}).join("");return `<details class="mobile-day ${key===today?"today":""}" ${key===today?"open":""}><summary>${new Intl.DateTimeFormat("es-CO",{weekday:"long",day:"numeric",month:"short",timeZone:"UTC"}).format(date)}</summary><div class="mobile-day-body">${rows}</div></details>`;}).join("");
+  mobileWeek.innerHTML=Array.from({length:7},(_,day)=>{const date=addDays(visibleWeek,day),key=dateKey(date),daySlots=slotsByDate.get(key)||[];const rows=Array.from({length:(END_HOUR-START_HOUR)*2},(_,row)=>{const total=START_HOUR*60+row*30,time=`${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`,match=daySlots.find(item=>item.parts.hour===Math.floor(total/60)&&item.parts.minute===total%60);if(match){const request=requestFor(match.slot);return `<button class="mobile-time-row ${weekStatusClass(match.slot)}" type="button" data-mobile-slot="${escapeHtml(match.slot.id)}"><strong>${time}</strong><span>${escapeHtml(request?.fullName||statusLabel(match.slot.status))}</span></button>`;}return `<button class="mobile-time-row available" type="button" data-mobile-date="${key}" data-mobile-time="${time}" ${time>"23:00"?"disabled":""}><strong>${time}</strong><span>Preparar disponibilidad</span></button>`;}).join("");return `<details class="mobile-day ${key===today?"today":""}" ${key===today?"open":""}><summary>${new Intl.DateTimeFormat("es-CO",{weekday:"long",day:"numeric",month:"short",timeZone:"UTC"}).format(date)}</summary><div class="mobile-day-body">${rows}</div></details>`;}).join("");
   mobileWeek.querySelectorAll("[data-mobile-date]").forEach(button=>button.addEventListener("click",()=>{form.elements.date.value=button.dataset.mobileDate;form.elements.time.value=button.dataset.mobileTime;form.scrollIntoView({behavior:"smooth",block:"center"});setMessage("Horario preparado. Elige si será individual o recurrente y publícalo.","success");}));
   mobileWeek.querySelectorAll("[data-mobile-slot]").forEach(button=>button.addEventListener("click",()=>{const card=list.querySelector(`[data-slot-id="${CSS.escape(button.dataset.mobileSlot)}"]`);if(!card)return;card.closest(".private-series-card")?.setAttribute("open","");card.setAttribute("open","");card.scrollIntoView({behavior:"smooth",block:"center"});}));
 }
@@ -64,11 +65,11 @@ function renderPrivateWeek() {
 function slotCard(slot) {
   const request = requestFor(slot);
   return `<details class="private-card private-slot-card" data-slot-id="${escapeHtml(slot.id)}" ${request?.status === "payment_review" ? "open" : ""}>
-    <summary class="group-card-head"><div><h3>${escapeHtml(formatColombia(slot.startAt))}</h3><span class="muted">50 minutos · hora Colombia<br>${escapeHtml(googleStatus(slot))}</span></div><span class="pill">${escapeHtml(statusLabel(slot.status))}</span></summary>
+    <summary class="group-card-head"><div><h3>${escapeHtml(formatColombia(slot.startAt))}</h3><span class="muted">${slot.durationMinutes||50} minutos · hora Colombia<br>${escapeHtml(googleStatus(slot))}</span></div><span class="pill">${escapeHtml(statusLabel(slot.status))}</span></summary>
     <div class="private-card-body">
     ${request ? `<div class="private-meta"><div><small>Estudiante</small><strong>${escapeHtml(request.fullName)}</strong><br><a href="mailto:${escapeHtml(request.email)}">${escapeHtml(request.email)}</a></div><div><small>Paquete</small><strong>${escapeHtml(request.packageLabel)}</strong><br>US$${Number(request.amountUsd).toFixed(2)}</div><div><small>Zona del estudiante</small><strong>${escapeHtml(request.studentTimeZone)}</strong></div><div><small>Método</small><strong>${escapeHtml(request.paymentMethod)}</strong></div><div><small>Referencia</small><strong>${escapeHtml(request.paymentReference)}</strong></div><div><small>Pagador</small><strong>${escapeHtml(request.payerName)}</strong></div></div>
     ${request.status === "payment_review" ? '<div class="card-actions"><button class="button secondary" type="button" data-reject>Rechazar / liberar</button><button class="button" type="button" data-confirm>Pago verificado · confirmar</button></div>' : ""}` : slot.lessonId ? '<p class="muted">Clase reservada con saldo. Para gestionar esta clase, abre Reservas y pulsa Ver reserva.</p>' : '<p class="muted">Nadie ha iniciado el pago para este horario.</p>'}
-    ${request?.status === "confirmed" && slot.status === "confirmed" ? `<div class="group-member-editor"><strong>Acciones excepcionales</strong><p class="muted">Úsalas únicamente por fuerza mayor. Requieren confirmación escrita.</p><label for="reschedule-${escapeHtml(slot.id)}">Nuevo horario disponible</label><select id="reschedule-${escapeHtml(slot.id)}" data-reschedule-target><option value="">Selecciona un horario</option>${slots.filter((item) => item.status === "available" && googleCleared(item) && item.startAt?.toDate() > new Date()).map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(formatColombia(item.startAt))}</option>`).join("")}</select><div class="card-actions"><button class="button secondary" type="button" data-cancel-booking>Cancelar por fuerza mayor</button><button class="button" type="button" data-reschedule-booking>Reagendar reserva</button></div></div>` : ""}
+    ${request?.status === "confirmed" && slot.status === "confirmed" ? `<div class="group-member-editor"><strong>Acciones excepcionales</strong><p class="muted">Úsalas únicamente por fuerza mayor. Requieren confirmación escrita.</p><label for="reschedule-${escapeHtml(slot.id)}">Nuevo horario disponible</label><select id="reschedule-${escapeHtml(slot.id)}" data-reschedule-target><option value="">Selecciona un horario</option>${slots.filter((item) => item.status === "available" && (item.durationMinutes||50) === 50 && googleCleared(item) && item.startAt?.toDate() > new Date()).map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(formatColombia(item.startAt))}</option>`).join("")}</select><div class="card-actions"><button class="button secondary" type="button" data-cancel-booking>Cancelar por fuerza mayor</button><button class="button" type="button" data-reschedule-booking>Reagendar reserva</button></div></div>` : ""}
     ${slot.status === "available" && !request ? '<div class="card-actions"><button class="button secondary" type="button" data-close-slot>Cerrar horario disponible</button></div>' : ""}
     </div>
   </details>`;
@@ -137,7 +138,7 @@ async function rescheduleConfirmedBooking(slotId, button) {
   const card = button.closest("[data-slot-id]"); const targetId = card.querySelector("[data-reschedule-target]").value;
   const slot = slots.find((item) => item.id === slotId); const target = slots.find((item) => item.id === targetId); const request = requestFor(slot);
   if (!targetId) { setMessage("Selecciona primero el nuevo horario disponible."); return; }
-  if (!slot || slot.status !== "confirmed" || request?.status !== "confirmed" || !target || target.status !== "available" || !googleCleared(target)) { setMessage("El nuevo horario no está libre y verificado por Google Calendar. Actualiza el panel."); return; }
+  if (!slot || slot.status !== "confirmed" || request?.status !== "confirmed" || !target || target.status !== "available" || (target.durationMinutes||50) !== 50 || !googleCleared(target)) { setMessage("El nuevo horario no está libre y verificado por Google Calendar. Actualiza el panel."); return; }
   const reason = exceptionalReason("REAGENDAR");
   if (!reason) { setMessage("Reagendamiento detenido. No se realizó ningún cambio."); return; }
   button.disabled = true;
@@ -190,6 +191,8 @@ async function decide(slotId, confirmed) {
 form.addEventListener("submit", async (event) => {
   event.preventDefault(); const data = new FormData(form); const date=String(data.get("date")); const time=String(data.get("time"));
   const type = String(data.get("slotType"));
+  const minutes=Number(data.get("durationMinutes"));
+  if(!validPrivateStart(time,minutes)){setMessage("Elige 30 o 50 minutos y una hora de inicio entre 7 a. m. y 11 p. m., en intervalos de 30 minutos.");return;}
   const weeks = type === "weekly" ? Number(data.get("weeks")) : 1;
   const start = new Date(`${date}T${time}:00-05:00`);
   if (!Number.isFinite(start.getTime()) || start <= new Date()) { setMessage("Selecciona una fecha y hora futuras."); return; }
@@ -197,22 +200,18 @@ form.addEventListener("submit", async (event) => {
   const starts = Array.from({length:weeks}, (_, index) => new Date(start.getTime() + index * 7 * 24 * 60 * 60 * 1000));
   const activeTimes = new Set(slots.filter((slot) => slot.status !== "closed").map((slot) => slot.startAt?.toMillis?.()));
   const newStarts = starts.filter((item) => !activeTimes.has(item.getTime()));
-  const overlap = newStarts.some(start => slots.some(slot => {
-    const existing = slot.startAt?.toMillis?.();
-    return slot.status !== "closed" && Number.isFinite(existing) &&
-      start.getTime() < existing + Math.max(slot.durationMinutes || 50,50) * 60000 && start.getTime() + 50 * 60000 > existing;
-  }));
-  if (overlap) { setMessage("Un horario se cruza con otro ya publicado. Deja al menos 50 minutos entre clases."); return; }
+  const overlap = newStarts.some(start => slots.some(slot => overlapsPrivateSlot(start.getTime(),minutes,slot)));
+  if (overlap) { setMessage("Un horario se cruza con otro ya publicado. Revisa la hora y la duración para que no se superpongan."); return; }
   const duplicates = starts.length - newStarts.length;
   if (!newStarts.length) { setMessage("Todos esos horarios ya están publicados."); return; }
   const description = type === "weekly" ? `${newStarts.length} horarios semanales` : "el horario individual";
   const duplicateNotice = duplicates ? ` Se omitirán ${duplicates} que ya existen.` : "";
-  if (!window.confirm(`Vas a publicar ${description}, siempre en hora Colombia.${duplicateNotice} ¿Deseas continuar?`)) return;
+  if (!window.confirm(`Vas a publicar ${description}, de ${minutes} minutos, siempre en hora Colombia.${duplicateNotice} ¿Deseas continuar?`)) return;
   const submit=form.querySelector('[type="submit"]'); submit.disabled=true;
   try {
     const batch = writeBatch(database);
     const seriesId = type === "weekly" ? crypto.randomUUID() : "";
-    newStarts.forEach((item) => batch.set(doc(collection(database,"privateAvailability")), { startAt:Timestamp.fromDate(item), durationMinutes:50, colombiaTimeZone:"America/Bogota", availabilityType:type, recurrenceSeriesId:seriesId, status:"available", heldBy:"", holdExpiresAt:Timestamp.fromMillis(0), bookingRequestId:"", googleCalendarBlocked:true, googleCalendarCheckedAt:Timestamp.fromMillis(0), createdAt:serverTimestamp() }));
+    newStarts.forEach((item) => batch.set(doc(collection(database,"privateAvailability")), { startAt:Timestamp.fromDate(item), durationMinutes:minutes, availabilityDurationMinutes:minutes, colombiaTimeZone:"America/Bogota", availabilityType:type, recurrenceSeriesId:seriesId, status:"available", heldBy:"", holdExpiresAt:Timestamp.fromMillis(0), bookingRequestId:"", googleCalendarBlocked:true, googleCalendarCheckedAt:Timestamp.fromMillis(0), createdAt:serverTimestamp() }));
     await batch.commit();
     form.reset(); slotType.dispatchEvent(new Event("change"));
     setMessage(`${newStarts.length} horario${newStarts.length === 1 ? "" : "s"} publicado${newStarts.length === 1 ? "" : "s"}. Aparecerá${newStarts.length === 1 ? "" : "n"} públicamente cuando Google Calendar lo verifique.${duplicates ? ` Se omitieron ${duplicates} duplicados.` : ""}`,"success");

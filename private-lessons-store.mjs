@@ -96,19 +96,20 @@ export function createLessonStore(db, sdk, getActor) {
         claimRef = doc(db,"privateTopupClaims",report.referenceKey);
         need(!(await tx.get(claimRef)).exists(), "This payment reference has already credited classes. Check it before adding more.");
       }
-      let before, oldRef, targetRef, target;
+      let before, oldRef, targetRef, target, old;
       if (hasLesson && action !== "book") {
         const lesson = await tx.get(lessonRef);
         before = lesson.data();
         need(before?.studentUid === uid && before.status === "reserved", "This lesson has changed. Refresh the page.");
         oldRef = doc(db,"privateAvailability",before.slotId);
-        const old = (await tx.get(oldRef)).data();
+        old = (await tx.get(oldRef)).data();
         need(old?.lessonId === lessonId && old.status === "confirmed", "The schedule changed. Contact Elkin.");
       }
       if (["book","reschedule"].includes(action)) {
         targetRef = doc(db,"privateAvailability",input.slotId);
         target = (await tx.get(targetRef)).data();
         need(target?.status === "available" && !target.lessonId, "This time is no longer available.");
+        need(target.durationMinutes >= (before?.durationMinutes||privateDuration(account)), "This time is too short for your class. Choose a longer slot.");
       }
       if (action === "credit") account.credited += quantity;
       if (action === "book") account.reserved++;
@@ -121,7 +122,7 @@ export function createLessonStore(db, sdk, getActor) {
         tx.set(lessonRef,{studentUid:uid,fullName:account.fullName,email:account.email,slotId:input.slotId,startAt:target.startAt,durationMinutes:before?.durationMinutes||privateDuration(account),status:"reserved",createdAt:before?.createdAt || stamp,updatedAt:stamp,operationId});
       }
       if (oldRef && ["cancel","reschedule","late_cancel"].includes(action)) {
-        tx.update(oldRef,{status:"available",durationMinutes:50,lessonId:"",heldBy:"",bookingRequestId:"",holdExpiresAt:stamp,googleCalendarCheckedAt:Timestamp.fromMillis(0)});
+        tx.update(oldRef,{status:"available",durationMinutes:old.availabilityDurationMinutes||50,lessonId:"",heldBy:"",bookingRequestId:"",holdExpiresAt:stamp,googleCalendarCheckedAt:Timestamp.fromMillis(0)});
       }
       if (["cancel","complete","no_show","late_cancel"].includes(action)) {
         tx.update(lessonRef,{status:({cancel:"cancelled",complete:"completed",no_show:"no_show",late_cancel:"late_cancelled"})[action],updatedAt:stamp,operationId});

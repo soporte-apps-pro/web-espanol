@@ -1,8 +1,8 @@
 import {getAuth} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import * as sdk from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import {adminUid} from "./firebase-config.js";
-import {createLessonStore} from "./private-lessons-store.mjs?v=20260916-booking-mail-1";
-import {createTopupStore,packagesForAccount} from "./private-topup-store.mjs?v=20260916-booking-mail-1";
+import {createLessonStore} from "./private-lessons-store.mjs?v=20260916-short-slots-1";
+import {createTopupStore,packagesForAccount} from "./private-topup-store.mjs?v=20260916-short-slots-1";
 
 const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function mountPrivateTopups(root,app,admin=false) {

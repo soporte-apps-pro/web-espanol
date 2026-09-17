@@ -62,7 +62,7 @@
     .calendar-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
     .calendar-nav { display:flex; gap:8px; }
     .week-shell { overflow:auto; border:1px solid var(--line); border-radius:16px; background:#fff; }
-    .week-grid { display:grid; grid-template-columns:72px repeat(7,minmax(118px,1fr)); grid-template-rows:58px repeat(24,34px); min-width:930px; position:relative; }
+    .week-grid { display:grid; grid-template-columns:72px repeat(7,minmax(118px,1fr)); grid-template-rows:58px repeat(34,34px); min-width:930px; position:relative; }
     .week-corner,.week-day-head,.week-time,.week-cell { border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
     .week-corner { grid-column:1; grid-row:1; background:#f8fafc; }
     .week-day-head { display:grid; place-content:center; padding:6px; text-align:center; background:#f8fafc; color:var(--navy); font-size:.76rem; font-weight:800; line-height:1.25; }
@@ -401,7 +401,9 @@
               <option value="weekly">Recurrente semanal</option>
             </select>
             <label for="private-date">Fecha en Colombia</label><input id="private-date" name="date" type="date" required>
-            <label for="private-time">Hora en Colombia</label><input id="private-time" name="time" type="time" min="07:00" max="18:00" step="1800" required>
+            <label for="private-duration">Duración del espacio</label><select id="private-duration" name="durationMinutes"><option value="50">50 minutos</option><option value="30">30 minutos</option></select>
+            <p class="muted">Los espacios de 30 minutos se ofrecen a estudiantes con clases de 30 minutos. Puedes publicar horas de inicio hasta las 11 p. m.</p>
+            <label for="private-time">Hora de inicio en Colombia</label><input id="private-time" name="time" type="time" min="07:00" max="23:00" step="1800" required>
             <div id="private-recurrence-fields" hidden>
               <label for="private-recurrence-weeks">Cantidad de semanas</label>
               <input id="private-recurrence-weeks" name="weeks" type="number" min="2" max="52" value="6">
@@ -432,11 +434,11 @@
   </main>
   <button id="back-to-top" class="back-to-top" type="button" aria-label="Volver al inicio" title="Volver al inicio">↑</button>
 
-  <link rel="stylesheet" href="private-lessons.css?v=20260916-task-nav-1">
-  <script type="module" src="admin.js?v=20260916-task-nav-1"></script>
-  <script type="module" src="private-lessons-admin.js?v=20260916-task-nav-1"></script>
-  <script type="module" src="private-booking-admin.js?v=20260916-task-nav-1"></script>
-  <script type="module" src="admin-calendar.js?v=20260916-task-nav-1"></script>
+  <link rel="stylesheet" href="private-lessons.css?v=20260916-short-slots-1">
+  <script type="module" src="admin.js?v=20260916-short-slots-1"></script>
+  <script type="module" src="private-lessons-admin.js?v=20260916-short-slots-1"></script>
+  <script type="module" src="private-booking-admin.js?v=20260916-short-slots-1"></script>
+  <script type="module" src="admin-calendar.js?v=20260916-short-slots-1"></script>
   <script>const backToTop=document.querySelector('#back-to-top');addEventListener('scroll',()=>backToTop.classList.toggle('visible',scrollY>500),{passive:true});backToTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));</script>
 </body>
 </html>

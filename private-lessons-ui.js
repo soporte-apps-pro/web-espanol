@@ -1,11 +1,11 @@
-import { mountPrivateAdminNavigation } from "./private-admin-navigation.mjs?v=20260916-task-nav-1";
+import { mountPrivateAdminNavigation } from "./private-admin-navigation.mjs?v=20260916-short-slots-1";
 import { groupReservedLessons } from "./private-agenda.mjs?v=20260916-agenda-1";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { collection, doc, getFirestore, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import * as firestore from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
-import { createLessonStore, privateDuration, normalizeMeetingUrl } from "./private-lessons-store.mjs?v=20260916-booking-mail-1";
-import { mountPrivateTopups } from "./private-topups-ui.js?v=20260916-booking-mail-1";
+import { createLessonStore, privateDuration, normalizeMeetingUrl } from "./private-lessons-store.mjs?v=20260916-short-slots-1";
+import { mountPrivateTopups } from "./private-topups-ui.js?v=20260916-short-slots-1";
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[char]);
 const DAY = 86400000;
@@ -44,7 +44,7 @@ export function mountPrivateLessons(root, app, admin = false) {
   const taskNavigation = admin ? mountPrivateAdminNavigation(root,()=>!busy) : null;
   const message = (text, error = false) => { const el = root.querySelector("[data-message]"); el.textContent = text; el.classList.toggle("error", error); };
   const failure = error => { console.error(error); message(t("No se pudo confirmar el cambio. ","The change could not be confirmed. ") + (error.message || "") + t(" Actualiza antes de repetirlo si tienes dudas."," Refresh before repeating it if you are unsure."), true); };
-  function usableSlots() { const now = Date.now(); return slots.filter(s => s.status === "available" && !s.lessonId && s.startAt?.toMillis() > now && s.startAt.toMillis() <= now + 21 * DAY && s.googleCalendarBlocked === false && s.googleCalendarCheckedAt?.toMillis() >= now - 35 * 60000).sort((a,b) => a.startAt.toMillis()-b.startAt.toMillis()); }
+  function usableSlots() { const now = Date.now(); return slots.filter(s => s.status === "available" && s.durationMinutes >= privateDuration(account) && !s.lessonId && s.startAt?.toMillis() > now && s.startAt.toMillis() <= now + 21 * DAY && s.googleCalendarBlocked === false && s.googleCalendarCheckedAt?.toMillis() >= now - 35 * 60000).sort((a,b) => a.startAt.toMillis()-b.startAt.toMillis()); }
   function slotOptions() { return `<option value="">${t("Selecciona un horario","Select a time")}</option>` + usableSlots().map(s => `<option value="${escape(s.id)}">${escape(format(s.startAt))}</option>`).join(""); }
   function renderSlots() { root.querySelectorAll("[data-slot]").forEach(select => { const value = select.value; select.innerHTML = slotOptions(); select.value = value; }); root.querySelector("[data-availability]").textContent=usableSlots().length?"":t("No hay horarios verificados disponibles. Publica disponibilidad o espera a la próxima revisión del calendario.","No verified times are available right now. Contact Elkin or check again later."); }
   function renderMeeting() {
@@ -99,7 +99,7 @@ export function mountPrivateLessons(root, app, admin = false) {
     root.querySelector("[data-history]").textContent = "";
     if (!uid) return;
     studentStops.push(onSnapshot(doc(db,"privateClassLinks",uid),snap=>{meetingUrl=snap.data()?.url||"";renderMeeting();},failure));
-    studentStops.push(onSnapshot(doc(db,"privateAccounts",uid), snap => { account = snap.data(); renderAccount();focusSelectedLesson(); }, failure));
+    studentStops.push(onSnapshot(doc(db,"privateAccounts",uid), snap => { account = snap.data(); renderAccount();renderSlots();focusSelectedLesson(); }, failure));
     studentStops.push(onSnapshot(query(collection(db,"privateLessons"),where("studentUid","==",uid)), snap => { lessons=snap.docs.map(d=>({id:d.id,...d.data()})); renderLessons(); focusSelectedLesson(); }, failure));
     studentStops.push(onSnapshot(collection(db,"privateAccounts",uid,"history"), snap => {
       const history=snap.docs.map(d=>d.data()).sort((a,b)=>b.createdAt.toMillis()-a.createdAt.toMillis());

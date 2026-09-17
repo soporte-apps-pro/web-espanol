@@ -71,3 +71,7 @@ En cuentas activadas, la sección Corregir duración permite al administrador co
 El administrador puede guardar un enlace https al activar o desde Enlace de clase del estudiante debajo del saldo. Se almacena en privateClassLinks/{uid}; solo el administrador lo escribe y solo él y ese estudiante verificado pueden leerlo. El botón Join my class abre el enlace vigente; cambiarlo actualiza el portal y vaciarlo retira el botón. Copiar enlace permite enviarlo manualmente. No se crea una reunión automáticamente ni se envía un correo al guardar. Speaking Club conserva el enlace asignado a su grupo.
 
 Request your access empieza sin tipo seleccionado, sin formulario ni datos de pago; solo muestra los correspondientes después de elegir Speaking Club o Private classes. El acceso de cuentas existentes continúa disponible.
+
+## Disponibilidad de 30 minutos y horario nocturno
+
+Administración permite publicar espacios de 30 o 50 minutos, individuales o semanales, con inicios cada media hora entre 07:00 y 23:00 Colombia. Un inicio a las 23:00 termina a las 23:30 o 23:50. availabilityDurationMinutes conserva la capacidad publicada; las reservas de 30 caben en espacios de 30 o 50 y las de 50 solo en los de 50. Cancelar o reprogramar restaura la capacidad original y requiere nueva verificación del calendario. Los horarios anteriores sin ese campo mantienen capacidad 50. El flujo público de paquetes generales sigue ofreciendo solo espacios de 50.

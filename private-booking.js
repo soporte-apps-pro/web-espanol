@@ -127,7 +127,7 @@ function insideBookingWindow(slot) {
   const start = slot.startAt?.toDate?.();
   return start && start > new Date() && start.getTime() <= Date.now() + BOOKING_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 }
-function available(slot) { return insideBookingWindow(slot) && googleCleared(slot) && (slot.status === "available" || (slot.status === "held" && slot.holdExpiresAt?.toDate() <= new Date())); }
+function available(slot) { return (slot.durationMinutes||50) === 50 && insideBookingWindow(slot) && googleCleared(slot) && (slot.status === "available" || (slot.status === "held" && slot.holdExpiresAt?.toDate() <= new Date())); }
 
 function normalizeZoneSearch(value) { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
 function zoneLabel(zone) {
@@ -231,6 +231,7 @@ async function startHold(slotId) {
       if (!snapshot.exists()) throw new Error("slot-not-found");
       const data = snapshot.data();
       const isExpired = data.status === "held" && data.holdExpiresAt?.toMillis() <= Date.now();
+      if ((data.durationMinutes||50)!==50) throw new Error("slot-unavailable");
       if (data.status !== "available" && !isExpired) throw new Error("slot-unavailable");
       if (!insideBookingWindow(data)) throw new Error("outside-booking-window");
       if (data.googleCalendarBlocked !== false || !data.googleCalendarCheckedAt?.toMillis() || data.googleCalendarCheckedAt.toMillis() < Date.now() - GOOGLE_CHECK_MAX_AGE_MINUTES * 60000) throw new Error("calendar-unavailable");
