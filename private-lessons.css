@@ -4,3 +4,5 @@
 .lesson-panel fieldset{min-width:0;margin:16px 0;padding:16px;border:1px solid #cbd5e1;border-radius:12px}.lesson-panel textarea{min-height:90px;resize:vertical}[data-payment-note]{white-space:pre-line}
 
 .lesson-meeting-link{display:inline-block;padding:12px 20px;background:#15803d;color:#fff;text-decoration:none;font-weight:700;border-radius:12px}[data-class-link]{margin:20px 0;padding:18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px}
+
+.lesson-agenda{margin:20px 0 28px;padding:20px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:16px}.agenda-total strong{font-size:1.8rem;color:#1e3a8a}.agenda-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-top:1px solid #e2e8f0}.agenda-row p{margin:6px 0}.agenda-row small{color:#475569;overflow-wrap:anywhere}.agenda-row button{flex-shrink:0;margin:0}.agenda-row>div{min-width:0}.agenda-row strong{font-size:1.05rem}.lesson-row:focus{outline:3px solid #f97316;outline-offset:5px}@media(max-width:650px){.agenda-row{align-items:stretch;flex-direction:column}.lesson-agenda{padding:16px}}

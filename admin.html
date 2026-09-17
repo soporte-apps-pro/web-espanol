@@ -262,7 +262,7 @@
         <button class="admin-tab" type="button" data-admin-tab="groups" aria-selected="false">Grupos (<span id="groups-tab-count">0</span>)</button>
         <button class="admin-tab" type="button" data-admin-tab="payments" aria-selected="false">Pagos (<span id="payments-tab-count">0</span>)</button>
         <button class="admin-tab" type="button" data-admin-tab="access" aria-selected="false">Accesos (<span id="access-tab-count">0</span>)</button>
-        <button class="admin-tab" type="button" data-admin-tab="private" aria-selected="false">Privadas (<span id="private-tab-count">0</span>)</button>
+        <button class="admin-tab" type="button" data-admin-tab="private" aria-selected="false">Privadas · <span data-private-reserved-count>…</span> reservas<span id="private-tab-count" hidden>0</span></button>
         <button class="admin-tab" type="button" data-admin-tab="calendar" aria-selected="false">Mi calendario (<span id="calendar-tab-count">0</span>)</button>
       </nav>
 
@@ -430,11 +430,11 @@
   </main>
   <button id="back-to-top" class="back-to-top" type="button" aria-label="Volver al inicio" title="Volver al inicio">↑</button>
 
-  <link rel="stylesheet" href="private-lessons.css?v=20260916-booking-mail-1">
-  <script type="module" src="admin.js?v=20260916-booking-mail-1"></script>
-  <script type="module" src="private-lessons-admin.js?v=20260916-booking-mail-1"></script>
-  <script type="module" src="private-booking-admin.js?v=20260916-booking-mail-1"></script>
-  <script type="module" src="admin-calendar.js?v=20260916-booking-mail-1"></script>
+  <link rel="stylesheet" href="private-lessons.css?v=20260916-agenda-1">
+  <script type="module" src="admin.js?v=20260916-agenda-1"></script>
+  <script type="module" src="private-lessons-admin.js?v=20260916-agenda-1"></script>
+  <script type="module" src="private-booking-admin.js?v=20260916-agenda-1"></script>
+  <script type="module" src="admin-calendar.js?v=20260916-agenda-1"></script>
   <script>const backToTop=document.querySelector('#back-to-top');addEventListener('scroll',()=>backToTop.classList.toggle('visible',scrollY>500),{passive:true});backToTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));</script>
 </body>
 </html>

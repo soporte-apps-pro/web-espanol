@@ -1,3 +1,4 @@
+import { groupReservedLessons } from "./private-agenda.mjs?v=20260916-agenda-1";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { collection, doc, getFirestore, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import * as firestore from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
@@ -16,7 +17,7 @@ export function mountPrivateLessons(root, app, admin = false) {
   const status = value => ({ reserved:t("Reservada","Reserved"), completed:t("Realizada","Completed"), cancelled:t("Cancelada · clase devuelta","Cancelled · credit returned"), late_cancelled:t("Cancelación tardía · clase consumida","Late cancellation · credit used"), no_show:t("Ausencia · clase consumida","Missed · credit used") })[value] || value;
   const actionLabel = value => ({correct_duration:t("Duración corregida","Class duration corrected"),configure:t("Condiciones actualizadas","Conditions updated"),open:t("Saldo inicial","Opening balance"),credit:t("Pago / ajuste","Payment / adjustment"),book:t("Reserva","Booking"),reschedule:t("Reprogramación","Reschedule"),cancel:t("Cancelación","Cancellation"),late_cancel:t("Cancelación tardía","Late cancellation"),complete:t("Clase realizada","Lesson completed"),no_show:t("Ausencia","Missed lesson")})[value] || value;
   let uid = admin ? "" : auth.currentUser.uid, account, lessons = [], slots = [], accounts = [], enrollments = [], busy = false;
-  let studentStops = [], stops = [], meetingUrl="";
+  let studentStops = [], stops = [], meetingUrl="", agendaLessons = [], agendaLoaded = false, selectedLessonId = "";
   const pending = new Map();
   const termsFields=()=>`<label>Condiciones<select name="termsMode"><option value="general">Tarifas generales</option><option value="custom">Condiciones personales</option></select></label><fieldset data-terms-fields hidden disabled><label>Duración de cada clase<select name="durationMinutes"><option value="50">50 minutos</option><option value="30">30 minutos</option></select></label><label>Clases del paquete<input name="packageQuantity" type="number" min="1" max="100" step="1" value="1" required></label><label>Precio total del paquete (USD)<input name="packageAmountUsd" type="number" min="0.01" max="10000" step="0.01" required></label><label>Enlace de pago acordado (opcional)<input name="paymentUrl" type="url" pattern="https://.*" maxlength="500" placeholder="https://..."></label><label>Instrucciones de pago para el estudiante (opcional)<textarea name="paymentNote" maxlength="500" placeholder="Escribe las instrucciones en el idioma del estudiante"></textarea></label><p class="lesson-note">Para una tarifa por clase, indica 1 clase. El estudiante verá únicamente este paquete. Sin enlace, utilizará el método que hayan acordado.</p></fieldset>`;
   function readTerms(values){return values.termsMode==='custom'?{durationMinutes:Number(values.durationMinutes),packageQuantity:Number(values.packageQuantity),packageAmountUsd:Number(values.packageAmountUsd),paymentUrl:values.paymentUrl,paymentNote:values.paymentNote}:null;}
@@ -24,6 +25,7 @@ export function mountPrivateLessons(root, app, admin = false) {
 
   root.classList.add("lesson-panel");
   root.innerHTML = `<h2>${t("Clases personales · saldos y reservas","My private classes")}</h2>
+    ${admin ? `<section class="lesson-agenda" aria-label="Agenda de clases privadas"><h3>Tus clases reservadas</h3><p class="lesson-note">Todos los estudiantes · Hora de Colombia (America/Bogota)</p><div data-agenda><p>Cargando reservas…</p></div></section>` : ""}
     <p class="lesson-note">${t("El estudiante puede cancelar o reprogramar hasta 24 horas antes. Después, solo tú puedes hacerlo. Puedes devolver la clase como excepción o registrar una cancelación tardía que consume la clase.","You can cancel or reschedule at least 24 hours before the lesson. After that, only Elkin can make changes. Cancelling on time returns the credit. Late cancellations and missed lessons use one credit, unless Elkin makes an exception.")}</p>
     <p class="lesson-note">${t("Horarios en","Times shown in")} <strong>${escape(zone)}</strong>. ${t("Disponibilidad para los próximos 21 días.","Availability for the next 21 days.")}</p>
     <p class="lesson-notice" data-message role="status" aria-live="polite"></p>
@@ -68,18 +70,35 @@ export function mountPrivateLessons(root, app, admin = false) {
         ${lesson.status === "reserved" ? allowed ? `<form data-change><label>${t("Nuevo horario para reprogramar","New time to reschedule")}<select name="slotId" data-slot>${slotOptions()}</select></label>${admin ? '<label>Motivo del cambio<input name="reason" minlength="3" maxlength="500" placeholder="Motivo para el historial"></label>' : ""}<button type="submit" name="action" value="reschedule">${t("Reprogramar","Reschedule")}</button><button type="submit" name="action" value="cancel">${t("Cancelar y devolver clase","Cancel and return credit")}</button>${admin && lesson.startAt.toMillis()-Date.now()<DAY ? '<button type="submit" name="action" value="late_cancel">Cancelación tardía · consumir clase</button>' : ""}${admin && lesson.startAt.toMillis()+(lesson.durationMinutes||50)*60000 <= Date.now() ? '<button type="submit" name="action" value="complete">Marcar realizada</button><button type="submit" name="action" value="no_show">Registrar ausencia · consumir clase</button>' : ""}</form>` : `<p class="lesson-note">${t("Quedan menos de 24 horas. Solo tú puedes hacer cambios.","Less than 24 hours remain. Contact Elkin to cancel or reschedule.")}</p>` : ""}</article>`;
     }).join("") : `<p class="lesson-note">${t("Todavía no hay clases registradas.","No lessons booked yet.")}</p>`;
   }
+  function renderAgenda() {
+    if (!admin || !agendaLoaded) return;
+    const {upcoming,pending}=groupReservedLessons(agendaLessons);
+    const count=document.querySelector('[data-private-reserved-count]');
+    if(count)count.textContent=String(upcoming.length);
+    const names=new Map(accounts.map(a=>[a.id,a]));
+    const row=lesson=>{
+      const student=names.get(lesson.studentUid);
+      return `<article class="agenda-row"><div><strong>${escape(student?.fullName||'Estudiante pendiente de cargar')}</strong><p>${escape(format(lesson.startAt))} · ${lesson.durationMinutes||50} minutos</p><small>${escape(student?.email||'')}</small></div><button type="button" data-agenda-student="${escape(lesson.studentUid)}" data-agenda-lesson="${escape(lesson.id)}" ${busy?'disabled':''}>Ver reserva</button></article>`;
+    };
+    root.querySelector('[data-agenda]').innerHTML=`<p class="agenda-total"><strong>${upcoming.length}</strong> ${upcoming.length===1?'clase próxima o en curso':'clases próximas o en curso'}</p>${upcoming.length?upcoming.map(row).join(''):'<p class="lesson-note">No tienes clases próximas reservadas.</p>'}`;
+    if(pending.length)root.querySelector('[data-agenda]').innerHTML+=`<details><summary>${pending.length} clases pasadas pendientes de marcar</summary><p class="lesson-note">Abre cada reserva para marcarla realizada, registrar una ausencia o revisar lo ocurrido.</p>${pending.map(row).join('')}</details>`;
+  }
   function renderStudents() {
     const select = root.querySelector("[data-student]");
     select.innerHTML = '<option value="">Selecciona un estudiante</option>' + accounts.map(a => `<option value="${escape(a.id)}">${escape(a.fullName)} · ${a.credited-a.used-a.reserved} disponibles</option>`).join(""); select.value = uid;
     root.querySelector("[data-enrollments]").innerHTML = enrollments.filter(e => !accounts.some(a => a.id === e.id)).map(e => `<p>${escape(e.fullName)}<br>${escape(e.email)}</p>`).join("") || '<p>No hay cuentas pendientes.</p>';
+  }
+  function focusSelectedLesson() {
+    if(!account)return;
+    if(selectedLessonId){const target=[...root.querySelectorAll("[data-lesson]")].find(el=>el.dataset.lesson===selectedLessonId);if(target){target.tabIndex=-1;target.scrollIntoView({block:"start",behavior:"smooth"});target.focus({preventScroll:true});selectedLessonId="";}}
   }
   function watchStudent(value) {
     studentStops.forEach(stop => stop()); studentStops = []; uid = value; account = undefined; lessons = [];meetingUrl=""; renderAccount(); renderLessons();
     root.querySelector("[data-history]").textContent = "";
     if (!uid) return;
     studentStops.push(onSnapshot(doc(db,"privateClassLinks",uid),snap=>{meetingUrl=snap.data()?.url||"";renderMeeting();},failure));
-    studentStops.push(onSnapshot(doc(db,"privateAccounts",uid), snap => { account = snap.data(); renderAccount(); }, failure));
-    studentStops.push(onSnapshot(query(collection(db,"privateLessons"),where("studentUid","==",uid)), snap => { lessons=snap.docs.map(d=>({id:d.id,...d.data()})); renderLessons(); }, failure));
+    studentStops.push(onSnapshot(doc(db,"privateAccounts",uid), snap => { account = snap.data(); renderAccount();focusSelectedLesson(); }, failure));
+    studentStops.push(onSnapshot(query(collection(db,"privateLessons"),where("studentUid","==",uid)), snap => { lessons=snap.docs.map(d=>({id:d.id,...d.data()})); renderLessons(); focusSelectedLesson(); }, failure));
     studentStops.push(onSnapshot(collection(db,"privateAccounts",uid,"history"), snap => {
       const history=snap.docs.map(d=>d.data()).sort((a,b)=>b.createdAt.toMillis()-a.createdAt.toMillis());
       root.querySelector("[data-history]").innerHTML=history.map(h=>`<div class="lesson-row"><strong>${escape(actionLabel(h.action))}${h.quantity ? ` · ${h.quantity>0?"+":""}${h.quantity}` : ""}</strong><small>${escape(format(h.createdAt))} · ${h.actorRole==="admin"?"Elkin":t("Estudiante","Student")}</small>${h.fromStartAt?`<p>${escape(format(h.fromStartAt))}${h.toStartAt?` → ${escape(format(h.toStartAt))}`:""}</p>`:h.toStartAt?`<p>${escape(format(h.toStartAt))}</p>`:""}<p>${escape(h.reason)}</p><small>${t("Disponibles después del cambio","Available after change")}: ${h.credited-h.used-h.reserved}</small></div>`).join("") || `<p>${t("Sin movimientos.","No activity yet.")}</p>`;
@@ -124,15 +143,24 @@ export function mountPrivateLessons(root, app, admin = false) {
     }
   }
   root.addEventListener('click',async event=>{if(!event.target.closest('[data-copy-meeting]'))return;try{await navigator.clipboard.writeText(normalizeMeetingUrl(meetingUrl));message('Enlace copiado. Puedes enviarlo por WhatsApp o correo.');}catch{message('Copia el enlace desde el botón Abrir enlace de clase.',true);}});
+  function openAgendaLesson(event) {
+    const button=event.target.closest('[data-agenda-student]');
+    if(!button||busy)return;
+    selectedLessonId=button.dataset.agendaLesson;
+    watchStudent(button.dataset.agendaStudent);
+    renderStudents();
+  }
+  root.addEventListener('click',openAgendaLesson);
   root.addEventListener("change",event=>{if(event.target.name==="termsMode")toggleTerms(event.target.form);});
   root.addEventListener("submit",handleSubmit);
   stops.push(onSnapshot(query(collection(db,"privateAvailability"),where("status","==","available")),snap=>{slots=snap.docs.map(d=>({id:d.id,...d.data()}));renderSlots();},failure));
   if(admin) {
-    root.querySelector("[data-student]").addEventListener("change",event=>watchStudent(event.target.value));
-    stops.push(onSnapshot(collection(db,"privateAccounts"),snap=>{accounts=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.fullName.localeCompare(b.fullName));renderStudents();},failure));
-    stops.push(onSnapshot(collection(db,"privateEnrollments"),snap=>{enrollments=snap.docs.map(d=>({id:d.id,...d.data()}));renderStudents();},failure));
+    stops.push(onSnapshot(query(collection(db,"privateLessons"),where("status","==","reserved")),snap=>{agendaLessons=snap.docs.map(d=>({id:d.id,...d.data()}));agendaLoaded=true;renderAgenda();},error=>{root.querySelector('[data-agenda]').textContent='No se pudieron cargar las reservas. Actualiza la página para volver a intentarlo.';const count=document.querySelector('[data-private-reserved-count]');if(count)count.textContent='—';console.error(error);}));
+    root.querySelector("[data-student]").addEventListener("change",event=>{selectedLessonId="";watchStudent(event.target.value);});
+    stops.push(onSnapshot(collection(db,"privateAccounts"),snap=>{accounts=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.fullName.localeCompare(b.fullName));renderStudents();renderAgenda();},failure));
+    stops.push(onSnapshot(collection(db,"privateEnrollments"),snap=>{enrollments=snap.docs.map(d=>({id:d.id,...d.data()}));renderStudents();renderAgenda();},failure));
   } else watchStudent(uid);
-  const interval=setInterval(()=>{if(!busy && !root.contains(document.activeElement)){renderSlots();renderLessons();}},30000);
+  const interval=setInterval(()=>{if(!busy && !root.contains(document.activeElement)){renderSlots();renderLessons();renderAgenda();}},30000);
   const stopTopups=mountPrivateTopups(root.querySelector('[data-topups]'),app,admin);
-  return ()=>{clearInterval(interval);stopTopups();root.removeEventListener("submit",handleSubmit);studentStops.forEach(stop=>stop());stops.forEach(stop=>stop());root.replaceChildren();};
+  return ()=>{clearInterval(interval);root.removeEventListener("click",openAgendaLesson);stopTopups();root.removeEventListener("submit",handleSubmit);studentStops.forEach(stop=>stop());stops.forEach(stop=>stop());root.replaceChildren();};
 }

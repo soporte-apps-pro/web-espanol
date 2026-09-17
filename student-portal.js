@@ -1,9 +1,9 @@
-import { getStudentApp } from "./firebase-sessions.js?v=20260916-booking-mail-1";
+import { getStudentApp } from "./firebase-sessions.js?v=20260916-agenda-1";
 import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app-check.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { doc, getDoc, getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid, firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
-import { mountPrivateLessons } from "./private-lessons-ui.js?v=20260916-booking-mail-1";
+import { mountPrivateLessons } from "./private-lessons-ui.js?v=20260916-agenda-1";
 
 const app=getStudentApp();
 const appCheck=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey),isTokenAutoRefreshEnabled:true});
