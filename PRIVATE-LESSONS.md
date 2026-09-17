@@ -75,3 +75,7 @@ Request your access empieza sin tipo seleccionado, sin formulario ni datos de pa
 ## Disponibilidad de 30 minutos y horario nocturno
 
 Administración permite publicar espacios de 30 o 50 minutos, individuales o semanales, con inicios cada media hora entre 07:00 y 23:00 Colombia. Un inicio a las 23:00 termina a las 23:30 o 23:50. availabilityDurationMinutes conserva la capacidad publicada; las reservas de 30 caben en espacios de 30 o 50 y las de 50 solo en los de 50. Cancelar o reprogramar restaura la capacidad original y requiere nueva verificación del calendario. Los horarios anteriores sin ese campo mantienen capacidad 50. El flujo público de paquetes generales sigue ofreciendo solo espacios de 50.
+
+## Corrección del verificador de Google Calendar
+
+El Código.gs proporcionado usaba siempre CONFIG.classDurationMinutes=50. google-calendar-availability-sync.gs es su reemplazo completo y consulta durationMinutes de cada espacio, con 50 solo para registros antiguos sin duración. Usa intervalos semiabiertos para permitir eventos adyacentes, conserva eventos transparentes como libres, pagina Firestore y actualiza con precondición de updateTime. Registra duración revisada y versión para diagnóstico. Instalar según calendar-availability-setup.html y ejecutar syncPrivateAvailability; esta sesión no modifica el editor de Google ni desbloquea horarios sin revisar eventos. Ocho pruebas locales cubren duración, cruces, adyacencia, paginación y concurrencia.
