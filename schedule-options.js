@@ -80,8 +80,6 @@
     { id: "friday-1100", label: "Friday", date: "2026-09-25", hour: 11 },
     { id: "friday-1400", label: "Friday", date: "2026-09-25", hour: 14 },
     { id: "friday-1500", label: "Friday", date: "2026-09-25", hour: 15 },
-    { id: "saturday-1130", label: "Saturday", date: "2026-09-26", hour: 11, minute: 30 },
-    { id: "saturday-1330", label: "Saturday", date: "2026-09-26", hour: 13, minute: 30 },
   ];
 
   function formatTime(date, timeZone) {
