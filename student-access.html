@@ -17,6 +17,7 @@
     .wise-box strong{display:block;margin-bottom:4px}
     .wise-pay{display:block;margin-top:12px;padding:12px;border-radius:12px;background:#15803d;color:#fff;text-align:center;text-decoration:none;font-weight:800;transition:.18s ease}
     .wise-pay:hover{background:#166534;transform:translateY(-1px)}
+    .access-guide{margin:16px 0;line-height:1.65}.access-guide h2{font-size:1rem;margin:0 0 6px}.access-guide ol{padding-left:22px;margin:10px 0}.access-guide li+li{margin-top:8px}.access-guide p{margin:8px 0}.access-guide details{border-top:1px solid #cbd5e1;margin-top:12px;padding-top:12px}.access-guide summary{cursor:pointer;font-weight:700}.access-guide summary:focus-visible{outline:2px solid #1e40af;outline-offset:4px}
     .help-link{color:#1e40af;font-weight:700}
     .password-reset{width:auto;margin:10px 0 0;padding:2px 0;border:0;border-radius:0;background:transparent;color:#1e40af;text-align:left;font-size:.82rem;font-weight:700;text-decoration:underline}
     .password-reset:hover{color:#f97316}
@@ -46,7 +47,22 @@
       <h1>Request your access</h1>
       <p class="muted">Choose your class type to get started.</p>
       <label for="access-type">Your classes</label><select id="access-type" required><option value="" selected disabled>Select your classes</option><option value="group">Speaking Club</option><option value="private">Private classes</option></select>
-      <p id="private-access-note" class="notice" hidden>Already taking private classes with Elkin? Create your account here and verify your email. Elkin will add your remaining classes. You do not need to pay again to register.</p>
+      <section id="private-access-note" class="notice access-guide" aria-labelledby="private-steps-title" hidden>
+        <h2 id="private-steps-title">New to private classes?</h2>
+        <p>No invitation needed. Start with a free account.</p>
+        <ol>
+          <li><strong>Create your account below.</strong> Open the verification email and confirm your email address.</li>
+          <li><strong>Wait for your account-ready email.</strong> Elkin will set up your price and class duration.</li>
+          <li><strong>Pay and report your payment.</strong> Sign in, open <em>Report a new payment</em>, follow the payment instructions and submit your transaction reference.</li>
+          <li><strong>Book your first class.</strong> Once Elkin confirms your payment, your classes become available. Choose a time in your portal.</li>
+        </ol>
+        <p>Verifying your email does not activate classes. You do not need to pay to create an account.</p>
+        <details>
+          <summary>Already taking classes with Elkin?</summary>
+          <p>Create your account below and verify your email. Elkin will add your agreed price, class duration and remaining classes. You will receive an email when you can start booking.</p>
+          <p><strong>Do not pay again for classes you already purchased.</strong></p>
+        </details>
+      </section>
       <div id="group-access-info" hidden>
       <div class="notice"><strong>After submitting, expect two emails:</strong><ol><li><strong>Payment information received</strong> from Spanish with Elkin.</li><li>A separate verification email from <strong>noreply@spanish-with-elkin.firebaseapp.com</strong>. Open its verification link. This message may arrive in Spam.</li></ol>Verifying your email does not confirm your payment. Elkin will review it before activating your access.</div>
       <div class="wise-box">
@@ -83,6 +99,6 @@
       </form>
     </section>
   </main>
-  <script type="module" src="student-access.js?v=20260916-access-link-1"></script>
+  <script type="module" src="student-access.js?v=20260916-private-guide-1"></script>
 </body>
 </html>

@@ -82,8 +82,8 @@ document.querySelector("#register-form").addEventListener("submit", async (event
       output,
       privateAccess
         ? verificationEmailSent
-          ? "Account created. Check your inbox and Spam for your verification email, then sign in. Elkin will activate your remaining private classes."
-          : "Account created, but we could not send your verification email. Try signing in to request another one. Elkin will activate your class balance."
+          ? "Account created. Verify your email using the link in your inbox (check Spam too). Elkin will prepare your price, class duration and any remaining classes, then email you when your account is ready."
+          : "Account created, but we could not send your verification email. Sign in to request another one. Elkin will email you when your account is ready."
         : verificationEmailSent
         ? "Information submitted successfully. Check for two emails: Payment information received from Spanish with Elkin, and a separate Firebase verification email from noreply@spanish-with-elkin.firebaseapp.com. Open the verification link and check Spam if necessary. Elkin will notify you after reviewing your payment."
         : "Information submitted successfully. We could not send the verification email now, but you can request another one when you try to sign in.",
