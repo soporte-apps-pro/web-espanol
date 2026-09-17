@@ -1,8 +1,8 @@
 import {getAuth} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import * as sdk from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import {adminUid} from "./firebase-config.js";
-import {createLessonStore} from "./private-lessons-store.mjs?v=20260916-short-slots-1";
-import {createTopupStore,packagesForAccount} from "./private-topup-store.mjs?v=20260916-short-slots-1";
+import {createLessonStore} from "./private-lessons-store.mjs?v=20260917-pricing-1";
+import {createTopupStore,packagesForAccount} from "./private-topup-store.mjs?v=20260917-pricing-1";
 
 const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function mountPrivateTopups(root,app,admin=false) {
@@ -13,7 +13,7 @@ export function mountPrivateTopups(root,app,admin=false) {
   root.innerHTML=`<h3>${t('Nuevos pagos de clases','Add more classes')}</h3>
     <p class="lesson-note">${t('Revisa el ingreso en tu cuenta antes de aprobar. Confirmar añade las clases una sola vez y prepara el correo para el estudiante.','Already paid for another package? Report your payment below. Elkin will verify it before adding classes to your balance.')}</p>
     <p class="lesson-notice" data-topup-message role="status" aria-live="polite"></p>
-    ${admin?'<p class="lesson-note" data-mail-health>Cargando estado del correo…</p><p class="lesson-note" data-mail-queue></p><p><a href="private-topup-email-setup.html" target="_blank" rel="noopener noreferrer">Activar los avisos por correo</a></p>':`<details><summary>Report a new payment</summary><form data-topup-form>
+    ${admin?'<p class="lesson-note" data-mail-health>Cargando estado del correo…</p><p class="lesson-note" data-mail-queue></p><p><a href="private-topup-email-setup.html" target="_blank" rel="noopener noreferrer">Activar los avisos por correo</a> · <a href="pricing-update-setup.html" target="_blank" rel="noopener noreferrer">Actualizar tarifas en Google</a></p>':`<details><summary>Report a new payment</summary><form data-topup-form>
       <label>Package<select name="packageId" required disabled><option value="">Loading your conditions…</option></select></label>
       <p><a data-wise-link hidden target="_blank" rel="noopener noreferrer"></a></p><p data-payment-note class="lesson-note"></p>
       <label>Payment method<select name="paymentMethod" required><option value="wise">Wise</option><option value="paypal">PayPal</option><option value="transfer">Bank transfer</option><option value="other">Other method agreed with Elkin</option></select></label>
@@ -66,9 +66,9 @@ export function mountPrivateTopups(root,app,admin=false) {
   stops.push(sdk.onSnapshot(q,snap=>{reports=snap.docs.map(d=>({id:d.id,...d.data()}));render();},error=>message(t('No se pudieron cargar los pagos. ','Could not load payment reports. ')+error.message,true)));
   if(admin){
     stops.push(sdk.onSnapshot(sdk.doc(db,'privateTopupSettings','emailDelivery'),snap=>{const s=snap.data();root.querySelector('[data-mail-health]').textContent=s?.enabled?`Avisos por correo configurados para ${s.adminEmail}. Última comprobación: ${date(s.lastRunAt)||'pendiente'}.`:'El correo automático está pendiente de activar en Google. Los reportes se guardan aquí y los avisos esperan su envío.';},()=>{root.querySelector('[data-mail-health]').textContent='No se pudo comprobar el estado de envío de correos.';}));
-    stops.push(sdk.onSnapshot(sdk.query(sdk.collection(db,'privateTopupMail'),sdk.where('status','in',['pending','retry','sending','activation_pending','terms_pending','lesson_pending','uncertain','failed'])),snap=>{
+    stops.push(sdk.onSnapshot(sdk.query(sdk.collection(db,'privateTopupMail'),sdk.where('status','in',['pending','retry','sending','activation_pending','terms_pending','lesson_pending','pricing_pending','uncertain','failed'])),snap=>{
       const uncertain=snap.docs.filter(d=>['uncertain','failed'].includes(d.data().status)).length;
-      root.querySelector('[data-mail-queue]').textContent=snap.size?`${snap.size} avisos en espera.${uncertain?' Hay un envío cuyo resultado necesita revisión en Google.':''}`:'No hay avisos pendientes.';
+      root.querySelector('[data-mail-queue]').textContent=snap.size?`${snap.size} avisos en espera.${uncertain?' Hay un envío cuyo resultado necesita revisión en Google.':''}${snap.docs.some(d=>d.data().status==='pricing_pending')?' Los avisos con nuevas tarifas requieren actualizar el código de Google.':''}`:'No hay avisos pendientes.';
     },()=>{}));
   }
   return()=>{stops.forEach(stop=>stop());root.removeEventListener('submit',submit);root.replaceChildren();};

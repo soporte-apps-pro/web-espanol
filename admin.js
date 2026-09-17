@@ -210,7 +210,7 @@ function applicationCard(application) {
           </div>
           <div>
             <label for="expected-amount-${escapeHtml(application.id)}">Valor esperado (USD)</label>
-            <input id="expected-amount-${escapeHtml(application.id)}" type="number" data-expected-amount min="0" max="10000" step="0.01" value="${escapeHtml(application.expectedAmount ?? 50)}">
+            <input id="expected-amount-${escapeHtml(application.id)}" type="number" data-expected-amount min="0" max="10000" step="0.01" value="${escapeHtml(application.expectedAmount ?? 36)}">
           </div>
           <div>
             <label for="paid-amount-${escapeHtml(application.id)}">Valor recibido (USD)</label>
@@ -436,7 +436,7 @@ function renderGroups() {
       applications.find((application) => application.id === id)?.fullName || "Solicitud no disponible"
     );
     const paidCount = memberApplications.filter((application) => application.paymentStatus === "paid").length;
-    const expectedTotal = memberApplications.reduce((total, application) => total + Number(application.expectedAmount ?? 50), 0);
+    const expectedTotal = memberApplications.reduce((total, application) => total + Number(application.expectedAmount ?? 36), 0);
     const receivedTotal = memberApplications.reduce((total, application) =>
       total + (application.paymentStatus === "paid" ? Number(application.paidAmount || 0) : 0), 0
     );
@@ -493,7 +493,7 @@ function renderGroups() {
         ${group.status === "confirmed" ? `
           <div class="group-member-editor">
             <strong>Invitaci&oacute;n de horario y pago</strong>
-            <p class="muted">Env&iacute;a a cada integrante las cuatro fechas, su horario local y los pasos para pagar US$50 con Wise.</p>
+            <p class="muted">Env&iacute;a a cada integrante las cuatro fechas, su horario local y los pasos para pagar US$36 con Wise. Antes del primer envío con estas tarifas, <a href="pricing-update-setup.html" target="_blank" rel="noopener noreferrer">actualiza los correos en Google</a>.</p>
             <button class="button secondary" type="button" data-send-group-invitations ${invitationsSent ? "disabled" : ""}>
               ${invitationsSent ? "Invitaciones enviadas" : invitedCount ? "Enviar invitaci&oacute;n al nuevo estudiante" : "Enviar invitaciones de pago"}
             </button>

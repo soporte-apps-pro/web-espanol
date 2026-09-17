@@ -1,11 +1,11 @@
-import { mountPrivateAdminNavigation } from "./private-admin-navigation.mjs?v=20260916-short-slots-1";
+import { mountPrivateAdminNavigation } from "./private-admin-navigation.mjs?v=20260917-pricing-1";
 import { groupReservedLessons } from "./private-agenda.mjs?v=20260916-agenda-1";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { collection, doc, getFirestore, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import * as firestore from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid } from "./firebase-config.js";
-import { createLessonStore, privateDuration, normalizeMeetingUrl } from "./private-lessons-store.mjs?v=20260916-short-slots-1";
-import { mountPrivateTopups } from "./private-topups-ui.js?v=20260916-short-slots-1";
+import { createLessonStore, privateDuration, normalizeMeetingUrl } from "./private-lessons-store.mjs?v=20260917-pricing-1";
+import { mountPrivateTopups } from "./private-topups-ui.js?v=20260917-pricing-1";
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[char]);
 const DAY = 86400000;

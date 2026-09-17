@@ -21,6 +21,22 @@ test('reported payments, atomic approvals and protected email jobs',async t=>{
   async function init(){await env.clearFirestore();await env.withSecurityRulesDisabled(async c=>{for(const uid of ['alice','bob'])await setDoc(doc(c.firestore(),'privateAccounts',uid),{fullName:uid+' Student',email:uid+'@example.test',credited:0,used:0,reserved:0,createdAt:Timestamp.now(),updatedAt:Timestamp.now(),lastOperation:'initial-import-test'});});}
   const balance=async()=> (await getDoc(doc(contexts.alice,'privateAccounts','alice'))).data();
   try{
+    await t.test('new general prices queue safely until the pricing email update is installed',async()=>{
+      await init();
+      for(const [packageId,amountUsd]of [['single',18],['pack4',68],['pack8',128]]){
+        const id=(await alice(input({packageId,paymentReference:'NEW_'+packageId.toUpperCase()}))).data.reportId;
+        assert.equal((await getDoc(doc(contexts.admin,'privateTopups',id))).data().amountUsd,amountUsd);
+        assert.equal((await getDoc(doc(contexts.admin,'privateTopupMail',id+'_student_received'))).data().status,'pricing_pending');
+      }
+    });
+    await t.test('previously reported payments retain their original amount and can still be approved',async()=>{
+      await init();const id=(await alice(input())).data.reportId;
+      await env.withSecurityRulesDisabled(async c=>{await updateDoc(doc(c.firestore(),'privateTopups',id),{amountUsd:84});});
+      await admin(approve(id));
+      assert.equal((await getDoc(doc(contexts.admin,'privateTopups',id))).data().amountUsd,84);
+      assert.equal((await balance()).credited,4);
+      assert.equal((await getDoc(doc(contexts.admin,'privateTopupMail',id+'_student_confirmed'))).data().status,'pending');
+    });
     await t.test('activation request queues one immutable teacher notice and denies forged recipients',async()=>{
       await env.clearFirestore();
       const db=env.authenticatedContext('newstudent',{email:'new@example.test',email_verified:false}).firestore();

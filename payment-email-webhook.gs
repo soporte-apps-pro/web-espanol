@@ -43,7 +43,7 @@ function doPost(e) {
     const amount = type === 'private'
       ? swePaymentNumber_(fields.amountUsd)
       : swePaymentNumber_(fields.amountSubmitted);
-    if (type === 'group' && amount !== 50) {
+    if (type === 'group' && ![36,50].includes(amount)) {
       return swePaymentResponse_({ ok: false, error: 'incorrect-amount' });
     }
 
@@ -154,7 +154,7 @@ function sweSendGroupInvitations_(groupId) {
     return result;
   }
 
-  const paymentUrl = 'https://wise.com/pay/r/Zu3sq0-uJiuUUkQ';
+  const paymentUrl = 'https://wise.com/pay/r/0HXogEoT_GFESC8';
   const accessUrl = 'https://spanishwithelkin.com/student-access.html';
   const deadline = new Date(Date.now() + (48 * 60 * 60 * 1000));
   let sent = 0;
@@ -203,10 +203,10 @@ function sweSendGroupInvitations_(groupId) {
       'COLOMBIA SCHEDULE: ' + slotConfig.colombia, '',
       'YOUR FOUR SESSIONS IN YOUR TIME ZONE:',
       localDates.map(function(date, index) { return 'Session ' + (index + 1) + ': ' + date; }).join('\n'), '',
-      'PRICE: US$50 for all four 55-minute sessions.',
+      'PRICE: US$36 for all four 50-minute sessions.',
       'PAYMENT DEADLINE: ' + deadlineLabel, '',
       'WHAT TO DO NOW:',
-      '1. Pay US$50 with Wise: ' + paymentUrl,
+      '1. Pay US$36 with Wise: ' + paymentUrl,
       '2. Return to ' + accessUrl,
       '3. Create your account and enter the Wise payment reference.',
       '4. Verify your email address.',
@@ -220,9 +220,9 @@ function sweSendGroupInvitations_(groupId) {
       '<p><strong>Good news! We found a compatible Speaking Club group for you.</strong></p>' +
       '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px"><strong>Group:</strong> ' + safeGroup + '<br><strong>Weekly schedule in your time zone:</strong> ' + swePaymentEscapeHtml_(localSchedule) + '<br><span style="font-size:14px">Colombia schedule: ' + swePaymentEscapeHtml_(slotConfig.colombia) + '</span></div>' +
       '<h3 style="color:#1e3a8a">Your four sessions in your time zone</h3><ol style="padding-left:22px">' + dateItems + '</ol>' +
-      '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:12px;padding:16px"><strong>Price:</strong> US$50 for all four 55-minute sessions.<br><strong>Payment deadline:</strong> ' + swePaymentEscapeHtml_(deadlineLabel) + '</div>' +
-      '<h3 style="color:#1e3a8a">What to do now</h3><ol style="padding-left:22px"><li>Pay US$50 using Wise.</li><li>Return to the student access page.</li><li>Create your account and enter your Wise payment reference.</li><li>Verify your email address.</li><li>Wait while Elkin verifies the payment. You will receive another email when your access is active.</li></ol>' +
-      '<p><a href="' + paymentUrl + '" style="display:inline-block;background:#15803d;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px;margin-right:8px">Pay US$50 with Wise</a> <a href="' + accessUrl + '" style="display:inline-block;background:#f97316;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px">Register my payment</a></p>' +
+      '<div style="background:#ecfdf5;border:1px solid #86efac;border-radius:12px;padding:16px"><strong>Price:</strong> US$36 for all four 50-minute sessions.<br><strong>Payment deadline:</strong> ' + swePaymentEscapeHtml_(deadlineLabel) + '</div>' +
+      '<h3 style="color:#1e3a8a">What to do now</h3><ol style="padding-left:22px"><li>Pay US$36 using Wise.</li><li>Return to the student access page.</li><li>Create your account and enter your Wise payment reference.</li><li>Verify your email address.</li><li>Wait while Elkin verifies the payment. You will receive another email when your access is active.</li></ol>' +
+      '<p><a href="' + paymentUrl + '" style="display:inline-block;background:#15803d;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px;margin-right:8px">Pay US$36 with Wise</a> <a href="' + accessUrl + '" style="display:inline-block;background:#f97316;color:white;text-decoration:none;font-weight:bold;border-radius:10px;padding:13px 20px">Register my payment</a></p>' +
       '<p><strong>Your place is confirmed only after your payment has been verified.</strong></p>' +
       '<p>If you need help, reply to this email or contact <a href="mailto:' + SWE_SUPPORT_EMAIL + '">' + SWE_SUPPORT_EMAIL + '</a>.</p><p>Spanish with Elkin</p></div>';
 

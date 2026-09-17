@@ -80,7 +80,7 @@ function syncConfirmedClassesToGoogleCalendar() {
       desired[marker] = {
         title: groupName + ' · Sesión ' + (index + 1),
         start: start,
-        end: new Date(start.getTime() + 55 * 60000),
+        end: new Date(start.getTime() + 50 * 60000),
         description: [
           SWE_MARKER_PREFIX + marker + ']',
           'Tipo: Speaking Club',

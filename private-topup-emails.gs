@@ -26,7 +26,7 @@ function sweProcessPrivateTopupEmails() {
   try {
     const jobs = sweTopupRequest_(':runQuery', 'post', { structuredQuery: {
       from:[{collectionId:'privateTopupMail'}],
-      where:{fieldFilter:{field:{fieldPath:'status'},op:'IN',value:{arrayValue:{values:['pending','retry','sending','activation_pending','terms_pending','lesson_pending'].map(function(s){return {stringValue:s};})}}}},
+      where:{fieldFilter:{field:{fieldPath:'status'},op:'IN',value:{arrayValue:{values:['pending','retry','sending','activation_pending','terms_pending','lesson_pending','pricing_pending'].map(function(s){return {stringValue:s};})}}}},
       limit:30
     }}).filter(function(row){return row.document;}).map(function(row){return row.document;});
     jobs.sort(function(a,b){return String(sweTopupValue_(a.fields.createdAt)).localeCompare(String(sweTopupValue_(b.fields.createdAt)));});
@@ -89,7 +89,7 @@ function sweTopupDeliver_(job) {
 function sweTopupCompose_(fields,kind) {
   const r = {};
   Object.keys(fields || {}).forEach(function(key){r[key]=sweTopupValue_(fields[key]);});
-  const packs={single:{quantity:1,amount:25},pack4:{quantity:4,amount:84},pack8:{quantity:8,amount:152}};
+  const packs={single:{quantity:1,amount:[18,25].indexOf(r.amountUsd)!==-1?r.amountUsd:null},pack4:{quantity:4,amount:[68,84].indexOf(r.amountUsd)!==-1?r.amountUsd:null},pack8:{quantity:8,amount:[128,152].indexOf(r.amountUsd)!==-1?r.amountUsd:null}};
   const pack=r.packageId==='custom'&&Number.isInteger(r.quantity)&&r.quantity>=1&&r.quantity<=100&&r.amountUsd>0&&r.amountUsd<=10000&&[30,50].includes(r.durationMinutes)?{quantity:r.quantity,amount:r.amountUsd}:packs[r.packageId];
   if (!pack || pack.quantity !== r.quantity || pack.amount !== r.amountUsd || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email || '') || !r.fullName || !r.paymentReference) throw new Error('Invalid stored payment data');
   let to=r.email,subject,title,paragraphs,link=SWE_TOPUP_MAIL.portalUrl,button='Open my student portal';

@@ -282,7 +282,7 @@ service cloud.firestore {
         request.resource.data.packageId in ['single', 'pack4', 'pack8'] &&
         request.resource.data.packageLabel is string &&
         request.resource.data.packageLabel.size() <= 60 &&
-        request.resource.data.amountUsd in [25, 84, 152] &&
+        ((request.resource.data.packageId == 'single' && request.resource.data.amountUsd == 18) || (request.resource.data.packageId == 'pack4' && request.resource.data.amountUsd == 68) || (request.resource.data.packageId == 'pack8' && request.resource.data.amountUsd == 128)) &&
         request.resource.data.paymentMethod in ['paypal', 'transfer', 'other'] &&
         request.resource.data.paymentReference is string &&
         request.resource.data.paymentReference.size() >= 4 &&
@@ -484,17 +484,18 @@ service cloud.firestore {
     function topupAfter(id) {
       return getAfter(/databases/$(database)/documents/privateTopups/$(id)).data;
     }
+    function topupMailStatus(r) { return r.packageId == 'custom' ? 'terms_pending' : (r.amountUsd in [25,84,152] ? 'pending' : 'pricing_pending'); }
     function topupJob(id, kind, uid) {
       let j = getAfter(/databases/$(database)/documents/privateTopupMail/$(id + '_' + kind)).data;
-      return j.reportId == id && j.kind == kind && j.studentUid == uid && j.status == (topupAfter(id).packageId == 'custom' ? 'terms_pending' : 'pending') && j.createdAt == request.time;
+      return j.reportId == id && j.kind == kind && j.studentUid == uid && j.status == topupMailStatus(topupAfter(id)) && j.createdAt == request.time;
     }
     function topupPackage(r) {
       let a = get(/databases/$(database)/documents/privateAccounts/$(r.studentUid)).data;
       let t = a.get('terms',null);
       return t != null ? (r.packageId == 'custom' && r.quantity == t.packageQuantity && r.amountUsd == t.packageAmountUsd &&
-        r.durationMinutes == privateDuration(a) && r.packageLabel is string && r.packageLabel.size() <= 80) : (r.get('durationMinutes',50) == privateDuration(a) && ((r.packageId == 'single' && r.packageLabel == '1 private class' && r.quantity == 1 && r.amountUsd == 25) ||
-        (r.packageId == 'pack4' && r.packageLabel == '4 private classes' && r.quantity == 4 && r.amountUsd == 84) ||
-        (r.packageId == 'pack8' && r.packageLabel == '8 private classes' && r.quantity == 8 && r.amountUsd == 152)));
+        r.durationMinutes == privateDuration(a) && r.packageLabel is string && r.packageLabel.size() <= 80) : (r.get('durationMinutes',50) == privateDuration(a) && ((r.packageId == 'single' && r.packageLabel == '1 private class' && r.quantity == 1 && r.amountUsd == 18) ||
+        (r.packageId == 'pack4' && r.packageLabel == '4 private classes' && r.quantity == 4 && r.amountUsd == 68) ||
+        (r.packageId == 'pack8' && r.packageLabel == '8 private classes' && r.quantity == 8 && r.amountUsd == 128)));
     }
     function validTopupCredit(uid, opId, h) {
       let r = topupAfter(h.paymentReportId);
@@ -562,7 +563,7 @@ service cloud.firestore {
       allow create: if validLessonMail(jobId,request.resource.data);
       allow read: if isAdmin();
       allow create: if request.resource.data.keys().hasOnly(['reportId','studentUid','kind','status','createdAt']) &&
-        request.resource.data.status == (topupAfter(request.resource.data.reportId).packageId == 'custom' ? 'terms_pending' : 'pending') && request.resource.data.createdAt == request.time &&
+        request.resource.data.status == topupMailStatus(topupAfter(request.resource.data.reportId)) && request.resource.data.createdAt == request.time &&
         jobId == request.resource.data.reportId + '_' + request.resource.data.kind &&
         topupAfter(request.resource.data.reportId).studentUid == request.resource.data.studentUid &&
         (((isAdmin() || ownsPrivateAccount(request.resource.data.studentUid)) &&

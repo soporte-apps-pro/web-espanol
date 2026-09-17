@@ -74,3 +74,11 @@ test('reschedule email uses previous and new times from that specific history ev
 test('later lesson changes and a missing meeting link are clearly disclosed',()=>{
  const f=lessonFixture();f.records.get('privateLessons/lesson1').fields.operationId={stringValue:'later-operation'};f.records.delete('privateClassLinks/alice');f.ctx.sweTopupDeliver_(f.job('student_booking'));assert.match(f.sent[0].body,/changed again/);assert.match(f.sent[0].body,/add your class link/);
 });
+
+test('new and historical general prices appear unchanged in payment emails',()=>{
+ for(const [packageId,quantity,amountUsd] of [['single',1,18],['pack4',4,68],['pack8',8,128],['single',1,25],['pack4',4,84],['pack8',8,152]]){
+  const f=fixture();Object.assign(f.records.get('privateTopups/'+f.reportId).fields,fields({packageId,quantity,amountUsd}));
+  const j=f.job('student_received');j.fields.status={stringValue:'pricing_pending'};f.ctx.sweTopupDeliver_(j);
+  assert.equal(f.sent.length,1);assert.ok(f.sent[0].body.includes('US$'+amountUsd));
+ }
+});

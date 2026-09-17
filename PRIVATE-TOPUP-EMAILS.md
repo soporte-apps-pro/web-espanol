@@ -2,7 +2,7 @@
 
 ## Flujo
 
-- El estudiante con cuenta personal activa informa el paquete, el método, la referencia de la transacción y el pagador. Los paquetes utilizan los precios ya publicados: 1 clase US$25, 4 clases US$84, 8 clases US$152.
+- El estudiante con cuenta personal activa informa el paquete, el método, la referencia de la transacción y el pagador. Los paquetes utilizan los precios ya publicados: 1 clase US$18, 4 clases US$68, 8 clases US$128.
 - El reporte queda pendiente en Administración → Privadas → Nuevos pagos. No añade clases.
 - Se preparan dos correos: aviso en español a `hello@spanishwithelkin.com` y acuse en inglés al estudiante.
 - Elkin comprueba el ingreso y confirma: reporte confirmado, recarga, referencia utilizada, historial y correo de confirmación se guardan en una sola transacción.
@@ -45,3 +45,7 @@ Cada operación book/reschedule guarda dos avisos lesson_pending en la misma tra
 Reemplazar el contenido de privateTopupEmails.gs con el archivo actualizado y guardar: el activador existente de 15 minutos continúa. La versión anterior deja estos avisos pendientes. Cada correo incluye la fecha del evento en America/Bogota, duración y enlace vigente; una reprogramación incluye el horario anterior y el nuevo. Si hubo otro cambio posterior, pide consultar el estado actual en el portal. No se añaden correos de cancelación.
 
 Validación: 63 pruebas pasan con Firestore local y MailApp simulado, incluyendo destinatarios, deduplicación, historial y enlaces pendientes. No se enviaron correos reales ni se actualizó el editor de Google desde esta sesión.
+
+## Tarifas desde septiembre de 2026
+
+Speaking Club: US$36 por 4 sesiones de 50 minutos. Privadas generales: 1 por US$18, 4 por US$68, 8 por US$128. Los enlaces de Wise fueron verificados por su importe. Las condiciones personales permanecen intactas y los reportes anteriores conservan el precio registrado. Los nuevos avisos generales utilizan pricing_pending para que el emisor anterior no los rechace. Actualizar los tres archivos de Google siguiendo pricing-update-setup.html, guardar y crear nueva versión de la implementación web existente. No se modificó Apps Script ni se enviaron correos reales desde esta sesión.

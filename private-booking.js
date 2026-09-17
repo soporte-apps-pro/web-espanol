@@ -10,9 +10,9 @@ const GOOGLE_CHECK_MAX_AGE_MINUTES = 35;
 const BOOKING_WINDOW_DAYS = 21;
 const PAYMENT_NOTIFICATION_URL = "https://script.google.com/macros/s/AKfycbwW0dtawkiixLv6akVE2mdPIO8AZwKCRtrRut1D_Hn8QWN7yrPeG9_33JtvaK3Yy7xC/exec";
 const packages = {
-  single: { label: "1 private class", amount: 25, wiseUrl: "https://wise.com/pay/r/1By27Avdd7FtOHo" },
-  pack4: { label: "4 private classes", amount: 84, wiseUrl: "https://wise.com/pay/r/_QkFPSyF9SuYEwg" },
-  pack8: { label: "8 private classes", amount: 152, wiseUrl: "https://wise.com/pay/r/-r1YnKwtgKPqFT8" },
+  single: { label: "1 private class", amount: 18, wiseUrl: "https://wise.com/pay/r/mX5jxcVTbJ3mDbA" },
+  pack4: { label: "4 private classes", amount: 68, wiseUrl: "https://wise.com/pay/r/WcyTZ1ehYHVxqxE" },
+  pack8: { label: "8 private classes", amount: 128, wiseUrl: "https://wise.com/pay/r/lf6vx5sQ5EAm8bw" },
 };
 const app = initializeApp(firebaseConfig);
 initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey), isTokenAutoRefreshEnabled: true });

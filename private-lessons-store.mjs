@@ -1,3 +1,4 @@
+import { paymentMailStatus } from "./private-payment-mail-status.mjs?v=20260917-pricing-1";
 export function normalizeMeetingUrl(value) {
   const text=String(value||'').trim();
   if(!text)return '';
@@ -137,7 +138,7 @@ export function createLessonStore(db, sdk, getActor) {
       if (reportRef) {
         tx.update(reportRef,{status:"confirmed",reviewedAt:stamp,reviewedBy:actor.uid,reviewNote:reason,reviewOperationId:operationId});
         tx.set(claimRef,{reportId:paymentReportId,studentUid:uid,createdAt:stamp});
-        tx.set(doc(db,"privateTopupMail",`${paymentReportId}_student_confirmed`),{reportId:paymentReportId,studentUid:uid,kind:"student_confirmed",status:report.packageId==="custom"?"terms_pending":"pending",createdAt:stamp});
+        tx.set(doc(db,"privateTopupMail",`${paymentReportId}_student_confirmed`),{reportId:paymentReportId,studentUid:uid,kind:"student_confirmed",status:paymentMailStatus(report),createdAt:stamp});
       }
       if(action==="open"&&meetingUrl)tx.set(doc(db,"privateClassLinks",uid),{url:meetingUrl,updatedBy:actor.uid,updatedAt:stamp});
       if (action === "open") tx.set(doc(db,"privateTopupMail",`${uid}_student_activated`),{reportId:uid,studentUid:uid,kind:"student_activated",status:"activation_pending",createdAt:stamp});
