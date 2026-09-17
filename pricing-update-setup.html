@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Actualizar tarifas en Google | Spanish with Elkin</title><link rel="icon" href="favicon.svg"><style>*{box-sizing:border-box}body{margin:0;background:#f8fafc;color:#172554;font:16px/1.6 system-ui,sans-serif}main{max-width:800px;margin:30px auto;padding:24px;background:white;border:1px solid #e2e8f0;border-radius:20px}section{padding:20px 0;border-top:1px solid #e2e8f0}button{padding:12px 18px;background:#1e3a8a;color:white;border:0;border-radius:10px;font:inherit;cursor:pointer}textarea{width:100%;min-height:180px}a{color:#1e40af}code{overflow-wrap:anywhere}.notice{background:#fff7ed;padding:16px;border-radius:12px}@media(max-width:650px){main{margin:12px}}</style></head><body><main>
-<a href="admin.html#private">Volver a administración</a><h1>Actualizar tarifas en Google</h1>
+<a href="admin.html#private">Volver a administración</a><h1>Actualizar tarifas en Google</h1><p class="notice"><strong>Fechas actualizadas:</strong> inscripciones hasta el 30 de septiembre; inicio en la semana del 4 de octubre de 2026. Si ya actualizaste las tarifas, repite solo el paso 2 (correos grupales) y el paso 4 (nueva versión de la implementación existente).</p>
 <p>Speaking Club: <strong>US$36 por 4 sesiones de 50 minutos</strong>. Clases privadas: <strong>US$18 / US$68 por 4 / US$128 por 8</strong>.</p>
 <p class="notice">La web ya tiene estos precios. Completa estos pasos en el proyecto de Apps Script que utilizas para los correos y el calendario. Los nuevos avisos de pagos privados esperan esta actualización. Actualiza antes de enviar nuevas invitaciones de Speaking Club.</p>
 <section data-file="private-topup-emails.gs"><h2>1. Correos de clases privadas</h2><p>Copia el código completo, reemplaza el contenido de <code>privateTopupEmails.gs</code> y guarda. Conserva el activador de 15 minutos.</p><button type="button">Copiar código completo</button><p role="status"></p><details><summary>Ver código</summary><textarea readonly aria-label="Código de correos privados"></textarea></details></section>
@@ -10,7 +10,7 @@
 <script type="module">
 for(const section of document.querySelectorAll('[data-file]')){
  const button=section.querySelector('button'),status=section.querySelector('[role="status"]'),area=section.querySelector('textarea');
- const code=fetch(section.dataset.file+'?v=20260917-pricing-1').then(async r=>{if(!r.ok)throw Error('No se pudo cargar el código. Actualiza la página.');return r.text();}).then(text=>{area.value=text;return text;});
+ const code=fetch(section.dataset.file+'?v=20260917-october-1').then(async r=>{if(!r.ok)throw Error('No se pudo cargar el código. Actualiza la página.');return r.text();}).then(text=>{area.value=text;return text;});
  code.catch(error=>{status.textContent=error.message;button.disabled=true;});
  button.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(await code);status.textContent='Copiado. Reemplaza el contenido del archivo indicado y guarda.';}catch{section.querySelector('details').open=true;area.focus();area.select();status.textContent='Copia el texto con Ctrl+C.';}});
 }

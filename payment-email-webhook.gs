@@ -255,9 +255,9 @@ function sweSendApplicationEmail_(documentId) {
     'WHAT HAPPENS NEXT:',
     '1. Elkin reviews your B1 level, availability, country, and time zone.',
     '2. He looks for a compatible group of 3 to 5 learners.',
-    '3. By September 18, you will receive an email telling you whether a compatible group was found.',
+    '3. After applications close on September 30, you will receive an email telling you whether a compatible group was found.',
     '4. If you are matched, that email will show the exact weekly schedule and guide you through payment.', '',
-    'Applications close September 15. Groups begin during the week of September 21.', '',
+    'Applications close September 30. Groups begin during the week of October 4.', '',
     'Submitting an application does not reserve a place. Your place is confirmed only after you are assigned to a group and your payment is verified.', '',
     'If you need help, reply to this email or contact ' + SWE_SUPPORT_EMAIL + '.', '',
     'Spanish with Elkin'
@@ -272,10 +272,10 @@ function sweSendApplicationEmail_(documentId) {
     '<h3 style="color:#1e3a8a">What happens next</h3><ol style="padding-left:22px">' +
     '<li>Elkin reviews your B1 level, availability, country, and time zone.</li>' +
     '<li>He looks for a compatible group of 3 to 5 learners.</li>' +
-    '<li>By <strong>September 18</strong>, you will receive an email telling you whether a compatible group was found.</li>' +
+    '<li>After applications close on <strong>September 30</strong>, you will receive an email telling you whether a compatible group was found.</li>' +
     '<li>If you are matched, that email will show the exact weekly schedule and guide you through payment.</li></ol>' +
     '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px">' +
-    '<strong>Applications close:</strong> September 15<br><strong>Groups begin:</strong> the week of September 21</div>' +
+    '<strong>Applications close:</strong> September 30<br><strong>Groups begin:</strong> the week of October 4</div>' +
     '<p><strong>Submitting an application does not reserve a place.</strong> Your place is confirmed only after you are assigned to a group and your payment is verified.</p>' +
     '<p>If you need help, reply to this email or contact <a href="mailto:' + SWE_SUPPORT_EMAIL + '">' + SWE_SUPPORT_EMAIL + '</a>.</p>' +
     '<p>Spanish with Elkin</p></div>';

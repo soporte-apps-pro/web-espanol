@@ -65,21 +65,21 @@
   timeZoneSelect.value = detectedTimeZone;
 
   const candidateSlots = [
-    { id: "monday-1000", label: "Monday", date: "2026-09-21", hour: 10 },
-    { id: "monday-1100", label: "Monday", date: "2026-09-21", hour: 11 },
-    { id: "monday-1300", label: "Monday", date: "2026-09-21", hour: 13 },
-    { id: "monday-1800", label: "Monday", date: "2026-09-21", hour: 18 },
-    { id: "monday-1900", label: "Monday", date: "2026-09-21", hour: 19 },
-    { id: "tuesday-1400", label: "Tuesday", date: "2026-09-22", hour: 14 },
-    { id: "tuesday-1700", label: "Tuesday", date: "2026-09-22", hour: 17 },
-    { id: "tuesday-1900", label: "Tuesday", date: "2026-09-22", hour: 19 },
-    { id: "wednesday-0800", label: "Wednesday", date: "2026-09-23", hour: 8 },
-    { id: "thursday-0800", label: "Thursday", date: "2026-09-24", hour: 8 },
-    { id: "thursday-1300", label: "Thursday", date: "2026-09-24", hour: 13 },
-    { id: "thursday-1400", label: "Thursday", date: "2026-09-24", hour: 14 },
-    { id: "friday-1100", label: "Friday", date: "2026-09-25", hour: 11 },
-    { id: "friday-1400", label: "Friday", date: "2026-09-25", hour: 14 },
-    { id: "friday-1500", label: "Friday", date: "2026-09-25", hour: 15 },
+    { id: "monday-1000", label: "Monday", date: "2026-10-05", hour: 10 },
+    { id: "monday-1100", label: "Monday", date: "2026-10-05", hour: 11 },
+    { id: "monday-1300", label: "Monday", date: "2026-10-05", hour: 13 },
+    { id: "monday-1800", label: "Monday", date: "2026-10-05", hour: 18 },
+    { id: "monday-1900", label: "Monday", date: "2026-10-05", hour: 19 },
+    { id: "tuesday-1400", label: "Tuesday", date: "2026-10-06", hour: 14 },
+    { id: "tuesday-1700", label: "Tuesday", date: "2026-10-06", hour: 17 },
+    { id: "tuesday-1900", label: "Tuesday", date: "2026-10-06", hour: 19 },
+    { id: "wednesday-0800", label: "Wednesday", date: "2026-10-07", hour: 8 },
+    { id: "thursday-0800", label: "Thursday", date: "2026-10-08", hour: 8 },
+    { id: "thursday-1300", label: "Thursday", date: "2026-10-08", hour: 13 },
+    { id: "thursday-1400", label: "Thursday", date: "2026-10-08", hour: 14 },
+    { id: "friday-1100", label: "Friday", date: "2026-10-09", hour: 11 },
+    { id: "friday-1400", label: "Friday", date: "2026-10-09", hour: 14 },
+    { id: "friday-1500", label: "Friday", date: "2026-10-09", hour: 15 },
   ];
 
   function formatTime(date, timeZone) {
