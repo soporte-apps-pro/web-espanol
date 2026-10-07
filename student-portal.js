@@ -3,7 +3,7 @@ import { getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from "https
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 import { doc, getDoc, getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { adminUid, firebaseConfig, recaptchaEnterpriseSiteKey } from "./firebase-config.js";
-import { mountPrivateLessons } from "./private-lessons-ui.js?v=20260917-pricing-1";
+import { mountPrivateLessons } from "./private-lessons-ui.js?v=20261006-complete-1";
 
 const app=getStudentApp();
 const appCheck=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(recaptchaEnterpriseSiteKey),isTokenAutoRefreshEnabled:true});

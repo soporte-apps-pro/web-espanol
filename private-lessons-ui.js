@@ -1,3 +1,4 @@
+import { lessonChangeReason, lessonChangeConfirmation } from "./private-lesson-actions.mjs?v=20261006-complete-1";
 import { mountPrivateAdminNavigation } from "./private-admin-navigation.mjs?v=20260917-pricing-1";
 import { groupReservedLessons } from "./private-agenda.mjs?v=20260916-agenda-1";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
@@ -42,8 +43,8 @@ export function mountPrivateLessons(root, app, admin = false) {
       <details><summary>${t("Movimientos del saldo","Balance activity")}</summary><div class="lesson-history" data-history></div></details>
     </div>`;
   const taskNavigation = admin ? mountPrivateAdminNavigation(root,()=>!busy) : null;
-  const message = (text, error = false) => { const el = root.querySelector("[data-message]"); el.textContent = text; el.classList.toggle("error", error); };
-  const failure = error => { console.error(error); message(t("No se pudo confirmar el cambio. ","The change could not be confirmed. ") + (error.message || "") + t(" Actualiza antes de repetirlo si tienes dudas."," Refresh before repeating it if you are unsure."), true); };
+  const message = (text, error = false, form = null) => { const local = form?.querySelector("[data-change-message]"); const el = local?.isConnected ? local : root.querySelector("[data-message]"); el.textContent = text; el.classList.toggle("error", error); };
+  const failure = (error, form = null) => { console.error(error); message(t("No se pudo confirmar el cambio. ","The change could not be confirmed. ") + (error.message || "") + t(" Actualiza antes de repetirlo si tienes dudas."," Refresh before repeating it if you are unsure."), true, form); };
   function usableSlots() { const now = Date.now(); return slots.filter(s => s.status === "available" && s.durationMinutes >= privateDuration(account) && !s.lessonId && s.startAt?.toMillis() > now && s.startAt.toMillis() <= now + 21 * DAY && s.googleCalendarBlocked === false && s.googleCalendarCheckedAt?.toMillis() >= now - 35 * 60000).sort((a,b) => a.startAt.toMillis()-b.startAt.toMillis()); }
   function slotOptions() { return `<option value="">${t("Selecciona un horario","Select a time")}</option>` + usableSlots().map(s => `<option value="${escape(s.id)}">${escape(format(s.startAt))}</option>`).join(""); }
   function renderSlots() { root.querySelectorAll("[data-slot]").forEach(select => { const value = select.value; select.innerHTML = slotOptions(); select.value = value; }); root.querySelector("[data-availability]").textContent=usableSlots().length?"":t("No hay horarios verificados disponibles. Publica disponibilidad o espera a la próxima revisión del calendario.","No verified times are available right now. Contact Elkin or check again later."); }
@@ -69,7 +70,7 @@ export function mountPrivateLessons(root, app, admin = false) {
     root.querySelector("[data-lessons]").innerHTML = ordered.length ? ordered.map(lesson => {
       const allowed = admin || lesson.startAt.toMillis()-Date.now() >= DAY;
       return `<article class="lesson-row" data-lesson="${escape(lesson.id)}"><strong>${escape(format(lesson.startAt))}</strong> <span class="lesson-badge">${escape(status(lesson.status))}</span><p class="lesson-note">${lesson.durationMinutes||50} ${t("minutos","minutes")}</p>
-        ${lesson.status === "reserved" ? allowed ? `<form data-change><label>${t("Nuevo horario para reprogramar","New time to reschedule")}<select name="slotId" data-slot>${slotOptions()}</select></label>${admin ? '<label>Motivo del cambio<input name="reason" minlength="3" maxlength="500" placeholder="Motivo para el historial"></label>' : ""}<button type="submit" name="action" value="reschedule">${t("Reprogramar","Reschedule")}</button><button type="submit" name="action" value="cancel">${t("Cancelar y devolver clase","Cancel and return credit")}</button>${admin && lesson.startAt.toMillis()-Date.now()<DAY ? '<button type="submit" name="action" value="late_cancel">Cancelación tardía · consumir clase</button>' : ""}${admin && lesson.startAt.toMillis()+(lesson.durationMinutes||50)*60000 <= Date.now() ? '<button type="submit" name="action" value="complete">Marcar realizada</button><button type="submit" name="action" value="no_show">Registrar ausencia · consumir clase</button>' : ""}</form>` : `<p class="lesson-note">${t("Quedan menos de 24 horas. Solo tú puedes hacer cambios.","Less than 24 hours remain. Contact Elkin to cancel or reschedule.")}</p>` : ""}</article>`;
+        ${lesson.status === "reserved" ? allowed ? `<form data-change><label>${t("Nuevo horario para reprogramar","New time to reschedule")}<select name="slotId" data-slot>${slotOptions()}</select></label>${admin ? '<label>Motivo (opcional al marcar realizada)<input name="reason" minlength="3" maxlength="500" placeholder="Motivo para el historial"></label>' : ""}<button type="submit" name="action" value="reschedule">${t("Reprogramar","Reschedule")}</button><button type="submit" name="action" value="cancel">${t("Cancelar y devolver clase","Cancel and return credit")}</button>${admin && lesson.startAt.toMillis()-Date.now()<DAY ? '<button type="submit" name="action" value="late_cancel">Cancelación tardía · consumir clase</button>' : ""}${admin && lesson.startAt.toMillis()+(lesson.durationMinutes||50)*60000 <= Date.now() ? '<button type="submit" name="action" value="complete" formnovalidate>Marcar como realizada</button><button type="submit" name="action" value="no_show">Registrar ausencia · consumir clase</button>' : ""}<p data-change-message class="lesson-notice" role="status" aria-live="polite"></p></form>` : `<p class="lesson-note">${t("Quedan menos de 24 horas. Solo tú puedes hacer cambios.","Less than 24 hours remain. Contact Elkin to cancel or reschedule.")}</p>` : ""}</article>`;
     }).join("") : `<p class="lesson-note">${t("Todavía no hay clases registradas.","No lessons booked yet.")}</p>`;
   }
   function renderAgenda() {
@@ -113,7 +114,7 @@ export function mountPrivateLessons(root, app, admin = false) {
     root.querySelectorAll("button").forEach(b=>b.disabled=true);
     const key=JSON.stringify(data);
     if(!pending.has(key)) pending.set(key,crypto.randomUUID());
-    message(t("Guardando…","Saving…"));
+    message(t("Guardando…","Saving…"), false, form);
     try {
       const result=await call({...data,operationId:pending.get(key)});
       pending.delete(key); form?.reset();
@@ -123,7 +124,7 @@ export function mountPrivateLessons(root, app, admin = false) {
       document.dispatchEvent(new CustomEvent("private-lessons-changed"));
       message(data.action==="meeting_link"?"Enlace de clase guardado. El estudiante ya puede verlo en su portal.":t("Cambio guardado. El saldo y el historial se han actualizado.","Saved. Your balance and history have been updated."));
       if(data.action==="open") { watchStudent(result.data.studentUid); renderStudents(); }
-    } catch(error) { failure(error); }
+    } catch(error) { failure(error, form); }
     finally { busy=false;if(data.action==="open"&&account)taskNavigation?.show("students");if(admin)root.querySelector("[data-student]").disabled=false;root.querySelectorAll("button").forEach(b=>b.disabled=false);renderAccount(); }
   }
   function handleSubmit(event) {
@@ -138,10 +139,12 @@ export function mountPrivateLessons(root, app, admin = false) {
     if(form.matches("[data-change]")) {
       const action=event.submitter?.value;
       if(!action)return;
-      if(action==="reschedule"&&!values.slotId) {message(t("Selecciona el nuevo horario.","Select the new time."),true);return;}
-      if(admin && (!values.reason || values.reason.trim().length<3)) {message("Añade un motivo para el historial.",true);return;}
-      if(!confirm(action==="cancel"?t("¿Cancelar esta clase y devolverla al saldo?","Cancel this lesson and return its credit?"):action==="late_cancel"?"¿Cancelar y consumir esta clase por cancelación tardía?":action==="no_show"?"¿Registrar ausencia y consumir esta clase?":t("¿Guardar este cambio?","Save this change?")))return;
-      void execute({action,studentUid:uid,lessonId:form.closest("[data-lesson]").dataset.lesson,reason:values.reason||"",...(action==="reschedule"?{slotId:values.slotId}:{})},form);
+      if(action==="reschedule"&&!values.slotId) {message(t("Selecciona el nuevo horario.","Select the new time."),true,form);return;}
+      let reason;
+      try { reason = lessonChangeReason(action, values.reason, admin); }
+      catch (error) { message(error.message, true, form); form.elements.reason?.focus(); return; }
+      if(!confirm(lessonChangeConfirmation(action, admin)))return;
+      void execute({action,studentUid:uid,lessonId:form.closest("[data-lesson]").dataset.lesson,reason,...(action==="reschedule"?{slotId:values.slotId}:{})},form);
     }
   }
   root.addEventListener('click',async event=>{if(!event.target.closest('[data-copy-meeting]'))return;try{await navigator.clipboard.writeText(normalizeMeetingUrl(meetingUrl));message('Enlace copiado. Puedes enviarlo por WhatsApp o correo.');}catch{message('Copia el enlace desde el botón Abrir enlace de clase.',true);}});

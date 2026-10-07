@@ -96,6 +96,16 @@ test('Spark transactions enforce balances, roles, deadlines and atomicity withou
     await t.test('student may cancel just before the 24-hour deadline',async()=>{
       await init();const id=await book();await moveTime(id,DAY+30000);await alice(command('cancel',{lessonId:id}));assert.equal((await balance()).reserved,0);
     });
+    await t.test('package of five consumes the completed reservation once with automatic audit reason',async()=>{
+      await init(5);const id=await book();await moveTime(id,-60*60000);
+      const {lessonChangeReason}=await import('../../private-lesson-actions.mjs');
+      const op=command('complete',{lessonId:id,reason:lessonChangeReason('complete','',true)});
+      await admin(op);await admin(op);
+      const a=await balance();assert.equal(a.credited,5);assert.equal(a.used,1);assert.equal(a.reserved,0);assert.equal(a.credited-a.used-a.reserved,4);
+      assert.equal((await getDoc(doc(adminDB,'privateLessons',id))).data().status,'completed');
+      const history=(await getDoc(doc(adminDB,'privateAccounts','alice','history',ADMIN+'_'+op.operationId))).data();
+      assert.equal(history.reason,'Clase realizada confirmada por Elkin');
+    });
     await t.test('only admin completes an ended lesson, once',async()=>{
       await init();const id=await book();await assert.rejects(admin(command('complete',{lessonId:id})));
       await moveTime(id,-60*60000);await assert.rejects(alice(command('complete',{lessonId:id})));
